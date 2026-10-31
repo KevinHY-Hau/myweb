@@ -1,0 +1,31 @@
+{
+  "name": "3D Cube",
+  "short_name": "3D Cube",
+  "description": "A cube you can spin and twist in 3D. Drag a sticker to turn a layer, drag the background to look around. 2x2, 3x3 and 4x4",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101828",
+  "theme_color": "#1d3557",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

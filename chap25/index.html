@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 25 · Flying Pig</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flying Pig">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:520px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.tboardwrap{position:relative}
+.cv{display:block;width:100%;border-radius:12px;touch-action:manipulation;cursor:pointer;aspect-ratio:3/5;user-select:none;-webkit-user-select:none}
+.tmsg{min-height:1.5em;text-align:center;font-weight:700}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+.medal{font-size:56px;line-height:1}
+.tpanel{margin-top:2px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Flying Pig</h2>
+  <p>Chapter 25 · Tap to flap the little wing and keep the pig in the air. Squeeze through the gaps, pick up apples and a golden halo, and dress your pig up</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>SCORE</small><b id="s1">0</b></div>
+    <div class="tstat"><small id="bl">BEST</small><b id="s2">0</b></div>
+    <div class="tstat"><small>🍎 APPLES</small><b id="s3">0</b></div>
+    <div class="tstat"><small>FLIGHTS</small><b id="s4">0</b></div>
+  </div>
+  <div class="tboardwrap">
+    <canvas id="cv" class="cv" aria-label="Flying pig game"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">Splat!</h3><div id="medal" class="medal"></div><p id="endP"></p><div><button class="btn primary" data-act="again" type="button">Fly again</button></div></div>
+    <div class="ov" id="ovPause"><h3>Paused</h3><button class="btn primary" data-act="pause" type="button">Resume</button></div>
+  </div>
+  <div class="tmsg" id="msg">Tap, click or press Space to flap</div>
+  <div class="tbar">
+    <button class="btn sm" data-act="pause" type="button">⏸ Pause</button>
+    <button class="btn sm" data-act="again" type="button">🔄 Restart</button>
+  </div>
+  <div class="tbar"><span class="kl">Level:</span><span id="levels"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">How to play: your pig is flying, but pigs are not good at it. Every tap makes the wing flap and lifts the pig a little, then gravity pulls it down again. Fly through the gaps between the pillars without touching them, the ground or the top. Each gap passed is 1 point. Grab 🍎 apples for fun and the golden ✨ halo for one free bump. Easy has wide gaps, Hard is fast and narrow, and Daily gives everyone the same course for the day. Keys: Space, ↑ or W to flap, P to pause, R to restart.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 A flappy-style game on my own engine. The pig, the wing animation, the pillars and all the code are my own drawings in code, no pictures or sounds from other games.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Flying Pig: a flappy-style game. The simulation runs on a fixed 1/120 s step so the feel is the same on every phone. */
+(() => {
+const { $, store, ui, rng, sfx, settings } = KIT;
+const S = store('kevinhyhau.ch25.v1', { dark: true, sound: true, vibrate: true, pig: 'pink', hat: 'none', obs: 'pipes', bg: 'auto', level: 'normal', best: {}, daily: { d: '', s: 0 }, apples: 0, flights: 0, medals: {} }), st = S.st;
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd', 'ovPause']);
+const W = 360, H = 600, GROUND = 70, PIGX = 110, R = 13, cv = $('cv'), C = KIT.canvas(cv, W, H), ctx = C.ctx;
+const LEVELS = { easy: { n: 'Easy', gap: 195, speed: 112, delta: 150, space: 205 }, normal: { n: 'Normal', gap: 163, speed: 132, delta: 135, space: 192 }, hard: { n: 'Hard', gap: 138, speed: 158, delta: 120, space: 182 }, daily: { n: '📅 Daily', gap: 160, speed: 135, delta: 130, space: 190 } };
+const GRAV = 1500, FLAP = -430, PW = 58;
+const PIGS = { pink: ['#ffb3c7', '#ff8fb0', '#e0688f'], brown: ['#c99a6b', '#a87746', '#7d5329'], spotted: ['#fff1f4', '#ffd9e2', '#e0688f'], gold: ['#ffe27a', '#f6c431', '#b8860b'], black: ['#6f6a78', '#4a4552', '#2a2630'], blue: ['#a8d4ff', '#74b3f2', '#3f7fc4'] };
+settings([
+  { id: 'pig', label: 'Pig colour', type: 'select', options: [['pink', '🐷 Pink'], ['brown', '🟤 Brown'], ['spotted', '⚪ Spotted'], ['gold', '🟡 Golden'], ['black', '⚫ Black'], ['blue', '🔵 Blue']], def: 'pink' },
+  { id: 'hat', label: 'Hat', type: 'select', options: [['none', 'No hat'], ['party', '🎉 Party hat'], ['crown', '👑 Crown'], ['pilot', '🧢 Pilot cap'], ['halo', '😇 Halo'], ['bow', '🎀 Bow']], def: 'none' },
+  { id: 'obs', label: 'Obstacles', type: 'select', options: [['pipes', '🟩 Pipes'], ['chimney', '🧱 Chimneys'], ['candy', '🍭 Candy canes'], ['cloud', '☁️ Cloud towers']], def: 'pipes' },
+  { id: 'bg', label: 'Sky', type: 'select', options: [['auto', '🌗 Changes as you score'], ['day', '☀️ Day'], ['dusk', '🌇 Dusk'], ['night', '🌙 Night']], def: 'auto' },
+  { id: 'vibrate', label: 'Vibrate on a bump (phones)', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); });
+
+/* ---------- the world ---------- */
+let G = null, rnd = Math.random;
+function newRun() {
+  const L = LEVELS[st.level] || LEVELS.normal, seed = st.level === 'daily' ? rng.dailySeed('pig') : (Math.random() * 4294967296) >>> 0;
+  rnd = rng.mulberry(seed);
+  G = { L, seed, state: 'ready', t: 0, y: H * .42 - 20, vy: 0, rot: 0, wing: 1, flapT: 0, pipes: [], things: [], score: 0, apples: 0, shield: 0, scroll: 0, nextX: W + 120, cy: 0, shake: 0, deadT: 0, parts: [], idx: 0, blink: 0, bumpT: 0, newBest: false };
+  while (G.nextX < W + 400) addPipe(); O.hideAll(); hud(); setMsg('Tap, click or press Space to flap');
+}
+function addPipe() {
+  const L = G.L, lo = L.gap / 2 + 70, hi = H - GROUND - L.gap / 2 - 50; let cy;
+  if (!G.pipes.length) cy = (lo + hi) / 2; else { const prev = G.cy, a = Math.max(lo, prev - L.delta), b = Math.min(hi, prev + L.delta); cy = a + rnd() * (b - a); }
+  G.cy = cy; const p = { x: G.nextX, cy, gap: L.gap, passed: false, i: G.idx++ }; G.pipes.push(p);
+  // an apple sits in some gaps, a halo is rare
+  const r = rnd(); if (G.idx > 1) { if (r < .42) G.things.push({ k: 'apple', x: p.x + PW / 2, y: cy + (rnd() - .5) * (L.gap - 70), got: false }); if (r > .93) G.things.push({ k: 'halo', x: p.x + PW / 2, y: cy, got: false }); }
+  G.nextX += L.space + PW;
+}
+const speed = () => G.L.speed * (1 + Math.min(.25, G.score * .004));
+function flap() {
+  if (!G) return; if (G.state === 'dead') return;
+  if (G.state === 'ready') { G.state = 'play'; setMsg(''); }
+  if (G.state === 'paused') return;
+  G.vy = FLAP; G.flapT = 0; A.slide(380, 640, .09, 'triangle', .07);
+  for (let i = 0; i < 4; i++) G.parts.push({ x: PIGX - 10, y: G.y + 6, vx: -40 - Math.random() * 40, vy: 20 + Math.random() * 40, life: .4, max: .4, k: 'puff' });
+}
+function die() {
+  if (G.state === 'dead') return; if (G.shield > 0) { G.shield = 0; G.bumpT = .6; G.vy = FLAP * .8; A.beep(180, .15, 'sawtooth', .1); return; }
+  G.state = 'dead'; G.vy = -220; G.shake = .3; A.slide(300, 70, .5, 'sawtooth', .12); if (st.vibrate && navigator.vibrate) { try { navigator.vibrate(60); } catch (e) {} }
+  for (let i = 0; i < 14; i++) G.parts.push({ x: PIGX, y: G.y, vx: (Math.random() - .5) * 220, vy: -Math.random() * 200, life: .8, max: .8, k: 'star' });
+}
+function step(dt) {
+  if (!G) return; G.t += dt; G.flapT += dt; G.blink -= dt; if (G.blink < -3 - Math.random() * 2) G.blink = .12; if (G.bumpT > 0) G.bumpT -= dt; if (G.shake > 0) G.shake -= dt;
+  for (const p of G.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.k === 'star') p.vy += 500 * dt; } G.parts = G.parts.filter(p => p.life > 0);
+  if (G.state === 'ready') { G.y = H * .42 - 20 + Math.sin(G.t * 4) * 7; G.rot = 0; G.scroll += 40 * dt; return; }
+  if (G.state === 'dead') { G.vy += GRAV * dt; G.y += G.vy * dt; G.rot = Math.min(1.5, G.rot + 5 * dt); const fl = H - GROUND - R; if (G.y >= fl) { G.y = fl; G.vy = 0; if (!G.deadT) { G.deadT = G.t; A.noise(.15, .08); } } if (G.deadT && G.t - G.deadT > .5 && !O.open('ovEnd')) endRun(); return; }
+  const sp = speed(); G.scroll += sp * dt; G.vy += GRAV * dt; G.y += G.vy * dt; G.rot = Math.max(-.5, Math.min(1.2, G.vy / 520));
+  if (G.y < R) { G.y = R; if (G.vy < 0) G.vy = 0; }
+  if (G.y > H - GROUND - R) { G.y = H - GROUND - R; die(); return; }
+  for (const p of G.pipes) { p.x -= sp * dt;
+    if (!p.passed && p.x + PW < PIGX - R) { p.passed = true; G.score++; hud(); A.beep(880, .07, 'square', .06); A.beep(1320, .09, 'square', .05, .06); }
+    if (PIGX + R > p.x && PIGX - R < p.x + PW) { const top = p.cy - p.gap / 2, bot = p.cy + p.gap / 2; const nx = Math.max(p.x, Math.min(PIGX, p.x + PW)); // circle against the two pillar rectangles
+      const hit = (y0, y1) => { const ny = Math.max(y0, Math.min(G.y, y1)); return (PIGX - nx) ** 2 + (G.y - ny) ** 2 < R * R; };
+      if (hit(-100, top) || hit(bot, H)) { die(); if (G.state === 'dead') return; } } }
+  for (const t of G.things) { t.x -= sp * dt; if (!t.got && (t.x - PIGX) ** 2 + (t.y - G.y) ** 2 < (R + 11) ** 2) { t.got = true; if (t.k === 'apple') { G.apples++; st.apples++; A.beep(1200, .06, 'triangle', .07); G.parts.push({ x: t.x, y: t.y, vx: 0, vy: -50, life: .5, max: .5, k: 'plus' }); } else { G.shield = 1; A.beep(660, .1, 'triangle', .08); A.beep(990, .15, 'triangle', .08, .1); } } }
+  G.pipes = G.pipes.filter(p => p.x > -PW - 10); G.things = G.things.filter(t => t.x > -30 && !t.got); G.nextX -= sp * dt; while (G.nextX < W + 300) addPipe();
+}
+function endRun() {
+  const k = st.level, best = k === 'daily' ? ((st.daily.d === today() ? st.daily.s : 0)) : (st.best[k] || 0); G.newBest = G.score > best; st.flights++;
+  if (k === 'daily') { if (G.newBest) st.daily = { d: today(), s: G.score }; } else if (G.newBest) st.best[k] = G.score;
+  const medal = G.score >= 50 ? ['💎', 'Platinum'] : G.score >= 30 ? ['🥇', 'Gold'] : G.score >= 20 ? ['🥈', 'Silver'] : G.score >= 10 ? ['🥉', 'Bronze'] : ['🐷', 'Keep flapping'];
+  S.save(); hud(); KIT.setText($('medal'), medal[0]); KIT.setText($('endH'), G.score + (G.score === 1 ? ' point' : ' points')); KIT.setText($('endP'), medal[1] + (G.newBest && G.score > 0 ? ' · 🎉 new best!' : '') + ' · 🍎 ' + G.apples); O.show('ovEnd');
+}
+const today = () => new Date().toISOString().slice(0, 10);
+function bestNow() { return st.level === 'daily' ? (st.daily.d === today() ? st.daily.s : 0) : (st.best[st.level] || 0); }
+function hud() { KIT.setText($('s1'), G ? G.score : 0); KIT.setText($('s2'), bestNow()); KIT.setText($('s3'), st.apples); KIT.setText($('s4'), st.flights); KIT.setText($('bl'), st.level === 'daily' ? 'TODAY' : 'BEST'); }
+function setMsg(t) { KIT.setText($('msg'), t); }
+
+/* ---------- drawing ---------- */
+const hex = (c, a) => c;
+function skyOf() { const m = st.bg === 'auto' ? ['day', 'dusk', 'night', 'dusk'][Math.floor((G ? G.score : 0) / 10) % 4] : st.bg; return m; }
+const SKY = { day: ['#5ec0ff', '#bfe9ff', '#fff'], dusk: ['#ff9a6b', '#ffd2a1', '#a56bd0'], night: ['#0c1330', '#27336b', '#ffffff'] };
+let skyT = 0, skyCur = 'day';
+function drawBg() {
+  const m = skyOf(), c = SKY[m]; const g = ctx.createLinearGradient(0, 0, 0, H - GROUND); g.addColorStop(0, c[0]); g.addColorStop(1, c[1]); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const sc = G ? G.scroll : 0;
+  if (m === 'night') { ctx.fillStyle = '#fff'; for (let i = 0; i < 40; i++) { const x = (i * 97 + 13) % W, y = (i * 53 + 7) % (H - GROUND - 120), tw = .5 + .5 * Math.sin(i + (G ? G.t : 0) * 2); ctx.globalAlpha = .4 + .5 * tw; ctx.fillRect(x, y, 2, 2); } ctx.globalAlpha = 1; ctx.fillStyle = '#fff6c4'; ctx.beginPath(); ctx.arc(290, 90, 24, 0, 7); ctx.fill(); ctx.fillStyle = SKY.night[1]; ctx.beginPath(); ctx.arc(300, 84, 22, 0, 7); ctx.fill(); }
+  else { ctx.fillStyle = m === 'dusk' ? '#ffd86b' : '#fff3a0'; ctx.beginPath(); ctx.arc(m === 'dusk' ? 80 : 280, m === 'dusk' ? 330 : 90, 26, 0, 7); ctx.fill(); }
+  // clouds, hills (parallax)
+  ctx.fillStyle = m === 'night' ? 'rgba(160,170,220,.25)' : 'rgba(255,255,255,.85)';
+  for (let i = 0; i < 6; i++) { const x = ((i * 190 - sc * .12) % 1140 + 1140) % 1140 - 140, y = 70 + (i * 71) % 210; ctx.beginPath(); ctx.arc(x, y, 18, 0, 7); ctx.arc(x + 22, y - 8, 22, 0, 7); ctx.arc(x + 48, y, 18, 0, 7); ctx.rect(x, y, 48, 18); ctx.fill(); }
+  const hill = (col, amp, per, off, k) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, H - GROUND); for (let x = 0; x <= W; x += 10) ctx.lineTo(x, H - GROUND - off - amp * (.5 + .5 * Math.sin((x + sc * k) / per))); ctx.lineTo(W, H - GROUND); ctx.fill(); };
+  hill(m === 'night' ? '#1b2a52' : m === 'dusk' ? '#8a5aa8' : '#7fcf8b', 38, 55, 22, .2); hill(m === 'night' ? '#142040' : m === 'dusk' ? '#6a3f88' : '#5bb76f', 26, 38, 6, .4);
+}
+function drawGround() {
+  const y = H - GROUND, sc = G ? G.scroll : 0, m = skyOf(); ctx.fillStyle = m === 'night' ? '#3a2a1a' : '#d9b36a'; ctx.fillRect(0, y, W, GROUND); ctx.fillStyle = m === 'night' ? '#245a34' : '#58b84a'; ctx.fillRect(0, y, W, 14);
+  ctx.fillStyle = m === 'night' ? '#1d4a2a' : '#46a03a'; for (let x = -((sc % 24)); x < W; x += 24) { ctx.beginPath(); ctx.moveTo(x, y + 14); ctx.lineTo(x + 12, y); ctx.lineTo(x + 24, y + 14); ctx.fill(); }
+  ctx.fillStyle = 'rgba(0,0,0,.12)'; for (let x = -((sc % 40)); x < W; x += 40) ctx.fillRect(x, y + 34, 18, 5);
+}
+function pillar(x, y0, y1, down) {   // down = the pillar hangs from the top and its lip is at the bottom
+  const w = PW, ob = st.obs;
+  if (ob === 'pipes') { const g = ctx.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, '#2f9e44'); g.addColorStop(.35, '#69db7c'); g.addColorStop(1, '#2b8a3e'); ctx.fillStyle = g; ctx.fillRect(x + 4, y0, w - 8, y1 - y0); const ly = down ? y1 - 20 : y0; ctx.fillRect(x, ly, w, 20); ctx.strokeStyle = '#1b5e2a'; ctx.lineWidth = 2; ctx.strokeRect(x + 4, y0, w - 8, y1 - y0); ctx.strokeRect(x, ly, w, 20); }
+  else if (ob === 'chimney') { ctx.fillStyle = '#b5523b'; ctx.fillRect(x + 3, y0, w - 6, y1 - y0); ctx.fillStyle = '#8c3a28'; for (let yy = y0 - (y0 % 14); yy < y1; yy += 14) { ctx.fillRect(x + 3, yy, w - 6, 2); for (let xx = x + 3 + (((yy / 14) | 0) % 2 ? 0 : 14); xx < x + w - 3; xx += 28) ctx.fillRect(xx, yy, 2, 14); } const ly = down ? y1 - 16 : y0; ctx.fillStyle = '#6b6b75'; ctx.fillRect(x - 2, ly, w + 4, 16); ctx.strokeStyle = '#2a2a30'; ctx.lineWidth = 2; ctx.strokeRect(x - 2, ly, w + 4, 16); }
+  else if (ob === 'candy') { ctx.save(); ctx.beginPath(); ctx.rect(x + 6, y0, w - 12, y1 - y0); ctx.clip(); ctx.fillStyle = '#fff'; ctx.fillRect(x, y0, w, y1 - y0); ctx.fillStyle = '#f03e5a'; for (let k = -6; k < 40; k++) { const yy = y0 - (y0 % 36) + k * 36; ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + w, yy - 22); ctx.lineTo(x + w, yy - 6); ctx.lineTo(x, yy + 16); ctx.fill(); } ctx.restore(); ctx.strokeStyle = '#b3203a'; ctx.lineWidth = 2; ctx.strokeRect(x + 6, y0, w - 12, y1 - y0); ctx.fillStyle = '#f03e5a'; ctx.beginPath(); ctx.arc(x + w / 2, down ? y1 : y0, 12, 0, 7); ctx.fill(); }
+  else { ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.strokeStyle = 'rgba(120,150,190,.6)'; ctx.lineWidth = 2; ctx.fillRect(x + 6, y0, w - 12, y1 - y0); for (let yy = (down ? y1 : y0); down ? yy > y0 - 30 : yy < y1 + 30; yy += down ? -30 : 30) { ctx.beginPath(); ctx.arc(x + 12, yy, 16, 0, 7); ctx.arc(x + w / 2, yy + (down ? 4 : -4), 19, 0, 7); ctx.arc(x + w - 12, yy, 16, 0, 7); ctx.fill(); } ctx.strokeRect(x + 6, y0, w - 12, y1 - y0); }
+}
+function drawPig(x, y, rot, flapT, scale, bob) {
+  const P = PIGS[st.pig] || PIGS.pink, t = G ? G.t : 0; ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(scale, scale);
+  // wing angle: quick up-stroke then a longer down-stroke after every flap; folded up when falling
+  const f = Math.min(1, flapT / .3); let wa; if (flapT < .3) wa = f < .35 ? (-0.1 - 1.0 * (f / .35)) : (-1.1 + 1.9 * ((f - .35) / .65)); else wa = .8 - Math.min(1.3, (flapT - .3) * 1.2) * (G && G.vy > 120 ? 1 : .4);
+  const wing = (a, col, dx) => { ctx.save(); ctx.translate(-4 + dx, 2); ctx.rotate(a + 0.96); ctx.fillStyle = col; ctx.strokeStyle = '#6b7aa8'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-16, -6, -30, -2, -33, 12); ctx.bezierCurveTo(-26, 8, -20, 12, -14, 12); ctx.bezierCurveTo(-10, 14, -6, 12, 0, 6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.strokeStyle = 'rgba(107,122,168,.45)'; ctx.beginPath(); ctx.moveTo(-8, 4); ctx.lineTo(-24, 8); ctx.moveTo(-6, 7); ctx.lineTo(-18, 11); ctx.stroke(); ctx.restore(); };
+  wing(wa * .9 - .15, '#cfd8f0', 3);                                       // far wing, a little behind
+  // tail (curly)
+  ctx.strokeStyle = P[2]; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.beginPath(); const tw = Math.sin(t * 9) * (G && G.state === 'play' ? 2 : 1); ctx.moveTo(-14, 2); ctx.bezierCurveTo(-22, -2 + tw, -18, -9, -23, -6 + tw); ctx.stroke();
+  // body
+  ctx.fillStyle = P[0]; ctx.strokeStyle = P[2]; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, 0, 17, 14, 0, 0, 7); ctx.fill(); ctx.stroke();
+  if (st.pig === 'spotted') { ctx.fillStyle = '#e0688f'; for (const [px, py, pr] of [[-5, -5, 4], [4, 6, 3.4], [-9, 5, 3]]) { ctx.beginPath(); ctx.arc(px, py, pr, 0, 7); ctx.fill(); } }
+  // ear, cheek, snout, eye
+  ctx.fillStyle = P[1]; ctx.strokeStyle = P[2]; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-3, -11); ctx.lineTo(-2, -20 - (G && G.vy < 0 ? 2 : 0)); ctx.lineTo(7, -12); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,90,120,.35)'; ctx.beginPath(); ctx.arc(2, 5, 4, 0, 7); ctx.fill();
+  ctx.fillStyle = P[1]; ctx.strokeStyle = P[2]; ctx.beginPath(); ctx.ellipse(15, 3, 7.5, 6, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = P[2]; ctx.beginPath(); ctx.ellipse(13.5, 3, 1.4, 2.4, 0, 0, 7); ctx.ellipse(17.5, 3, 1.4, 2.4, 0, 0, 7); ctx.fill();
+  const blink = G && G.blink > 0; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.2; if (blink) { ctx.beginPath(); ctx.moveTo(4, -4); ctx.lineTo(10, -4); ctx.stroke(); } else { ctx.beginPath(); ctx.ellipse(7, -4, 4.2, 4.6, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(8.2 + Math.max(0, Math.min(1, (G ? G.vy : 0) / 600)), -3.6, 2, 0, 7); ctx.fill(); }
+  // little trotters
+  ctx.fillStyle = P[2]; ctx.beginPath(); ctx.ellipse(-6, 13, 3, 2.2, 0, 0, 7); ctx.ellipse(6, 13, 3, 2.2, 0, 0, 7); ctx.fill();
+  // near wing on top
+  wing(wa, '#ffffff', 0);
+  // hat
+  const hat = st.hat; ctx.save(); ctx.translate(3, -13); ctx.rotate(.15);
+  if (hat === 'party') { ctx.fillStyle = '#f783ac'; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineTo(0, -17); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#ffd43b'; ctx.fillRect(-4, -6, 8, 2.5); ctx.beginPath(); ctx.arc(0, -17, 2.4, 0, 7); ctx.fill(); }
+  else if (hat === 'crown') { ctx.fillStyle = '#ffd43b'; ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(-8, -10); ctx.lineTo(-4, -5); ctx.lineTo(0, -12); ctx.lineTo(4, -5); ctx.lineTo(8, -10); ctx.lineTo(8, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#f03e3e'; ctx.beginPath(); ctx.arc(0, -4, 1.8, 0, 7); ctx.fill(); }
+  else if (hat === 'pilot') { ctx.fillStyle = '#8d6e4a'; ctx.strokeStyle = '#4a3a24'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(0, 0, 9, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#74c0fc'; ctx.beginPath(); ctx.arc(5, -2, 3.6, 0, 7); ctx.fill(); ctx.stroke(); }
+  else if (hat === 'halo') { ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(0, -9 + Math.sin(t * 5) * 1.2, 9, 3, 0, 0, 7); ctx.stroke(); }
+  else if (hat === 'bow') { ctx.fillStyle = '#e64980'; ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(-10, -9); ctx.lineTo(-10, 3); ctx.closePath(); ctx.moveTo(0, -2); ctx.lineTo(10, -9); ctx.lineTo(10, 3); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.arc(0, -2, 3, 0, 7); ctx.fill(); }
+  ctx.restore();
+  if (G && G.shield > 0) { ctx.strokeStyle = 'rgba(255,230,120,.9)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, 24 + Math.sin(t * 6) * 1.5, 0, 7); ctx.stroke(); ctx.fillStyle = 'rgba(255,230,120,.15)'; ctx.fill(); }
+  ctx.restore();
+}
+function draw() {
+  if (!G) return; ctx.save(); if (G.shake > 0) ctx.translate((Math.random() - .5) * 8, (Math.random() - .5) * 8); drawBg();
+  for (const p of G.pipes) { const top = p.cy - p.gap / 2, bot = p.cy + p.gap / 2; pillar(p.x, -20, top, true); pillar(p.x, bot, H - GROUND + 4, false); }
+  for (const t of G.things) { if (t.got) continue; const bob = Math.sin(G.t * 4 + t.x * .05) * 3; if (t.k === 'apple') { ctx.fillStyle = '#e03131'; ctx.beginPath(); ctx.arc(t.x, t.y + bob, 9, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.beginPath(); ctx.arc(t.x - 3, t.y + bob - 3, 2.5, 0, 7); ctx.fill(); ctx.strokeStyle = '#5c3b1e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(t.x, t.y + bob - 9); ctx.lineTo(t.x + 2, t.y + bob - 14); ctx.stroke(); ctx.fillStyle = '#40c057'; ctx.beginPath(); ctx.ellipse(t.x + 6, t.y + bob - 12, 5, 2.5, -.5, 0, 7); ctx.fill(); }
+    else { ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(t.x, t.y + bob, 11, 4.5, 0, 0, 7); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('✨', t.x, t.y + bob - 10); } }
+  drawGround();
+  for (const p of G.parts) { const a = p.life / p.max; ctx.globalAlpha = a; if (p.k === 'puff') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 3 + (1 - a) * 4, 0, 7); ctx.fill(); } else if (p.k === 'star') { ctx.fillStyle = '#ffd43b'; ctx.fillRect(p.x - 2, p.y - 2, 4, 4); } else { ctx.fillStyle = '#fff'; ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center'; ctx.fillText('+1 🍎', p.x, p.y); } ctx.globalAlpha = 1; }
+  const flash = G.bumpT > 0 && Math.floor(G.t * 20) % 2; if (!flash) drawPig(PIGX, G.y, G.rot, G.state === 'ready' ? (G.t % 1.1) * .27 + 0.3 * 0 + (G.t % 1.1 < .3 ? G.t % 1.1 : 9) : G.flapT, 1.1);
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.font = 'bold 46px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; if (G.state !== 'ready' || G.score) { ctx.strokeText(G.score, W / 2, 70); ctx.fillText(G.score, W / 2, 70); }
+  if (G.state === 'ready') { ctx.font = 'bold 20px system-ui'; ctx.lineWidth = 4; ctx.strokeText('Tap to flap!', W / 2, H * .22); ctx.fillText('Tap to flap!', W / 2, H * .22); ctx.font = '13px system-ui'; ctx.lineWidth = 3; const lv = LEVELS[st.level].n + ' · ' + (st.level === 'daily' ? 'same course for everyone today' : 'best ' + bestNow()); ctx.strokeText(lv, W / 2, H * .22 + 24); ctx.fillText(lv, W / 2, H * .22 + 24); }
+  ctx.restore();
+}
+
+/* ---------- input and loop ---------- */
+let acc = 0; const DT = 1 / 120, loop = KIT.loop(dt => { if (O.open('ovPause')) return; acc += dt; while (acc >= DT) { step(DT); acc -= DT; } }, draw);
+loop.onHide = () => { if (G && G.state === 'play') pause(true); };
+function pause(force) { if (!G || G.state === 'dead') return; if (O.open('ovPause')) { O.hide('ovPause'); acc = 0; } else if (G.state === 'play' || force === true) { O.show('ovPause'); } }
+cv.addEventListener('pointerdown', e => { e.preventDefault(); if (O.open('ovPause') || O.open('ovEnd')) return; flap(); });
+window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey || /^(input|select|textarea)$/i.test(e.target.tagName)) return; const k = e.key.toLowerCase();
+  if (k === ' ' || k === 'arrowup' || k === 'w') { e.preventDefault(); if (O.open('ovEnd')) return; if (O.open('ovPause')) pause(); else flap(); } else if (k === 'p') pause(); else if (k === 'r') newRun(); });
+ui.actions(document.body, { again: () => newRun(), pause: () => pause() });
+function renderLevels() { $('levels').innerHTML = Object.keys(LEVELS).map(k => '<button class="btn sm' + (st.level === k ? ' on' : '') + '" data-act="lv" data-k="' + k + '" type="button">' + LEVELS[k].n + '</button>').join(' '); KIT.setText($('recLine'), 'Best: ' + ['easy', 'normal', 'hard'].map(k => LEVELS[k].n + ' ' + (st.best[k] || 0)).join(' · ') + ' · today ' + (st.daily.d === today() ? st.daily.s : 0)); }
+ui.actions(document.body, { lv: b => { st.level = b.dataset.k; S.save(); renderLevels(); newRun(); } });
+const _again = () => { renderLevels(); newRun(); };
+document.querySelectorAll('[data-act=again]').forEach(b => b.addEventListener('click', e => { e.stopImmediatePropagation(); _again(); }, true));
+renderLevels(); newRun(); loop.start();
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+KIT.hook({ get G() { return G; }, step, flap, newRun, die, st, LEVELS, PIGX, R, PW, setLevel(k) { st.level = k; } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

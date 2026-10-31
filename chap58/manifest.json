@@ -1,0 +1,31 @@
+{
+  "name": "Jet Strike",
+  "short_name": "Jet Strike",
+  "description": "Fly a jet into an asteroid field in 3D. Shoot the rocks, watch them break into pieces, dodge the drones, boost, bomb and beat the Dreadnought boss",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#081024",
+  "theme_color": "#081024",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

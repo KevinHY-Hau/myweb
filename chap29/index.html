@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 29 · Word Search</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WordSearch">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.tboardwrap{position:relative}
+.cv{display:block;width:100%;aspect-ratio:1;border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tmsg{min-height:1.5em;text-align:center;font-weight:700}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+.words{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.wd{padding:3px 10px;border-radius:999px;border:2px solid var(--line);background:var(--panel2);font-weight:700;font-size:13px;letter-spacing:.04em}
+.wd.done{text-decoration:line-through;opacity:.75;color:#fff;border-color:transparent}
+.wd.rev{border-style:dashed}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Word Search</h2>
+  <p>Chapter 29 · Find the hidden words in the letter grid. Drag across letters, in any of 8 directions</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>FOUND</small><b id="s1">0/10</b></div>
+    <div class="tstat"><small>TIME</small><b id="s2">0:00</b></div>
+    <div class="tstat"><small>GRID</small><b id="s3">15×15</b></div>
+    <div class="tstat"><small>BEST</small><b id="s4">-</b></div>
+  </div>
+  <div class="tbar"><span class="kl">Mode:</span><span id="modes"></span></div>
+  <div class="tbar"><span class="kl">Directions:</span><span id="dirs"></span></div>
+  <div class="tboardwrap">
+    <canvas id="cv" class="cv" aria-label="Word search grid"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">All found! 🎉</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="again" type="button">New puzzle</button><button class="btn" data-act="hide" type="button">Look at grid</button></div></div>
+  </div>
+  <div class="tmsg" id="msg">Drag across letters to select a word</div>
+  <div id="words" class="words"></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="again" type="button">🔄 New puzzle</button>
+    <button class="btn sm" data-act="reveal" type="button">👁 Show answers</button>
+    <button class="btn sm" data-act="copy" type="button">📋 Copy as text</button>
+  </div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">How to play: find every word in the list. Words can run in up to 8 directions (across, down, backwards, diagonal). <b>Drag</b> from the first letter to the last, or <b>tap</b> the first letter and then the last. Found words get coloured. In settings you can change the grid size (8 to 25), how many words (4 to 20), the longest word, and whether letters are CAPITALS. <b>Daily</b> gives everyone the same puzzle today. <b>Copy as text</b> puts the grid and word list on your clipboard so you can paste it into a document and print it.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🔎 Ported from the VBA macro in my own Excel word-search workbook: shuffle the word list, drop each word into the grid in a random spot and direction (overlaps allowed when letters match), then fill the gaps with random letters. Code is my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else last = performance.now(); });
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+const WORDS="abound acumen admire adorer adroit affirm afford appeal ardent aspire assure attune avidly beauty beckon better blithe brainy breeze bright cajole catchy chaste cheery cherub classy clever cohere comely daring dazzle decent defeat devout divine easier easing endear enough enrapt enrich entice evenly excite extoll fairly faster favour feisty fervid fervor finely finest firmer flashy fluent fondly frolic frugal gaiety galore genial gentle gladly golden goodly heaven heroic homage honest hooray humane humble humour jovial joyful justly keenly kindly lavish lawful levity liking lively lovely loving luster luxury marvel master mature mighty modern modest neatly nicely nicest nimble openly outwit pamper pardon poetic polite praise prefer pretty prompt proper proven purify quaint redeem refine reform refund regard relent relief relish remedy renown revere revive reward richer richly robust safely sagely salute savior scenic secure serene silent smooth snappy snazzy softer solace soothe speedy sporty stable steady strong sturdy superb supple swanky talent tender thrift thrill thrive tickle timely tingle trendy trophy trusty unreal upbeat upheld uphold uplift usable useful virtue warmer warmly warmth winner wisdom wisely wonder worthy wowing zenith acclaim admirer adoring adulate affable affably agilely agility amazing amenity amiable amusing angelic applaud approve astound audible audibly awesome bargain benefit blossom bolster booming bravery bullish buoyant calming capable capably cheaper cherish clarity classic cleaner cleanly clearer clearly comfort commend compact concise coolest correct courage courtly crisper darling dashing decency delight destiny dignify dignity durable dynamic eagerly earnest easiest ecstasy elation elegant elevate eminent empathy empower enchant endorse enhance enliven ennoble enthral enthuse entrust erudite ethical fancier fanfare fastest fertile fervent festive flatter flutter fortune freedom fresher gainful gaining gallant genuine gladden gleeful glimmer glisten glitter glorify glowing godlike godsend gratify halcyon handier handily happier happily hardier harmony headway healthy hearten helpful helping heroine heroize honesty hopeful hottest ideally idolize idyllic immense improve inspire jollify leading liberty lighter likable logical lovable lovably loyalty lucidly luckier lyrical magical majesty mastery merrily miracle modesty neatest notably nourish novelty optimal opulent orderly outdone ovation passion patient patriot pepping perfect playful popular precise premier prodigy profuse promise prosper protect proving prudent qualify quicker quieter radiant rapport rapture readily reclaim recover rectify refresh regally rejoice resound respect respite restful revival rightly roomier saintly satisfy sharper simpler sincere smarter smartly smiling smitten soulful soundly sparkle stately staunch stellar stylish suavely sublime suffice support supreme surreal sweeten sweetly thinner thrifty tougher triumph trumpet twinkly unbound upscale useable valiant variety vibrant victory wealthy welcome willing winning abundant accolade accurate adaptive adequate admiring adorable adroitly advocate affinity affluent alluring amenable amicable amicably approval ardently assuring astonish astutely backbone beautify blessing blissful brighten brighter carefree cashback champion charisma charming cheapest cheerful chivalry civility civilize cleanest cleverly coherent cohesive colorful covenant creative credence credible daringly dazzling decisive defender delicacy delicate desiring diligent divinely dominate dotingly ecstatic effusion effusive elatedly elegance eloquent embolden eminence energize engaging enjoying enthrall enticing enviable enviably eulogize euphoria euphoric eventful exalting exciting exemplar expertly exultant faithful famously favorite feasible feasibly felicity fervidly fidelity flexible flourish foremost fragrant freshest friendly fruitful gentlest goodwill graceful grandeur grateful greatest guidance gumption hallmark handsome heartily heavenly honoring humility idealize illumine integral intimacy intimate intrigue joyfully joyously jubilant jubilate laudable laudably lavishly lawfully leverage liberate luckiest majestic maturely maturity merciful mightily morality optimism outshine outshone outsmart outstrip overtake overtook overture palatial paradise patience peaceful pinnacle pleasant pleasing pleasure poignant portable positive powerful praising prestige prettily profound prolific promoter promptly properly prudence punctual radiance rational readable reaffirm reassure recovery reliable reliably resolute reverent rightful rockstar romantic sagacity salutary securely sensible sensibly serenity sharpest simplest simplify skillful smartest smoother smoothly sociable speedily splendid splendor standout striking striving stronger stunning sturdier suitable superbly superior surmount survival survivor swankier sweeping tempting tenacity tenderly terrific thankful thriving topnotch toughest traction tranquil treasure trusting truthful valuable venerate viewable vigilant windfall winnable workable youthful abundance adaptable admirable admirably adoringly adulation adulatory advantage affection affluence agreeable agreeably amazement amazingly amusingly appealing assurance assuredly attentive authentic available awesomely awestruck beautiful beckoning bountiful brainiest brightest brilliant brotherly captivate celebrate coherence compactly compliant confident congenial contrasty correctly defeating deference deserving desirable diligence dreamland earnestly easygoing ebullient effective effectual efficient electrify elegantly eloquence empathize encourage endearing endorsing energetic enjoyable enjoyably enjoyment enlighten enrapture entertain enviously equitable evocative exceeding excellent excitedly exemplary exonerate expansive exquisite exuberant fantastic fascinate favorable fervently foolproof foresight fortitude fortunate gainfully gallantly gleefully glowingly gratitude guarantee harmonize healthful heartfelt honorable impartial important improving indulgent ingenuity inspiring instantly intricate intuitive inventive inviolate legendary lifesaver lucrative luxuriant luxuriate masterful memorable merriment mesmerize navigable nurturing obsession overtaken panoramic paramount patiently patriotic peaceable perfectly persevere playfully plentiful poeticize precisely privilege proactive profusion prominent promising prudently reachable realistic receptive recommend reconcile redeeming reforming rejoicing remission reputable resilient reverence rewarding selective sensation sensitive sincerely sincerity smilingly smoothest sparkling spellbind spiritual sprightly stability stabilize staunchly steadfast steadiest stimulate strongest stylishly subsidize supporter supremacy supremely swankiest tantalize thrilling titillate tolerable triumphal trivially unselfish uplifting valiantly veritable versatile vibrantly vigilance visionary vouchsafe wellbeing wholesome willingly wonderful accessible accomplish accurately achievable adjustable admiration admiringly affability affordable affordably alluringly altruistic ameliorate amiability appreciate articulate aspiration astounding attraction attractive believable benefactor beneficent beneficial benevolent blissfully brilliance capability charitable charmingly comforting commitment compassion compatible complement compliment conciliate confidence consistent consummate continuity convenient convincing delectable delightful dependable dependably deservedly detachable diligently diplomatic ebullience economical effusively eloquently enchanting engrossing enrichment enthusiasm enthusiast enticingly entrancing evaluative exaltation excellence excellency excitement excitingly exhilarate exuberance exultation exultingly fabulously facilitate faithfully fearlessly felicitate flattering flawlessly formidable futuristic generosity generously glimmering glistening gloriously gorgeously gracefully graciously gratefully gratifying handsomely heartening heroically hospitable humorously illuminate illuminati immaculate impeccable impeccably impressive incredible incredibly indulgence infallible infallibly innovation innovative insightful intriguing invaluable invigorate invincible inviolable jubilantly jubilation liberation manageable meaningful mercifully monumental noteworthy nourishing obtainable optimistic outperform overtaking painlessly passionate peacefully perfection phenomenal pleasantly pleasingly positively powerfully preeminent preferable preferably preferring productive proficient profoundly prominence prosperity protection protective providence purposeful realizable reasonable reasonably rectifying redemption refinement refreshing rejuvenate remarkable remarkably remunerate reputation resounding respectful responsive revelation reverently revitalize rightfully satisfying shimmering skillfully solidarity soothingly spellbound splendidly statuesque stirringly straighten strikingly stunningly succeeding successful sufficient supporting supportive sweetheart temptingly thoughtful triumphant trustingly truthfully unbeatable unwavering upgradable upliftment verifiable virtuously worthwhile acclamation achievement affectation affirmation affirmative ambitiously amicability appreciable appropriate astonishing beautifully beneficiary benevolence blockbuster brilliantly captivating celebration celebratory charismatic comfortable comfortably commendable commendably competitive considerate contentment convenience cooperative cornerstone dexterously distinction distinctive ebulliently effectively efficiently empowerment encouraging endorsement enhancement ergonomical everlasting exceedingly excellently exceptional exquisitely exuberantly fascinating fascination fashionable fashionably flexibility flourishing fortunately fulfillment imaginative impartially improvement inestimable inestimably inexpensive influential ingeniously ingenuously inspiration instructive intelligent interesting luxuriously magnificent marvelously masterfully masterpiece mesmerizing nourishment originality outstanding permissible picturesque pleasurable pleasurably progressive rapturously reassurance renaissance replaceable resourceful respectable resplendent responsibly restructure retractable righteously romanticize sensational significant simplifying spectacular steadfastly stimulating stimulative subsidizing substantive sumptuously superiority sustainable tantalizing tenaciously thrillingly titillating tranquility transparent trustworthy unabashedly unequivocal upgradeable versatility wonderfully affectionate appreciative astonishment astoundingly attractively beneficially breakthrough breathtaking conciliatory congratulate consistently constructive contribution conveniently convincingly courageously delightfully dumbfounding ecstatically effortlessly enchantingly enterprising entertaining enthusiastic euphorically exhilarating exhilaration flatteringly fortuitously gratifyingly harmoniously heartwarming illuminating immaculately impartiality impressively instrumental intelligence intelligible intriguingly invigorating invulnerable irresistible irresistibly magnificence maneuverable meticulously miraculously monumentally passionately perseverance phenomenally praiseworthy prodigiously productively proficiently propitiously rejuvenating respectfully romantically satisfactory shimmeringly solicitously spellbinding stupendously successfully sufficiently terrifically thoughtfully tremendously triumphantly unassailable undisputable accommodative adventuresome astonishingly authoritative compassionate complementary complimentary comprehensive cooperatively encouragement encouragingly enlightenment exceptionally expeditiously extraordinary fantastically fascinatingly gratification infallibility inspirational invincibility irreplaceable knowledgeable magnanimously magnificently mesmerizingly outperforming outstandingly reaffirmation rectification restructuring revolutionary revolutionize sensationally spectacularly tantalizingly titillatingly unconditional unequivocally unforgettable accomplishment advantageously altruistically appreciatively breathtakingly congratulation congratulatory exhilaratingly groundbreaking irreproachable recommendation reconciliation satisfactorily sustainability understandable unquestionable unquestionably wholeheartedly extraordinarily straightforward enthusiastically".split(" ");
+
+/* Word Search: a port of my Excel macro. Pick words, drop each into the grid at a random spot and direction (it may cross another word
+   if the shared letter matches), then fill every empty cell with a random letter. The solver drags (or taps) from first to last letter. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S = store('kevinhyhau.wordsearch.v1', { dark: true, sound: true, size: 15, count: 10, maxLen: 10, caps: true, dirs: 'all', mode: 'random', best: {} }), st = S.st;
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+let regenT = 0;
+settings([
+  { id: 'size', label: 'Grid size (8 to 25)', type: 'range', min: 8, max: 25, def: 15 },
+  { id: 'count', label: 'Number of words (4 to 20)', type: 'range', min: 4, max: 20, def: 10 },
+  { id: 'maxLen', label: 'Longest word (6 to 16 letters)', type: 'range', min: 6, max: 16, def: 10 },
+  { id: 'caps', label: 'CAPITAL letters', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); clearTimeout(regenT); regenT = setTimeout(newGame, 350); });
+
+const W = 720, cv = $('cv'), C = KIT.canvas(cv, W, W, 2), ctx = C.ctx;
+const DIRS = { easy: [[0, 1], [1, 0]], medium: [[0, 1], [1, 0], [0, -1], [-1, 0]], all: [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] };
+const DNAME = { easy: 'Easy (→ ↓)', medium: 'Medium (4 ways)', all: 'Hard (8 ways)' };
+const HUES = [0, 30, 55, 120, 160, 190, 215, 250, 280, 320, 15, 90, 140, 175, 235, 300, 345, 45, 70, 205];
+const col = (i, a = 1, l = 52) => `hsla(${HUES[i % HUES.length]},70%,${l}%,${a})`;
+let G = null, drag = null, tapStart = null, T = 0, lastT = 0;
+
+function gen(size, count, maxLen, dirKey, rnd) {
+  const dirs = DIRS[dirKey], maxL = Math.min(maxLen, size);
+  const pool = KIT.rng.shuffle(rnd, WORDS.filter(w => w.length <= maxL));
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const grid = Array.from({ length: size }, () => Array(size).fill('')), placed = [], used = [];
+    let pi = attempt * 7;                       // different slice of the shuffled pool on each retry
+    while (placed.length < count && pi < pool.length + 200) {
+      const w = pool[pi++ % pool.length];
+      if (used.some(u => u.includes(w) || w.includes(u) || u.includes([...w].reverse().join('')) || w.includes([...u].reverse().join('')))) continue;
+      let ok = false;
+      for (let t = 0; t < 400 && !ok; t++) {
+        const d = dirs[Math.floor(rnd() * dirs.length)], r = Math.floor(rnd() * size), c = Math.floor(rnd() * size);
+        const er = r + d[0] * (w.length - 1), ec = c + d[1] * (w.length - 1);
+        if (er < 0 || ec < 0 || er >= size || ec >= size) continue;
+        let fit = true; for (let i = 0; i < w.length; i++) { const g = grid[r + d[0] * i][c + d[1] * i]; if (g && g !== w[i]) { fit = false; break; } }
+        if (!fit) continue;
+        for (let i = 0; i < w.length; i++) grid[r + d[0] * i][c + d[1] * i] = w[i];
+        placed.push({ w, r, c, d, er, ec }); used.push(w); ok = true;
+      }
+    }
+    if (placed.length < count) continue;
+    const mask = grid.map(row => row.map(Boolean));
+    for (let fill = 0; fill < 40; fill++) {
+      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!mask[r][c]) grid[r][c] = String.fromCharCode(97 + Math.floor(rnd() * 26));
+      if (placed.every(p => occurrences(grid, p.w, dirs) === 1)) return { grid, placed };
+    }
+    // accept the last grid even if a word appears twice (rare): the player can find either copy
+    return { grid, placed, dup: true };
+  }
+  return null;
+}
+function occurrences(grid, w, dirs) {
+  const n = grid.length; let k = 0;
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) for (const d of dirs) {
+    const er = r + d[0] * (w.length - 1), ec = c + d[1] * (w.length - 1); if (er < 0 || ec < 0 || er >= n || ec >= n) continue;
+    let ok = true; for (let i = 0; i < w.length; i++) if (grid[r + d[0] * i][c + d[1] * i] !== w[i]) { ok = false; break; } if (ok) k++;
+  }
+  return k;
+}
+function newGame() {
+  st.size = +st.size; st.count = +st.count; st.maxLen = +st.maxLen;
+  const key = [st.size, st.count, st.maxLen, st.dirs].join(':');
+  const rnd = st.mode === 'daily' ? KIT.rng.mulberry(KIT.rng.dailySeed('wordsearch' + key)) : Math.random;
+  const r = gen(st.size, Math.min(st.count, Math.floor(st.size * st.size / 8)), st.maxLen, st.dirs, rnd);
+  G = { size: st.size, key, grid: r.grid, words: r.placed.map((p, i) => ({ ...p, i, found: false, shown: false })), t: 0, state: 'play', revealed: false, sel: null };
+  drag = null; tapStart = null; T = 0; O.hide('ovEnd'); mkWords(); hud(); draw(); setMsg('Drag across letters to select a word');
+}
+const setMsg = t => KIT.setText($('msg'), t);
+const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+const label = w => st.caps ? w.toUpperCase() : w;
+function mkWords() {
+  const box = $('words'); box.innerHTML = '';
+  [...G.words].sort((a, b) => a.w.localeCompare(b.w)).forEach(o => { const s = document.createElement('span'); s.className = 'wd'; s.id = 'w' + o.i; s.textContent = label(o.w); box.appendChild(s); });
+}
+function hud() {
+  const f = G.words.filter(w => w.found).length;
+  KIT.setText($('s1'), f + '/' + G.words.length); KIT.setText($('s2'), fmt(T)); KIT.setText($('s3'), G.size + '×' + G.size);
+  const b = st.best[G.key]; KIT.setText($('s4'), b ? fmt(b) : '-');
+  KIT.setText($('recLine'), 'Best time for ' + G.size + '×' + G.size + ', ' + G.words.length + ' words, ' + DNAME[st.dirs] + ': ' + (b ? fmt(b) : 'none yet'));
+  G.words.forEach(o => { const el = $('w' + o.i); el.className = 'wd' + (o.found ? ' done' : '') + (o.shown && !o.found ? ' rev' : ''); el.style.background = o.found ? col(o.i, 1, 38) : ''; });
+  [...$('modes').children].forEach(b => b.classList.toggle('on', b.dataset.k === st.mode));
+  [...$('dirs').children].forEach(b => b.classList.toggle('on', b.dataset.k === st.dirs));
+}
+function mkBtns() {
+  $('modes').innerHTML = [['random', 'Random'], ['daily', 'Daily']].map(([k, n]) => `<button class="btn sm" data-act="mode" data-k="${k}" type="button">${n}</button>`).join('');
+  $('dirs').innerHTML = Object.keys(DNAME).map(k => `<button class="btn sm" data-act="dir" data-k="${k}" type="button">${DNAME[k]}</button>`).join('');
+}
+
+/* ---------- drawing ---------- */
+function capsule(r1, c1, r2, c2, cs, style, lw) {
+  const x1 = (c1 + .5) * cs, y1 = (r1 + .5) * cs, x2 = (c2 + .5) * cs, y2 = (r2 + .5) * cs;
+  ctx.lineCap = 'round'; ctx.lineWidth = cs * lw; ctx.strokeStyle = style; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+}
+function draw() {
+  if (!G) return; const n = G.size, cs = W / n;
+  const dk = st.dark !== false; ctx.fillStyle = dk ? '#1c2230' : '#eef1f6'; ctx.fillRect(0, 0, W, W);
+  G.words.forEach(o => { if (o.found) capsule(o.r, o.c, o.er, o.ec, cs, col(o.i, .85, 45), .86); else if (o.shown) { capsule(o.r, o.c, o.er, o.ec, cs, col(o.i, .35, 50), .86); } });
+  if (tapStart) { ctx.fillStyle = 'rgba(255,200,0,.55)'; ctx.beginPath(); ctx.arc((tapStart.c + .5) * cs, (tapStart.r + .5) * cs, cs * .43, 0, 7); ctx.fill(); }
+  if (drag && drag.end) capsule(drag.r, drag.c, drag.end.r, drag.end.c, cs, 'rgba(255,200,0,.55)', .86);
+  const txt = dk ? '#e6edf3' : '#1b2430';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 ' + Math.floor(cs * .56) + 'px system-ui,sans-serif';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const hit = G.words.some(o => o.found && inLine(o, r, c));
+    ctx.fillStyle = hit ? '#fff' : txt; ctx.fillText(label(G.grid[r][c]), (c + .5) * cs, (r + .5) * cs + cs * .03);
+  }
+}
+function inLine(o, r, c) { for (let i = 0; i < o.w.length; i++) if (o.r + o.d[0] * i === r && o.c + o.d[1] * i === c) return true; return false; }
+
+/* ---------- selecting ---------- */
+const cellAt = e => { const p = C.pos(e), cs = W / G.size; return { r: Math.max(0, Math.min(G.size - 1, Math.floor(p.y / cs))), c: Math.max(0, Math.min(G.size - 1, Math.floor(p.x / cs))), fx: p.x / cs, fy: p.y / cs }; };
+function snap(s, e) {                            // end cell snapped onto the nearest of 8 directions from the start cell
+  const fx = e.fx - (s.c + .5), fy = e.fy - (s.r + .5); if (Math.hypot(fx, fy) < .5) return { r: s.r, c: s.c };
+  const a = Math.round(Math.atan2(fy, fx) / (Math.PI / 4)), vx = Math.round(Math.cos(a * Math.PI / 4)), vy = Math.round(Math.sin(a * Math.PI / 4));
+  let k = Math.round((fx * vx + fy * vy) / (vx * vx + vy * vy));
+  const n = G.size; while (k > 0 && (s.r + vy * k < 0 || s.r + vy * k >= n || s.c + vx * k < 0 || s.c + vx * k >= n)) k--;
+  return { r: s.r + vy * k, c: s.c + vx * k };
+}
+function lineText(r1, c1, r2, c2) {
+  const dr = Math.sign(r2 - r1), dc = Math.sign(c2 - c1), len = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1)) + 1;
+  if ((r2 - r1) && (c2 - c1) && Math.abs(r2 - r1) !== Math.abs(c2 - c1)) return '';
+  let s = ''; for (let i = 0; i < len; i++) s += G.grid[r1 + dr * i][c1 + dc * i]; return s;
+}
+function tryWord(r1, c1, r2, c2) {
+  if (G.state !== 'play') return false;
+  const s = lineText(r1, c1, r2, c2); if (s.length < 2) return false;
+  const rev = [...s].reverse().join(''), o = G.words.find(o => !o.found && (o.w === s || o.w === rev));
+  if (!o) { setMsg('Not a word from the list'); A.beep(170, .08); return false; }
+  o.found = true; A.beep(660 + o.i * 20, .1); setMsg('Found ' + label(o.w) + '!');
+  const left = G.words.filter(w => !w.found).length; hud(); draw(); if (!left) win(); return true;
+}
+function win() {
+  G.state = 'done'; const t = Math.round(T); let msg = 'Time ' + fmt(t) + '.';
+  if (!G.revealed) { const b = st.best[G.key]; if (!b || t < b) { st.best[G.key] = t; msg += ' New best!'; } else msg += ' Best ' + fmt(b) + '.'; S.save(); } else msg += ' (Answers were shown, so no best time.)';
+  KIT.setText($('endP'), msg); hud(); O.show('ovEnd'); A.slide && A.slide(440, 880, .3);
+}
+cv.addEventListener('pointerdown', e => {
+  if (!G || G.state !== 'play') return; e.preventDefault(); const c = cellAt(e); try { cv.setPointerCapture(e.pointerId); } catch (_) { }
+  drag = { r: c.r, c: c.c, end: null, moved: false };
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag) return; const s = { r: drag.r, c: drag.c }, e2 = snap(s, cellAt(e));
+  if (e2.r !== s.r || e2.c !== s.c) { drag.moved = true; tapStart = null; } drag.end = drag.moved ? e2 : null; draw();
+});
+const up = e => {
+  if (!drag) return; const d = drag; drag = null;
+  if (d.moved && d.end) { tryWord(d.r, d.c, d.end.r, d.end.c); }
+  else if (!tapStart) { tapStart = { r: d.r, c: d.c }; setMsg('Now tap the last letter'); }
+  else { const s = tapStart; tapStart = null; if (s.r === d.r && s.c === d.c) setMsg(''); else tryWord(s.r, s.c, d.r, d.c); }
+  draw();
+};
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { drag = null; draw(); });
+
+/* ---------- buttons ---------- */
+function reveal() { if (!G || G.state !== 'play') return; G.revealed = true; G.words.forEach(o => { if (!o.found) o.shown = true; }); setMsg('Answers shown (faint bars). Click a word to still find it, or start a new puzzle.'); hud(); draw(); }
+function copy() {
+  const t = 'WORD SEARCH\n\n' + G.grid.map(r => r.map(label).join(' ')).join('\n') + '\n\nFind: ' + [...G.words].map(o => label(o.w)).sort().join(', ');
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => setMsg('Copied. Paste it into Word or Notepad to print.'), () => setMsg('Copy was blocked by the browser'));
+}
+ui.actions(document.body, { again: () => { st.mode === 'daily' && (st.mode = 'random'); S.save(); newGame(); }, hide: () => O.hide('ovEnd'), reveal, copy, mode: b => { st.mode = b.dataset.k; S.save(); newGame(); }, dir: b => { st.dirs = b.dataset.k; S.save(); newGame(); } });
+$('themeBtn').addEventListener('click', () => setTimeout(draw, 50));
+setInterval(() => { const now = performance.now(), dt = Math.min(1, (now - lastT) / 1000); lastT = now; if (G && G.state === 'play' && !document.hidden) { T += dt; KIT.setText($('s2'), fmt(T)); } }, 250);
+mkBtns(); newGame();
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+KIT.hook({ get G() { return G; }, st, tryWord, newGame, occurrences, DIRS, reveal, WORDS });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

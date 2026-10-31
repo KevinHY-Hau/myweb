@@ -1,0 +1,31 @@
+{
+  "name": "Backgammon",
+  "short_name": "Tawla",
+  "description": "The national game of the Middle East: race your 15 checkers home, hit the lone ones, and try the doubling cube. Also Plakoto (pin game, like Egypt's Mahbusa) and Fevga (blocking game)",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1d3b2a",
+  "theme_color": "#1d3b2a",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

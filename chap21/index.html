@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 21 · Hex Bastion</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hex Bastion">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px}
+.td{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.heroes{display:flex;gap:6px}
+.hero{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:3px;color:var(--fg);cursor:pointer;font:inherit;overflow:hidden;touch-action:manipulation}
+.hero img{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 22%;border:2px solid var(--line)}
+.hero .hn{font-size:12px;font-weight:700;margin-top:2px}.hero .hp{font-size:10px;color:var(--muted);line-height:1.1;text-align:center}
+.hero .cdv{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;background:rgba(0,0,0,.55);pointer-events:none}
+.hero .cdv:empty{display:none}
+.hero.ready{border-color:#ffd24a;box-shadow:0 0 10px rgba(255,210,74,.5)}
+.tboardwrap{position:relative}
+.cv{display:block;width:100%;border-radius:10px;background:#10141c;touch-action:manipulation;cursor:pointer}
+.ov.menu,.ov.story{position:fixed;inset:0;z-index:60;border-radius:0;justify-content:flex-start;overflow:auto;padding:12px;background:rgba(10,14,22,.96)}
+.ov.story{justify-content:center}
+.ov.menu .mbox{max-width:640px;margin:0 auto}
+.ov.menu{align-items:stretch}
+.mbox{display:flex;flex-direction:column;gap:8px;width:100%;color:#e6edf3;text-align:left}
+.mtitle{font-size:24px;font-weight:900;color:#ffd24a;text-align:center}.mtitle span{font-size:16px;color:#e6edf3;font-weight:600}
+.mbox h4{margin:6px 0 0;color:#9ecbff;font-size:13px}
+.btn.wide{width:100%}
+.facs{display:flex;gap:6px}
+.fac{flex:1;display:flex;flex-direction:column;gap:2px;align-items:center;background:#161c28;border:2px solid #2d3748;border-radius:10px;padding:5px;color:#e6edf3;font:inherit;cursor:pointer;text-align:center}
+.fac img{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 22%}.fac b{font-size:14px;color:var(--c)}.fac small{font-size:10.5px;color:#a8b3c5;line-height:1.2}.fac .hl{color:#e6edf3}
+.fac.on{border-color:var(--c);box-shadow:0 0 0 2px var(--c) inset}
+.acts{display:flex;flex-direction:column;gap:5px}
+.act{background:#161c28;border:2px solid #2d3748;border-radius:10px;padding:6px 10px;color:#e6edf3;font:inherit;cursor:pointer;text-align:left}
+.act small{display:block;color:#a8b3c5;font-size:11.5px}.act.on{border-color:#ffd24a}.act.lock{opacity:.45}
+.mbox .btn.on{background:var(--accent);color:#000}
+.sbox{margin:auto;max-width:470px;width:100%;background:#161c28;border:2px solid #ffd24a;border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;color:#e6edf3}
+.spt{width:130px;height:130px;border-radius:50%;object-fit:cover;object-position:50% 22%;border:3px solid #ffd24a}.spt.nar{display:flex;align-items:center;justify-content:center;font-size:40px;background:#0d1117}
+.sname{font-weight:800;color:#ffd24a}.stext{font-size:15px;line-height:1.5;text-align:center;min-height:4.5em}.zh{color:#9ecbff}
+.sel{min-height:56px}
+.selhelp{font-size:13px;color:var(--muted);padding:6px 4px}
+.tinfo{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:13px}.tinfo img{width:84px;height:84px;flex:none;border-radius:50%;object-fit:cover;object-position:50% 22%;border:3px solid var(--tc,var(--line))}.star{color:#ffd24a;font-weight:700}details.bio{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 8px;margin:4px 0;font-size:12.5px}details.bio summary{cursor:pointer;color:var(--accent-light)}details.bio p{margin:4px 0;line-height:1.45}.tinfo small{color:var(--muted)}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;margin:4px 0}.tbar .kl{color:var(--muted)}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px;margin-top:6px}
+.tw{display:flex;flex-direction:column;align-items:center;background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:4px 2px;color:var(--fg);font:inherit;cursor:pointer;line-height:1.15;touch-action:manipulation}
+.tw img{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:50% 22%;border:3px solid var(--tc,var(--line));margin-bottom:2px}.tw b{font-size:11.5px}.tw small{font-size:10.5px;color:var(--muted)}.tw i{font-style:normal;font-size:12px;color:var(--accent-light)}
+.tw.on{border-color:#ffd24a}.tw.lock{opacity:.45}.tw.poor i,.btn.poor{color:#ff7b72}
+.tpanel{margin-top:2px}
+
+.lore{margin-top:10px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 10px}.lore>summary{cursor:pointer;font-weight:700;color:var(--accent-light)}
+.lore h4{margin:12px 0 4px;color:var(--accent-light)}.lore .lang{margin:8px 0}.lore .btn.on{background:var(--accent);color:#000}
+details.gen{border-top:1px solid var(--line);padding:4px 0}details.gen summary{cursor:pointer;display:flex;gap:8px;align-items:center;list-style:none}details.gen summary::-webkit-details-marker{display:none}
+details.gen .gimg{width:44px;height:44px;border-radius:50%;object-fit:cover;object-position:50% 22%;border:2px solid var(--line);background:#222;flex:none}
+details.gen summary span{display:flex;flex-direction:column;line-height:1.25}details.gen summary small{color:var(--muted);font-size:11.5px}
+details.gen p{margin:6px 0 4px;font-size:13px;line-height:1.55}details.war summary b{font-size:14px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Hex Bastion</h2>
+  <p>Chapter 21 · Defend the gate on a hex map: famous scenes from 三國演義, generals with their legendary weapons, and strategists with futuristic ones</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="td">
+  <div class="thead">
+    <div class="tstat"><small>LIVES ❤️</small><b id="lv">20</b></div>
+    <div class="tstat"><small>GOLD 💰</small><b id="gd">0</b></div>
+    <div class="tstat"><small>WAVE</small><b id="wv">0/0</b></div>
+    <div class="tstat"><small>SCORE</small><b id="sc">0</b></div>
+  </div>
+  <div class="heroes" id="heroes"></div>
+  <div class="tboardwrap" id="bw">
+    <canvas id="cv" class="cv" aria-label="Hex Bastion battlefield"></canvas>
+    <div class="ov menu" id="ovMenu"></div>
+    <div class="ov story" id="ovStory"></div>
+    <div class="ov" id="ovEnd"><h3 id="endH"></h3><p id="endP"></p><div id="endB"></div></div>
+    <div class="ov" id="ovPause"><h3>Paused</h3><button class="btn primary" data-act="pause" type="button">Resume</button></div>
+  </div>
+  <div class="tmsg" id="msg"></div>
+  <div class="tbar">
+    <button class="btn primary" id="bWave" data-act="wave" type="button">▶ Start wave</button>
+    <button class="btn sm" id="bSpeed" data-act="speed" type="button">⏩ ×1</button>
+    <button class="btn sm" data-act="pause" type="button">⏸ Pause</button>
+    <button class="btn sm" data-act="menu" type="button">☰ Menu</button>
+  </div>
+  <div id="sel" class="sel"></div>
+  <div id="panel" class="tpanel"></div>
+  <details class="lore" id="loreBox"><summary>📜 Chronicle: the wars and the generals · 戰史與名將 (EN / 繁 / 简 / 日 / 한)</summary><div id="lore"></div></details>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">How to play: enemies march along the road from the top to your gate at the bottom. Tap a green hex tile and pick a general: each carries his own weapon from the novel 三國演義. Tap a general on the map to upgrade or sell him. Towers on a ▲ hill see further and hit harder. Cao Cao boosts the 6 tiles around him. Generals of your own kingdom (★) hit 10% harder. Flying enemies (ghosts, drones) can only be hit by towers marked ✈. Tap a commander’s portrait at the top for a big power. Keys: Space = start wave, P = pause, 1 2 3 = hero powers, U = upgrade, S = sell.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 A tower defence game built on my own engine. Generals, portraits and biographies come from Chapter 12 (the portrait pack is retro art from a classic game, replace before any public release). Story, balance, icons and code are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* 8-colour 64x40 portraits (3 bitplanes, 960 bytes each) taken from Chapter 12 */
+const FACES={"Huang Zhong":"+v//gN7AAI4AALoAAg8Hqv//Iv//QP//////ANUAADUAACQABV8PVf//Uf//Ef///v/+AGIAAKgAERkGCIqFKv9/qv//pP//XP/8AE0ABQcBRGZRRFQwQWuXVf//Vf//qP78ALgAAAAIETkUEZtGEJgFKv9/qv//UP38AGACVAAiREYFRGYRQuOQFT+fVf//qP74AIAIIQCcQQGBEptAVf//Uvfzqv//QPn4AQACWBC3hQdHVf//AQBEAApOVf9/gPLgAgAJsjB9EDi5EABZEQMRUMDRAgcXAMCAAQACSQC2ASBkAQC0AQBEAQBEAQdHALIAAABAVACIEEBREABYAAAAAAAAEgcXAIiAQEBgAAAgAYDEAAIBAKpVAKpUCQcHAAAAEAAwIAABEICQHV8vXf/+3f/uAg+PAEAAAAhMAAICAAFAN3+/d3/7M/+/BY9PAIAAEAITAAQFEQUS0fTp/X/+3f/uam/vACAAISAkAADAAQsFBqJWXQ1dEt6a5U/vgNTEEBAxEAAxQcfK2f3qBQGFGzkrAg8XUvT0CQgYAQBMQcvFqKpTAKBAMHEwBVeXoP72EgIWEAARQcfK2PrcAAABMPBQAhcXVf7+AQEFAQCEQevFA9erNP36E3u5Fd+Xqv//kBAREABwIWdq3f//GF6tbf1cyu/PVf//RYSMAQBMATNle/+/4/frNv6uJf/vqv//kMDTEAARITcy3v//3f/2DS9XSm9PVf//QeDkAQDAABVyN/+/8v76N/9/Bd+vqv//oPDxEAAwEAIxHb8u0PXqAQ8GCi9PVf//QPDwAQBMAhFyI2+rB9OnoICghV+vKv//oPDwEAARMiAyXf9unt6e82Xzip+fRf//ROTwAQAAIiBiOn+2NCC0lRWVVR9fEP//kdHEEBBABQEFhq6nacFoAAAAah9/RP//REYRQGkYHg4ewdXJoYultv9+FT8/Af38ERlEAJJROho68PXyHR8uAEKE6p/fBObxRGYRQGViWVhZqIqpk7+XANWiZR9fUZmEEZlEgMrFW1FbvZ29lZWE1NbU4q/vRGYRRmcTAhsqF1OXayhr6urqOri6oaOjETlEGJxMBL9fFQEVKSkp+7v7/Xz9kJCUxM7RYHAxCP9/h+XnbWBtv5+/7ubu2ErZMfP0gsLGAC9VBfHVNiQ2ng6et5O3aSFoDL09FxcLACqBAblRurK6rS2tt5O3kJCQA6+PGxsvgNWoARAJ1NDUbytvWxlb0MDSAOtjjo6L6tXVoEBAykjKbipuWxlbsoGx","Taishi Ci":"+KsBjf+vVf7+/6oA/6oA/6oA/6oA/6oA/FUABs+n0Pj+EABEHwVA/1UA/1UA/1UA/qoAAVcDRUTdQUBRAAARfyoA/6oA/6oA/1UAASGHMTF3EABEAABEFwVA/1UA/1UA/6oAhYQV7ez9QUDRBwcPAQAQ/6oA/6oA/1UAEQEHMTF3EABEFR0fgIDEf1UA/1UA/qoABQQVRUTdAAAQETM7WHj5HwoA/64E/FQAEQFFEABEEQFBxM7uRU1vT8XA/V0M+agBAQARAAAQDQ8PETu5EfOzEzKw87IY+FAAEABEEABAVN7+QufyRPzuJa3swUks8aABAQARBQcPUXv/Ba+l0fv7MTK7U3J4+NCAAABAFx8/VN7+RO/lVPz+PLj+AYnscGDgAAAAV3d/0fv/ELey0fP7MXLjEzK4EBh4AAAA1t//hf//SPr4RM1vAanRJ63oFTefAQEBEje/BV8vFf//Wf//EXypIyKoVFxeRMTmVNz8EH26NV+/EP36QODgZ+3okbM7ETO7GDq51f9uQOrVBa9XAMiEX2rgxEwuJKxucPXyAdORVf//Gvu7CDwcR8Xw4aMbCSsbJTWlQGhIBF4sUPjoQORiX2rg8FgORNTOYObiFv+uAECAUPy4BAYEX9Xg+KoDASejISWlQOhQAAIFQ/tzFBQWX2rg/FQCQcvpYPfiEf25iImKEH26VP68X9Xg/qoBETO5RWfyVf/uUPbrGL1acPz6X2rg/1UABA1MW9v5F/+/Re/WHF6tUPp8f9XA/6oAgKIzFTU8Vf/v1v79hr9eUPy6f+qA/1UAgAgsBI3MFf+7Uf24Vv/vGLk0P5WA/6oAAAILAiI2lf9uUP7sDA8WEH0pDwoA/lQAAABCBgbOAf+rUP26AEShIPhUAABA+KgAAACAHBy8jd9WU/frVf/+EdCpAQAR0EgIAABEAAJAAXuqFf+3QOjQADgQkIDECAg4AACRlJeWCi5V0P5sAB8PENCqISAxEAhMEQFFFDc9ApsqGLy5GP16AWdTCgoOAwIXAgISFJx/CO5FFf9uAdGgA1OnAJCgEABFFAVMBzfvAAXCBb+7Uf/bA6dLEFW6AQAREBIxA5e7QNDoi69VVf/+B0+XFb3fEgJGQVfLACav0PX6AAUKQPq0BRcvFVe/KCi4F79fVNXWdH3/AFCgAAAAFV2/FBy+AAUCFTf/1PT9DS9fcHr1AKFCXX//FHa+QAAAAQkXdf3/AYWrV9//j6/fFV2/VNx8EUBEAAABFbd/1fX9VXd/HV+/RFbvUXDx","Xu Zhu":"/////P/9QOrIACQAAA8NAPjYv/++///q////6f/vAOpiAI8HAPl4gJ+XD/93//+1////lL+9ADUQIP34A4eDwObGAT8d///q/v6+AKuiCl9PAJgQAM9HgPbiMHsy///V+Pr4AKiIIPx4On4+AG9FAPPTKH09f38q8PJiAKsjCLgYFf9/ACchAONBAD0UP7+V4OLgAA4MBBwMAv9eADERAP/dQMnIP7+qwMiAATMxgs7GADwUCH9+APX1AH10P7+VwMLAAufHoffzAg8PAMCAAAoRAIcFP7+qgIkBIOdjAPNhoPjwASsVEf+7AOmxf39VgIOCEHMxAudHAcWCFX++Vf/uVP7s//+qgIYECDgYCB4cARcLdf//Ef+7EP26f39VwMmJhN7MIHBgFV8v1f//Vf/uVP7tf38iwdtZwO/ngMCAEb9bff//Ef+7EPy6Pz8IxN2dAudGAAAAFX8uKqqq1P7uQOjoHx8CgrYyAA4EBAQEEbdTAPCwEBgYA+OhP7+AgKupgLiYAAAAE38uUP3qAQOCQODAf3cAiLwsAPBgAAEAEH+7FPy4ARcLTMzMv70AgI4EFd/PAYEAVf/uR+fnBQ8WRe/mX9fAwMEBELAwAEBBEf+7Ef+7Ad+r0fdzT+rA4OIBBa8nAYECVf/vVf/+Vf/uEf36T+Xg8NIBADgoACMlEf+7df//EP26Fn6+D+qg/HUACTsqERUCVf/uXf/+Vffnd//fTWVg/qoAABISEXs1Ef+7Ef+7AfejFD4eA0IA/lQAAAkJUfVqVf/uVf/uQODAAAAAAQEA/KgAQAYCETM1Ef+7APWqAAAAAAAAAgIA8FIAAQMBQeHCVf/uAKCgAAAAFBQERcVAwIQABAAAUPlwEf25EfmxAAQAFf+/AMCAADAQAIgAAAAAEbtqVPTkBS8uQfHgAYGAAIOBRAQEAFAgAVMhEPy4ET87AQsFBIQAAAQECBgYgOhQAQkIUfvqVH9uRe/WC4uOBDAQEnIyIHAgAAAAEX87Ff+/UP/6FhYTEMFAQ8PGoKDAAQEBFRcHVF5OVPzsLy8uQQcDDg4L7Oz4iIiIAAAAFBYWAGAgrq6/CNxcAwNWu7vvoKDEICAggICAAwMCubn8QODgbm66r6+77u7/iIgIEBAQrq66fHw5AQEGu7vuq6vqv7//+vrsAgICv79/kZGE7++/////7u67qqqr////xMSwb2+/yMjYAQEAu7vv+/v+urruu7uvr6/OW1su6+vuAC4EAgID7+//7u777u67rq4+1taL7u6r","Dian Wei":"RABERwVC4EPhIvpyAo8CgOiAAK5URABERAARTwoF/K18RObmBz8HQPtAAAgJRAARRABEWRFJlhaGiMzMAs8CgPyAAIAARABERAARVwIV56PnEBoYACsAAPsAACAARAARRABEVBBDORG5wMDAeFI4AOwAAIgARABERAAQTQEDnIjUv64/1oLWALIAACIARAARRQFFtRCiQwGC/1e//lSqAMwADIQMBAAERQAR/6rF/Kj0AQAB/qr2ADIAHBgcBAARRQFE31WAwUGCENyqHhQKAIgAODA4BAAEAwIRgIAAEz8fNP/9R2JFACAA8OLwBMCRQ0FAEF8rRP93TF9fE9mrjw2P4EmhBIAEYiJgQXdVEPzcAQsJA/LR//r9hIcGAAARdlQwFB4uQPBwFN+vQf14/FToKD48AIwEPCkdAQcFAAAAAz8fFfTV6KlAQPDoEDA5npSOBMeHE9urBA8HQPx6/FStAKBAhODUTurkIyMjBffVEf/dFP7c/qp+BQ8PBMCBBjQQEturwf36DP+/xf32a0EqIH51AAAACoqAR2dHEdfVM///EP/dfChUgJAoAAwJntTIDN+PwPvzTP9/xf32N5WngACAIHh0HAkdQU9EAAkJUX9dEP/dOyoRxZ/PANChGZEIAcGgFNykEd2qRf92EtCAwFqVBIAEHEmFRFdVEPTUET8dEP/dW0pRgJAgBAARDQUABIWFQEBABA8HxP31H1UAAAAABAAEBBAgAAAAAICAgYGBAurKPSgQAFIgAAAARARABE8FRP5WYHBwAAAAPxUKgAiAAKgAQAAQRHRUAQMBMv7+CIiIAAAAAAoAAOAATARIER0qBFcX7P//RPR0AgICAA8AAIEAQAAQBAcFU19fMf/9AODAAAAAgIKAAA4AQABAAQUCBJeXRH52AoICCAgIADxUADgAQAAAAEIACIqIgICAQEBAgoKCAIeKQODgAAgAAIAAAAAAQEBAAAAACAkJoFBRKv9/ACECCAiIAAAAAAAAQkJCRUdHUKioABcqAIoFICAgAAAAEhISCBgYCh8foEFBgEJFAHwoEBAQhISEAQEBAKioVLq6FSsrUKioAMBAKjo6AgICgICAAgEBoOHhqn9/qvX1BQsLBYeHUFBQV09PgIKCAAgIKioqVXp6KxcX6Pn5AgUFqx8fLDw8ExcX/P39qtLSQYKCAICAVWNjFz8/BQcH/f//Ufr6BYWFqHh4Kn9/igcHK11doJCQKl9fqNDQKj8/Vb29UOrqRW9vVb6+FZqaAaqqVby8Vf//","Xiahou Dun":"u///////////GX89////////////u///7v//7///////kb2Zv///////7v//7v//u///u///u///h9HD7gWn2///u///uv//qv//7v//5fr9eBBYAQEB8g/X7v//6v//qv//qP//J1Cn4EBgAIgAPxA6Cv9/qv//qv//oP78H0UfgBeAgHaAB0QGoh+Pqv//qv//gPjwPoQ+BVoF0K3QA5AD6Acjqv//qv9/gOvAeFF4AnUCoFegAWQBmAOJqv/9qv//gNSA6AloALsAAMkAAAAApIGkKv//qv/fALYAsBKQAGQAAKAAuwCIuACIKn93qv7+AJwA4AEgAIgADgAK7AEhAvxWij8/qv52ATQAoAKAASAA/2DsuAGIAFSoij+dqPz8ApgCoAAgD4ED/hC67AAgAqgCyh9fqPzcAxAAsBKwCyAK4GDgCwAIuACISh9XqPx0AogCHAQMHwEDABUKANCgAAABCj8fqPzcAiAAiwCLioKCLL5eAAoVKpUAGn+tqPx0AogCAgAC7CVkMHSwAQMBH+rACr9Xqv7cAAAAmACIvAydQPJpQPBgDbUgCl8dqv52AAAADgQGLAUkAN2qAAECEjpQCr83qv/dAAAAiwCJxoLGTP93wPp5SP14Kj8dqv93gIBAAgAC/hI2k/9fIe/VEP7cCr83qv/doODACAAIvgKODH+3zP//RP9Wqj8dqv93sPBgBCAELgIiE/9dMf/9A9+vCj83iv/dofjZQ4FDCgIKBH+3wPp0Tv93Kr8dKv93qPh0AgACwkLCETtZAurSAAAACj83iP/djPzYACAAuxG7AHg0BKBEASgRKi8NIv93KPh0GOAILwUvED5cAAIBMPx6Ch8XiP/diOnQMUAQiwCJhL+3AIpEAAIAKj9dIv93AIVAYIokcwEzkb+dANGgEPz4In83iPjUAZYAgBWKDwCFBB8XBK9WAEiACH9dgJVABtgCAC4VgKBAARMJEP7dAFwoIn93KgAqqwCrXL38IPWqAgICTP9/ROxkiP/d/1X//fj9XxVf4GrlgYEBEz8fAMiIIn93Aaqrfyp/9eD1fi9+AECgQEpEAKBAUN+tvv//h9XX/1f/78Hv6ODoAAQAAAAAKltxeP/+Vf9/FwIX/bj9/Tz9AQEBAQABFqqe4Pz4Hn9/ELCQvxe/r4WvkACQAwEDrhyuAOLCF38/CDqYBQAF9XD1dKL2JQolHKidABEFAz8fCTmYEJAAvha+qRKp88XzeRF4EKgSAI6HEHIxRGYQFwAX0crTZ8rn5Kbh","Sun Jian":"3f//3f//0PTyAKoAAKoAAVUpgdmR3f//d///dv//ANUAAP8AAP8AAdUBA6szd///3f//wPrwAKoAAKoAAO8AAP8AAFJi3f//d///QOTAAAEAABEAAFUAAN8AAuMCd///3P//AKAAACoAAP8AAPoAAK8AALsBXf9/dP/+AAIAAJUAAFUAFX8VANUAAG0Bd39/3P7+ABAAACoAAKoAAKsAoPqgAJEBHf9/dP78AAEAAFUAAd8BVP1UAF8AAEkAN/+/2Pz8AAoAAIgAAIgACr8KAO0AAAEAHb+/cPz4ABQABS8XVP92ABGAAPQAAEEAF7+f2Pj4AAIBKv9dqv/dqv78AFoAACMBDR8fcPj4ARcKVf/3Xf933f//AKFAAAMBBx8P2Pj4Kj8Xqv/dqv/fqv/9oODQAEMBDQ8PcPz4FV8v1f/3Xf933f/3QPBoAAYCBw8P2Pz8AqtNqv/9qv/doufVoPjQAAYCDQ8PcP38AQeDVf93Vf93QcNDUPh0AAwEBx8P3P78AMBAIHVVqLycAAQEqPzYAA4GDR8fdP7+AHq0BQ0FQEFAFH69UPp0ARsJFz8f3v7+IKBAAC8WgJSIAAEAKn7dABEJHT8/dP78BHSkQUdLUfnRERcSVP/2ATUVN38/3P78Kv9dovvXgNGqqv/dqv7dACISHf9/df39HX8/x9fLQffrXf9/VP/2AGoid///3v/+Kj9fou/Xqv/dqv//qv7cAEQk3f//dv//FX83R+9XVf93Xf9/VP52ANpYd///3f//Kr9dgtfPit+tqv/dovbUILRg3f//d///Fd+3Fb9XRe9nVf93VNxWAAaAd///3f//ir+dAEaDAocFqv/dKHxaAAIAXf//d///Rc/XAKhQEVs1Vf93UPp0AAMAd/9/3f//gtfNiN2qqv79Kv9dqPzZAAMAHX9/d///Qc/Hdf9XVf9/Vf93UvtyQEFAF/8/3f//wuvFUNCgAgsFqv/doOvVQGBADb8fd///AMWCBU+HUPHoFX+3QvZqjOTIA38P3P//AoIBgKpUKj8dqv/dis6Ui+nGATcDcP78AAAFQPcqAXerVP92AR0pBsaT1FaZwPDgICxEKj9Vqv//qPzYgrNTG5kOsbnUSGgbxE2kBS+X3f//AKFCTO/OTkYb1FaZE7FWMh7mgKVCqP3aCA8VuL68Px1u8fnUVHQT4WezIDAoAAEAIn6q4Pjxb2c71FaZI6lmuJvpyMrViKpVh+9XAcGEv53usbm0bmYr7GW4IufqIL2qGN++TkYb72e75Ga5","Zhao Yun":"qqr/qqr/qqr/ra3/39//+fv9H9+f////VVX/VVX/VVX/V1f/d3f/cnf7P78/////qqr/qqr/qqr/qqrVqqpVpq93P78/////VVX/VVX/RUX6Xl6r7u67UFKqbm5/////qqr/qKj/qalWu7vuu7vuurrtr68/u7v/VVX/blPb73X8bm677u677u6/9fWv7+//qqr/+wxuu83vtcXyu7vuu7v/urrtvr7/VFT+7jO77n//7je/qiqV7++/7+/6VVX/qaj8u8zuu///O01vu9z+q6tfu7vuKip/UFH57jO77n7+bjM7rnf/5nbr7u66VVW/oaz0u8zusYCgu0zuv93/udn6u7vqigq/VlDybhN77jO77jO7/n//7DS8bm661dWfrLTsBwkHu8zuu83v+/z+uszuOzNqqiqfVEz0QPBoLlc/7nf/7nP77hG7Dgwq1dWfrLXsKH3aAECAAAEAu1z+u0DumxOKqiqfUFDxVf93QPVqAFWqDhMb7hC7zoyKxcWfqKn4iv/9qP/fqv/9i8yuu0Hvm5OKigq/UFD4XX9/1/9/1f/3BuVX/hW+zgzKVVW/qan8Kj8dqv7dCp8Nh9Cm+3T7m5OKKip/VFT+BBYWQOhgAQcDA+FT7tLuzIzKVVX/qan9Cg4NAgsBqv/dh9ens0qzGJAJqqr/VFX8xO/mAECABQ8HDepNzKrMMCARVVT/qKn9it/NuOjY6v/drebNMagxAYEAKij/VVf9Fd+bXf933f9/RuhmxKLEhISAFQB/qCn+ML26qv/9qv/9h9KnEwoTEREACgBfVBb9KPp1Xf9/3f//BKpEzKjMREQRRUAXqAn+On9/Kr9fqv/dm8abIYEgkZHEGBhMVAH+AHiwDX+31f93DKpMBgYTRkYSbGw5qgD/AkNFOv/tqv/doODQcXFkGRlMu7vqVQD/BR+PXf/3Vf93QNVqLCy56uq75uazqgD/gEGAIHftqv/dIq/Vm9ueMzNmr6/uVQD/SR/NAUuH1P92Bd+vDq5Pz8+L3t6bEAD/gRHAqv/dqv/dCr5dQ+NztbXkW1tORQD/QAqEFb9XVP1qAWszqIDE7u77xMSQEAD/oAUKKv/9IOjUBqxNqgERnx8f+/vuRQD+AAdDXP71IIJBOrA0qgREtABA/v7/EwH9IAEQAHSoAgARqoDRwiAxyiAxgAAAQQL9qoAAAgAAKAJGiQBEKoDEqgBEX1UOFwX6AAAR4EBRpggZUAoLqgARggIA/6pdRgT6aGBkpARMmCBkSiA0qgBEFxUC/1W6","Ma Chao":"KD09IPp050XigA+FAKpVCl9fAKhQACpVBAYGEDw6Pio0AAUAANCAUP/6QPXqAAWKSEBIgKqAAMFBqP/9ov/3AO9VAL9VAKJVuamxQP3oBT8vQP/qAP+qAHWqAMeqANGKwsPDqP79AI9VAP5VAK5VAPpUAOtFAOpBhY2NAPioAMWqAFAAAAUKAF+qADEiAEGqiKiIAKpVAKpAAKpVAPBQACsVAIABAIIRxMfGAAGAAFUKAH+qAB0KAEWCAFCoAAQIoLqwILMxKv9/ov/3AONBAKBRAIJFAKpVQHVqKHx8AAAAAAAAAHgoAPCoABUKAFWqIHp0Kn9/qf12Ed2qAIyEAHhVgC8VAPpVgLCgqv/9qv/dRHdVQHRREDw6QBeKAPWqwM7Eqv/3qv/3AQEAEJmqAF6UAAtVAPpVufn4qv/9uPj4RFdVRHZVEJ1aQAcqAPWq/v7+Kj83IWFgCd2yEd2qCE6tIAsFAPpVv//+AgcFgIKAAAAABDdVBK9OAAWqAPWq///+AsOjAc2qRUVEEd2qAFelIIMVAOpVrv//AAEBRHdVLH9dRHdVBKdWEAWiANWq////paelE9+uEd2qEd2qAtenBIIRAKpUq///q/9dQndVpPfVRHdVQGtSEEWCAlSo////qvv9Et+rqf32Ed2qAtOrBIJRAKpQq///6v+7ZHd16v/9RHdVQWtTEsGIIFWA////5vf7qfnQK//2Ed2qAtOrCYJQQKoFq///4//WAAMBbH9dRHdVQWlVAsGIgDwo////+Pj4EV0qEd2qEd2qANWpCaJAAOFAqv//+v/t6v/9RHdVRHdVQWlVAMCoAAoV////+v/3q//+Ac2KEd2qANWpAKBAAEGiqv//uv/7AAAABAcFRHdVASlVBAYEHAhJ/////v/9qr+1oe1aEd2qANSoFNy+GFAUqv//rv/+gMHBRHdVRHdVAChUJDc1ACEA////////Mf16Ed2qEd2qAUGjER2qAAoAqv//q///qv+9RHdVQHJUCAodhBZUABUC////////6r+3Ed2qAMGgQVTqUBCAAD8Vqv//r///yh9dQHBQCgofCqBUAQAAQAOC////////6krghYUPQFXqUQGgAHxUKAAUqv//q////6q/8Kr1AKpVDwoAlJ8eAYCC/////////NX6AFWqAFCg/FQgIgcHgPjQqv//qv//+ur5AKhQDwoFAwIAmIgAUP/6/////////f39AAAAAAAA70UAzkQACg8Pqv//qv//v///3Mjc+6rx96JF56JAwIAA","Guan Yu":"////7ODhzCImgEBAAAAATCImzwdH////////wsDAcAiYMwAIMwCIAwAAM4OT////////xMDAQAAAzCIiiCJmiCBgRSMj////////ooCQMwgIMoiJqoiZI4iYEwEB////////iICgzCIiziIiqmZmqGJmwQEB////////oYCAMwiIKpmZqpmZqpiZM4OD////d///xMDCzCIiqmZm7iJmqmZmjSFh/v//3f//k4CAMomJqpiYdt7eKpmZMYmJu///d///RAICzCIiqmZmAAAAiEREjCBg7v//3f//EwAIMoGBKhkZqpmZqpmZIggYu///d///TAAAygYGqmZmqmZmqmZmjABA7v//3P7+EwAAMomJIhERIhERIhERI4CQO39/dv7+TAICyCAgCr+9qv/dpPDQzCAgbn9/XP7+EAAIBC8H3f//Vf93Xf93U8BAdX9/qv7+QAAAAhdVv///qv/9uv/9gKCgan9/VP7+AACBQPx0lZ+f1f/31f31EBgQVX9/qv/+AAEAKH7dAgMFqu/NoODAgNSoKn8/VP39gICBUtNzAOhAAWcrAYcDEJgQVf/fqP76AEFAIPTYAAAAKioIAAAACDlZCn9fUPv6ACMhUf91CAgIBL9eERGRkPqyVV9fqPv7AEFAqv/dKP7dAF4tKn89qvrYqr+/Vf/9EBMRXf9/wPVqVP2uAV+rUfnxVX9/qv7+iNnYKv//qv/9rv7dK/9fovPZKn9/Vf//QGJhXf9/3f//Vv5vXf9/0PryVf//qv//CDs4qv/fqv/929/+Kn9foPDYqv//VP7+AAABXf9/VP52ZP9fFT+3UvhwVf//qPz8QAEAKn/dqv7dA58OKj8doOjSqv//UPj4KAmIVf93VP12AAAAFV83Q/BgVX9/oODgwAAgKn/doPTYAIAACh8NoODSqj8/A4CAEJCQFb93QPBgAAAAAQcDYfBgBY+PJCAgMBAwCl89oKCAFBUqAgMBoODAwCEhCYCB8KDwBC4WAIABVf93AIBAA4JDEAgIMjAy8FDwAg4EAgMBgICAoODAAwEDjgaO/bj9UABQQEBAAQcDFLZVQPBgAAAA767v/1//oACggACACx8PgsOhgOjQEBAQX11f/6//4ODgwIDABA8HAKJCQNBgMCAwPzo/rwWv0NDQ4EDgQEJAAYEBACBAIAAgWlBaFQAVQQFB4KDgAAAAAAAACAgIEQARVEBUAACAoQGh4ODgAAAAAAAAAAAAcVFxoACgAIioAQABVBRUAAAAAAAAAAAA+KD4AAgK","Zhang Fei":"7m677+67/+67/eC4AAAAAAAAXQAAfy4/u5vuu7vu/7nugAAAAgAAgAAAFwAAXwsP7m677m678MCgAAAAHQAASAAAAgAA1gYDu5nuu5juAAAAAgAAVwAAaQAAAAAAvwMD7ua77OC4AAAACQAA3wAA2gAAQAAAEgIDu5nuuJDgAAAAAAAAfwAAQAAAEAAAAwEG7ma74MCAAAAAWgAA/QAA1AAACAAAHgYLu5nuwACAAAAABwAA8AAAeQAAAAAACwEG7ma7gAAAAQAALQAA3QAAFAAAAAAAJgIDu5juBD8XRPx0dwAA8wAAQQAAAAAACwEA7ma6Eb9dE//dN/j40gAA0AAAAAAACgAAuJrtRP93TP937P//gIBARAAAAAAAAgAA7GW4Ef/dE//dM///ANCoEAAAAAAAAQAAuJnpRP93RP92ABcXwPhwAAAAAAAAAQAA4GCwEXlVAEBAAkpAEPTYAAAAAAAAAAAAuJrqEBoSAAsFRP31QHh0AAcDwODgAAAE7GS4CA8NAECAAW9NEPzYAAwIEBAQBgYDuZntAAoECKhIhJ+XRP52AIMByOjICwkO6WO5C+/NAd+dAd+tEf/dBASEAGgoDgYLsJfrHJ9fRPdrzP93RP93AIkBCKgoGxkO62+3M7+9E//fc//9EP/dEd2dEBAQLiY7tJfnSHo1BK8XzP/3RP93BLxUAHAgOxlu4We1MX9/A+/FMf/dEP/dANmIgODALma7sJfrALgwQOdjRP93RP93AodTQMhAK5FuqCK5AIpFAJIIAW/NEP7dCY8NEDwYKkS7iAnMABwIICoEAKsjRP92AAAARP51KlEu4GCgCD4dQEAAABgIEPrYiYuJEPzaIrNisJDgH48X+KjQAAMDRPx0AAMFQvpzqu6ryECYEr6dsv/9ET8dEvLSBAUECuvOjp/OoADgBk+FZP9XRH93ROxkkJGRKi47On474GCwAKBAE79dMffVELCQAAAAqLns7v/ukJDAAnoyC18/SNnRQcFBCwsLo+ezuv674GCgkbmZM//fIODACIiIGhsenp/eqLjotBDkACggTP93QEBAAAAAqOy5am57AIEArES4AAAAEBQUAAAAChsKo7PnoLDgAAURuhDugACAAAAAAgICqq67Gl4bAIEAIHVkrkS7qCioICAgEhMWq7vvqLzoAEURaP35qxHuqBroAIBKKGi6Ki67AIEAABdGYPfmqkS7ilqv4sPiCguuoLDgIwcnAF0ZAN2ZqhHuii+acGDyqu+6AgAC8ROzgJemIHVk","Lu Bu":"/KlUCEAhgAUQqgBVgxpB/6pV/6pV/6pV/lSqAiAUIANAKoBVow1C/1Wq/1Wq/1Wq/6pVgJAJgAUQIIBAAAAAfyoV/6pV/6pV/1WqgiiEKABAAAAAAAAAAwEA/1Wq/1Wq/6pVwJhBoCAgAAAAAAAAAAAAfyoV/6pV/1Wq4EigAEBAAAAAAAAAAAAADwUC/1Wq/6pVwJBAQMBAAAAAAAAAAAAAAwIB/6pV/1WqwECAQMBAAAAAAAAAAAAAAQEA/1Wq/6pVgIAAAGBAAAAAAgsFAKBAAAAA/6pV/1WqAAAAIGAgAAAAFT8XUPlyJCQkf1Uq/qpUAAAAADAgAAAACl8tqv/dqv7cPypV/lSoAAAAEDAQAAAABS8XVf/3VP53PxUq+KhUAAAAABgQAAAACh8tqv/9qv/dP6oV/FSoAAAAABgIAAAAFX83Xf9/Xf9+f9Wq+KhUAAAABAwEAAAAKr9dqv/dqv/dn8qV/lSoAAAAAAYEAAEAFX+3QUFBVf93X9VK/qpUAAAAAAYCAgIBKP1awPToImZUj4qF/FSqAAAAQENCAAcCFf+1FH61BAwEHxUK/6pUAAAACFlJAosFqv/dAIAAIq4WHwoV/1WqAAAAAGkggYeLVf92ENDQDt6uPxUq/qpVAAAAIDAQAs+Fqv/fqP7dIr5WP+pV/1WqAACAFBwcQcdLVf93efv1xfdrf1Vq/6pV4IBAAg8HImclqv/duv//qevXP2pV/1Wq8FCgASMRIbcjVf933f93Ba9V/9Wq/6pV+KhQABQoAjMVqv/dqv7dCn8/P6qV/1Wq/FSoFj5VCZtJVf93VP12AEWDv5Uq/6pV/KhUKn9dgNmKqv/dqv/dwNCofypV/1Wq/VWoVX+3QO5FVf93Vf93UPr0/1Wq/6pV6qpJqv9eoOfSqv/dqv7cAFAA/6pV/1WqmAmaVP73UftxVf93Ufl1WPl8/1Wq/KhULgYuKv9fKH1Yqr+dqv/dA0KB/6pVDLycFwIXxe/X1N3WRW9XXf9/ganS/1Wqgs7GAkAC/H79Ivd1gsuFq//fo/r1/65VQcfDATABXwtfxe3VQPFgFX+3V/VqB/+vIONhgoWCKgAq/3//AipUABcKBEyEAC9VQGFgSNfIATABVwJX8PLxAIAAAQULABMBADBQIOxgAsUCCgAKvB28aEBoEHNRIOVgEHAwIHOgCBUICJQIDjgOwKDABBwMEHu4ADRQEDxQIFYgIFQgAMAAAgUCAg4GAi8WEHEwAFEggFmAgFOAAhUCgFGAgVeDAQcL","Gan Ning":"AAD/AAD/AAD/AAD/AgL/qqr/v7v/////VQD/VQL637y9VQD/VQD/VVX/f27/////AAD/Fwjtc4jatw/fdK7/Kir/v7v/////VQD/3UJX1QJX3fr/VwNX//////7/////AQD+t4iddyo/daD1/Pz9qgARvzs//7//VgD8nSC13ar/Xw9fqgBEqgBEowFN383fBQD5T0pPdYjd6uDxqgARqgAVzwIy9zc3UgD4nUqf1yN3qgBEqgBEqgBFuwhMm4rLAAH4txA1XJjZqgARqgARRAARTgIz7yU1VAD4NXI38mBkKgBEgAFAAFWqC0CEuYjNAAD8uwg6yICRqAAQCgsFqv/doujR7SU1VAD8vEicooDEgAAAAR8LXf931P50u5jdBAD4rBAs6EBQAAAAqK8Vq/9fqv/ebSk7UAD4rECMYEBBAIEAAnuqXf+31f/3K4obAAD4rBAkAAABAIIBiO5UiqsJqv//raW3UgD6KEQIEPl5AIUCIruqQEFAXf/3p8KPBgH6KBEgAM2FCIoFiO9VIPy4Cn89ldXfVQD9kQMREbExApcKBL+rVP9+HR8X3+rfAgD8gFOBAG1FCI4Vov5VAAAAKu9NheXvVQD+YQNBQGFAApuqFb+rENBQBC9WBwIPAAD/gAUEgqaiCK6Viv9VqP3cCd2sAQEfVQD/TAKGRO5GApuqBb+31ffrFP5cFwI/AAD/NwidAnIwCK6Viv9dqv//2v6ugMC/VQD/WSJzjJyMAtuqBb+33f9/Nv9WFcC/AAD+d4DVQo7GCO5Viv9dqv/d2t+uAEC/VQD5zSJnwICAAtdKBb+3VP92LX93FYB/FwDtV4rfiAoECG5Vqv9drv/bgo8HAIB/fQI3XSp+EB0aAldKBf+3Vd9P0PXoVQD/dYjddKj4SH41CGolov9dqr+fpv79AAD/XQJX0KHgEr+qADWqFb+rgIAAAawVVQD/d4rfQIqFqP5dgLIVgv9Vi5+foPTjAAD/3ih8ABUKNL+uAFmSIb+rUPlwFXA3VQD/YYHAf3+/Jm9LgKpJiu9VKv7dIKBPAAD/Hx8OX1+u/f/7ANWkIXurVf9+FUCfVQD/v79b6+v1//+/iKtSCC8Vrv/fAIBfAAD/BQUC///+X1+v4PToAMWCXf+3FQC/VQD/iLiYf3879/fr+Pq5ACgQCr9dAAB/AAD/M+9nBYUC/v79/v5uAIYCABAAVQD/VQD/zr+fwOjQv79b39+roK1FAKJUAAD/AAD/M+9nIOpkDw8G9/f2wNuJA3tTVQB/VQD/","Cao Cao":"qqoAqqoAgIAAAAAAAA8KAFSocVMDARyIVVUAVFQAAAAAAAAAAAAAAAIEiooDAK5EqqoAoKAAAAAAAAAAAAAAAAAAKCEAAFSgVVUAREAEAAAAAAAAAAAAAAAAEDIkAalQqqoAmJAYAAAACl9dgNBUAAAAABESAlooX1UAICAgAgMDqv93UfWqAAAAABARBbUQvqoAAAQECl9dqv/dqPpUAAAAABAQCsqA/FQAqupiqv93qv93UPyqAACAABAQH9VA/akAqv/9qv/dqv/drPxVAAAAABAQPyoA+VEBqv/3qv93qv93UP6qgIAgABAQf1UA+6sBqv/dqv/dqv/drP5VgKBQEDAgPyoA+1MDqv/3qv93q/92Uf2qEFCoACAgFxUo768Tqv/dqv/fqqoJqPpViKhUACAgKioV1lcrqv/3qv78AQUAUV0qEFSqIGBAFRUqpaVQqv7cqPjwCAoFiKpViKpUSk8NqqqVUFCgan42oODAEV8qEX2qEFSoKDgwFVVKqKhUCg4MAAAAAgoACDpViKhUIiIFCkpVUVWiAgcHAIyIjdWNEd2qEFSqIWFgFVVKqKhQAhMDxPZVqv9/jL5ViKpUJHRQisrVVFSokqOTEt+r6e/2Uf/qEFSoIiJkldVKq6tUru/bxudV6v//zP7VCqpUWFkpqqqVVlep6vv3Eter+v//Uf/qEFWpKitTVVUqq6tU6v/3oKNVOn9/RP7VCqpUFBQIqqpVVVWq7v/3sfXiEl+/Ef2qEFGpQUEAVVWqq6tUo/d2Cg8FRmdVwPpViKhUAAARqqpVVVWqqPhwUFgqCQkCEfWqEFCqERECVdWqqrtV8PEhKH1VQEAASHpViKhQACERqutVVf+qQMCA/71+AAQAAQUCEFCoElgqVf2qVf+qCouJfls9qupViKpVgKBAAyARCh8VVf+uWv+ntf9qUVWqEdWqEFCgF1AihS+Kvv/rqvv1qOjBjK1VSGpVAKRVT2JHgCEhVf++Vv/5oeHiElqoEfWqCUmiH8yOoCakuv/vqP39gtfVwfVUAGpVBIdFPxofAGgoVf//Xf38qv/3kNBgEBQqEBwK/zS+Km5u6///uPj4ovfVqOjAAAAAg6BR/uj8QcPDd///+Pj4KisrEFBAAQECD0GL/NH5gt7W////uPj4QEAAAAAAAAIEXwdX+aPzAIOCf///+Pj4AAAAAAAAExAC/x2/4AelCFtZ////oOzoAAAAAAAAHwAV//j9wB5KEHg4////oLy0AAAAAAAAfwEr//D6AD4UIPNy","Pang Tong":"//7//6n//wD//gH7Tqi5YoCZqQAR/wD//////1T//0D/8g3tgQJGgABmqABE/wD///r//5H//wD/qgBAiCExCgARogAQfwh//1T//4Du+ADwAAAAIggMAABgAABEfyJ//yL/+yDxgAAABAQEAAABgAAYIgAQfwh//4j/+ID4AAAAABMTAJAAoAJHgAAA/wD//yL/4QPhAC4cEb9dAOjQCCAwKgBQfyp//wD/xA/HBH83BL82ILSoAggMgAAAvwB//4j/gZ+NM39dEP7diOpUAAIDqgARogAR/wD/DD9XXP9/wv96JLSkAAAAGiBkqgBE/yL/Mf99M//9CP7ViOhQAAAABAoLgAAA/gH+zP/3zP/3YvtqAFCoAAAAAAAAPhQ+/Yn9Mf/tAPrUiO5ViKpQAAAAAAAAfyp/+AP7TP93AKBAIisqJH60AAAAAAAAfwB/+Kj4EH5dAB4NCI4FkP1aAAAAEPj4Pyo/8ALxBI4WTM9XAKtLRP51AIMDBAwEPwA/8af1AufGAsKCA18tMf/dAMaEEPLSPyo/+AD4LC4tDJ8vRO9XxP/3ROxEABoSPwA/+av5FN2aAUuVMv//Mf/dAN+uAEpKPyo/+Af6bH51Rf9/qP//xv92BH60AJyIPwA/8q72dP/7A9/PE//9GP7VEPlZUHBwPyo/9A72QPhwTO9nyP93QP9qAHuzgMCgfwB/8KX6ACoUAy8NEP7diK5VEvZXAIAAfyp/+AP9AIdLRP93RP10AlurQPBgAAAAfwB//Kj+AV+vENXUEP7dSW9VAOLRAIAA/6r//AD8RP9/QPhwBH83ILsrQPNrAYAB/wD//Kj8AECAAF4tET8fCa9VAe/VA8KD/6r/+AD4DD8fBIdHBJ9XAlurQPdrS8hL/wD/+aj5EXt1AfXpEf/fiK5VC+/HCejN/6r//QD9gCCQBL9Xxf92IruqBM+vxvZif0F//6r/gJSqB18vMP7diO5Vi69WA/vSPyo//wD/xC/Xzv9/xv92ILWqJH8vQvpzDwUP/6r/4b3tE//dGP7VgKpBi+9WE/vSAQAB/wD/9A3kBF+XAKhQAlcqJL+vQvJrgIAA/6r/8KDwEJUSAAIBia9VA+/WB+/WAACA/wD/8gLySAhIAhcKJL+vJL+vRvZngIAA/6r/8aHxoUGgCC5Vge9dkf9dA+PWAACA/wD/6wPrQgJDgJMqRP+2JL+3RvZngIAA/6r/UUBRAwMCCS+VEP7dkf9dC+veAACA+lL6oKCgAgIDorsrRP93RP93Dq5LgIAA","Lu Xun":"gITBDDwdDrxeIw8nu7vuu7vuu7vuu7vuoKqkA49HBl4uIQeD7u677u677u677u67YGVhAEEQQOzEAAAAAAAACQkGu7vuu7vuEHIwAKpEAMBAAAAAAAAAAAAAbm477u67iLiYAFQQAAAAAAAAAAAAAAAACwsGu7vuwNaKACAAAAAAAAAAAAAAAKhQAgIB7u67sLXiAICAAAAAAAAAABUCjP36gICAu7tu7O24AAAAAAAAAQEBBS8X1f9/QOBgbm47uLjuAAAAAAAABAQECh8tuv/9qPzcGxsu7Oy6AAAAAAAAICAgFb9X1f9/VP92Li6buLjsAAAAAAAAAAAAKv9dqv/dqv/dm9uO7Oy4AAAAAAAAAAEAFX+3RUdHVf93jo5buLjoAAAAqPj4AAABqv9dgNCgqv/dy8uu6Oi4AQMDBAwEAwMBVf93VP96ERsTDu5LuLjoAAYEoPDwAgsFrP3aAAAAAoNBw+O27Oy4BQUFAIAAAQcLXf92EFCQBU8HRtZDuLjsAAUFKHg4Bg8Fqv/fqv/dCp8tg4OC7Oy4AQMDRExEARcLVf933P/+FX+3BgYDurrsAgMBIGBABg8Vqv/dqv/9qv/dq6uu7Oy6AAEAlJSUARcLVf933f93V/91zs7bu7vuAAAAAuZkBg8Fqv/dqv/doPXaK/vu7u67AAAAEHgwIQcrVf93Vf93Vf93Rvb7u7vuAACBqLgYIislqv/dqv/doPTYK6tO7u67wMGCAMCAERcTVf93Vf93Xf92Dg6bu7vuoqPBiOjUIiMlqv/dqv/dqv/dm5tO7u674eeikPToERcTVf93VP92AFiALq47u7vuoq7lKPjUICEiqv/dqv7cKv9+Ozuu7u67wd+qVPz0AAMJVf93Vf93QONBbm47u7vuir6tqv5sCAgFKv9dqv/dwNSqu7vuZmarFX9WVH72AA0KFX+3Xf934PpV7u67fr5+Gp9Nqv59CA4Nip9Nqv/dof36u7vuq1Wr8ffzXP9+BAcGANKhXf93UPr17u67AjUSv3+/Kn9dAgcFiOlUCl8to/vau7vuAMxEB9lX5e/nAYMDYP1qAEWCRvar7u67FDcVQPXQ+Hz6AkOBqP7diKhQGxsuu7vuQc9HEP52Hu9eISHhVf93AsKh7u677u67FD8ddP/9B7uXgKCQqr+dkdGAu7vuu7vuQc9HEP5+Ae5l4PDoRW/nKKgwbm677u67ETsZALuZALuZcLB0ELt5OjpqGxsuu7vuBO5mRO5mAO5mGNhYABQqDU2pDg4b7u67","Jia Xu":"IgAiIgAiIQcjgN2qAN2qOn8/IoAiIgAiIgCIIgCIIAOJgMCAAAAAOn8/IoAIIgCIIgAiIgAiAAAAAAAAAAAAABkJIoAiIgAiIgCIIgCIAAAAAAAAAAAAAAYCAgAIIgCIIgAiJAAkAAAAAAAAAAAAAAEAAoCCIgAiIgCIIACAgIAAAAAAAAAAAKAAAsBAIgCIIgAiIgMhgKBAAAAAAhcL6PhwAGAhIgAiIgCIAweDmPrYiauJmf/dmP7cAGAgIgCIIgAiBg8H7v937v937v937v52ADAQIgAiIgCIAQ+Fmf/dm//du//dmPzaADAQIgCIIgAiBh8P7v937v93Zv//7Px0ADAQIgAiIgCIBx8Luf/dmf/fuf//mPrYEDAQIgCIIgAiBh8P7v/37v937v//7P10EDAQIgAiIgCICz8du//9mf//u//dmP7cELAQIgCIIgAiDj8X7v937v937v937v92ELCQIgAiIgCIFDQQGb+tmf/dAUVFGH9dkLBQIgAIIgAiDD8XAqdH6Phwrr8/7/92EvOTIoCiIgGJGBwsAAECmP3aAIGAmP/dlLRUIuBoIgEjCTkREBIR7P/1IqIiL382EnOTQmBiIgGJGZ8tmP3amP7tOf9dmP/doaMhAkBIIgAiDr+X6Pt17//Wbn+37//2LCykIoCiIgCIm5+PuP36mf/tu///uP/dKa0tIoCIIgAiTl9X6Pv17v/X7v9/7v92JienIgAiIgCICx+NufvZgevVu//dmP/dSF5cIgCIIgAiLg8n5vd36Pux7v937v92QlhKIgAiIgCIIQeNkPnQgOHAmf/dmP7cgoCIIgCIIgAiLg8n4PBgAAgQ7v937P50ooCiIgAiIgCIIQeFgOHCkPToGX9dmf3ZAgAIIgCIIgAiIQcjyMhIAAMCLj836ft1IiAiIgAiIgCIIAOJgceluPz8GT8dkvbSooCoIgCIIgAiIgAiju5WDg8Hrr83hO1FaExiIgAiIgCIIACICW8tCZ8tmf/dCNqIwpPIIgCIIgAiKQggDj8XLr+/7P92AR0piIyiosAiIgCIIRCBiZ2NCZ8NgOjQE7tTojOoIjCIIgAiCUkJgIWiDA0FQENCR3anCEwqiM4mIgOIIzEDgKiQAAAAAS0VLqwuIjOoIDeNCDgwiclphJSIAAEARFaqnNjciO6qiM8mAvMoI7mroOrkAAIFE9tTOrO6IruoIDeNEPbiiewptLe6BAeKTm+vcWdziO6qiO8mAtNIILqq2V3dEZ8VcH566svqIruqILeN","Jiang Wei":"/1Wq+FCoIjY2AO5EAAAAANxURABEPxUq/6pVxoJDAAAAAAABRAARAAsKBICBXwoV/1WqLiouxIDERABERABEQABAAHBQXxVK/qpUbio7RAARRAARRAABRAARABwITwoF/FSo7KjsxIDERABEQABAQABAAAcFTwVK/KhVZCAxRAARRAARRAARBAABQQMLD4qF+VGpAFVVAFFRAAAARABEQABAQAFFj8XK+KpSdP/+Qf/rAPyoAAABRAAQQAAST+rl+l+vAIAAAAAAAAoFAP5UBAAEAAABL3V6+KxYRHdVRHdVQHBQAAECAHCgRAEAFzK1+FGpqv//qv93q/9+ENyoAAsFAAAAB70a/q9T6v/9qv/dqv//rP/9ACBQAGCgE1qZ/1eqan8/qv//qOjga382ENSoAAwUC51e+KlRCA0NquvJAAMBJCcFRHRVAAECAVwJ/VWoAMGBsPBgER0KEd2qEt6qgIAACR1c/qpUAAEBoPLUAAAApLeVRHVVCg8PhZ6P/FWpjIyMsf1qRkZGof16ENyqIDAwAV9W/qtVpffUpPbUqv/9gvfVhPbUJGdFBF5O+1Or4f35kd2qqr83qv93kd1qAUFCAE5E/6tVq//9xPfVqv//qv/9hPfVIGFBAE5K/leprv/7kdWqqv9/qv/3kd1qIeHiAI6E/KlVrv/XovLxKn9fqv/9pPfVBAcFAE4q/1Wqovf3pf1YEl+rqv/3Ed2qIOzqAi5E/qpUofHQAAMBBAcFqv/dRHdVKHxcAE+q/1WqsPRkEBQkEdGiKv+3Ed2qKHpwAq9F/6pVYGEBqvrYAAEBan9dRHdVAAQCAU+q/1WqCAgA/75/wECAqr83Ed2qAAoAAq9F/6pVSt/dACoAKj4cqv/dRHZUgIYCAc+q/lSqiu7Gqv91qv52qv93ENyqAAEBAq9F/qtVAuelAgIAqP39qv/dQHBVJCUEAW+q/FWpg+vDgoeHqv9/q/92EdmqAkCQAq9F/atXA9uLqquJqv/9rP/dRGdVACBBAQcC+levAMFBqv/3qv/3sf1qEV0qAsGlIBAQgNRUCAERgtfVqv/dAFBQBDdVQERFiAQVKLz8KDh4CkpCqupiCQkCAV26ComNClldqOHxqOT0AAAAAAAABAcFpPfVCgYXiAQVqLj8qrj8AAAAAAAAqq8noPx6KhldKhkdqu7+Km5+gICAAAAAKj8dgPDRqGR0KmZ3qpndipmdAAAAAAAAAgMDgsFFoJHRqrn9Cg8fomNjpCQkAQEBcHBwKiY2AgYHqOT1","Zhou Yu":"qv//qv//kdPWu5num7n/qovrqv//qv//Vf//Vf//ROThRABE7qru9VenVf//Vf//qv//qv//sPj47qq77u7/it+fqv//qv//Vf//Vf//S+rugNWAAVUB+ef3Vf//Vf//u///u///YAIwAKpVAKpUDf5e7n//7v//7v//7fz8gBXKAfurZf/vM/fze5+/u///u///vvD7A6sTAPJRM/93wM7Uvufv7v//Vf//QOX0AX2pAPWoBV8PgJ+qHVMXVf//////4OvhAd1VAPpVCr9fgruTD+lL////Vf//hL2sSt/PoP/qB/+/9ff3A/mpVf///v/+AG60oPDwCh8fuPj4Dw8PAndnf/9/VP7+A3NrAAUCAECgAAUCAECgwtvSVX9/qLypBLw0Cl8tovrVIq9VqPzaIisrAb8VEL24CFmoHX+31f93Vf931f93EJcSHb29oLOjELNSqv/f6v/9qv/fqv/diMuJAc1FIKOpIGWjVf93Xf//Xf9/3f93RMVkRVVFgKikIqIkiouJqv/dqv+9gNHRJGRFYfV1UNXSIGWiAGCgFX01FLw0AAcCBNWkCeurwNbSIqslKv5dAoMBgMCBKv5dJORUC2tLSOvpISUqAECAQWtRAJRKAAEABFSkFdeX4OrpIqulKOhIAhMJgcmRBgMFpOXVF9dXVPX0ISUr3f93EbtVkfuz3f93xPRkJa+v+Pr6Iqslqv/9oLuViL3aqv//peXVX19fWP38UdXT3f9/0fV7lf+33f9/yctrJb+v9Pz1EtNVqv/doPvVit/dqv/dqOvJL68vUPb0AVUTVf93QOdrhe/XXf93QOpKJT8v+fv7ApMRqv/do+/Nwve1qv/dgcmpX//f3v/+AEmKVX/3QNBhhY8HVf93AJVSFX+/////wOjpKv9doPrUKj9dqv/dgdOV////d///QNXIVX/3Xf9v3f//Vf93AasTVf//////4ODgKr9dgMWAgkOBqv/dAwMH////3f//5OT0FV83Bb9XX//3VP52BTMTVf//////1MzMKj8dgPSoKj8dqfzZKTkt////////xIyUARcLQOlSBU+XUvhyJDowVf//////CBhYAEVCit+vqv/9oeDFERwcf79//P79SDkpQABAFb9X3P/2BgMXUh5XHT8f0cjAEbBRkMDQABcKoPjQnQzdiY6KE4tDRCAREnIyZDB1QAJABiAHfjp+TA9NRCIREYhEIeRlGQwdCE1JCVhJ3MzchsfGUczERCMSZuPnRgNHExkTRA1FYiNjYzNzFPNx","Guo Jia":"////0dHEEZlEFZ1EEhNDGt9dIP/9AP7c/39/xMaRRGYRVHYRREcWOL+3gP/3Afl1/+/vERlEEZlEEZlkCA9NZn97IP/9A/XZ/n5+RGYRRGYRVDRRUF4awP/3gP/3A/tz/d3cERlEEZlEUdlEIT01ov/fAP/dB+fX/HR1RGYRF38/d///Q9vLCP9vAP93B9dn+dnYEJdDAjYSEH04Cr+fIv/fAP/dD+/P+HZ1IDEwP7+/////AM1ECF+fAP93H79f+NnYBbeXQMDAAAEAeP76BE0lAP/dH12d8HZ0cHhwACoVAKpUDx8PAaORAH93P78/8NHRAIIFHb9u3f/+AECgYPBgQN5df91d9HR0A1crMPy4N38/IPCoDBwMEDcWPze38NLRXf9ugMGCnZ+P2P3oAMPBCAoJf11d8XN1Mv66ASsFF79fcv66IeNjQMXE/3d38dXS3P72BVcrXf/u3f/uCExIACIi/93d4GhkFz8bAOhQAw8LM/+7A0NDEdOR/3d34cHADU8uhMSkXX9u3f/uEFBIQVFR/93d8XNxFxcHI++rN/+/M/+7EV1ZI7Oj/3d3uNiYhYeG0ffq3f/+3f/uEVtKR2Vl/93d/XV1J++nM/+/d//7M/+7EFBQR8fH/nd2uN2Zze/Onf+u3f/u3f/uBUdHD40N+93Z7HdlFt/dE79bc/+7Mv+6AkdCDxcH7ndmuN2Y3d/OweXi3f/u3P7siKiQGx0Zu92Z7ndmAMqkABUIM/+7MP26Ap+rDpcG7ndmutyYQOBRBb9WHX8u3P7sBa+Wi82Ju92Z7ndmIHWqK/+/E7+bMP26A5+rFtOS7ndmu92ZAq9V1f9v3f/u3P7sBb+WmcjYu92Z7ndmg18qACoAE79bMP25Ax8rGsqaHgcWu92ZoM6UXf9+xe/W2PvtHX8uNBa0AAAA7ndm4m9qAEmAM3+7MP25Ej9adCZ0AAAAu92ZuNqREZUq3f/+0PLqnP5s6EzoAAAA7ndm7HVkM3+7c//7ANGkMXy5yKzIAAAAu92ZutyZXf9u3f/uAEKJ0/FrkFmQAAAA7ndm7nZms387MPq1AqcCB86nILwwAEAAu92Zu92ZpY+WgNGoCS8Wns2eQH1gAREB7ndm7ndm4HRgAAUAAl+qfDp8gPbAAGEBu92Zu92ZutyYgKoFmfxp+fX5AN+AApsC7ndm7ndm6XFhAlcqL+ev0qPTAOcAAPMCu92Zu92ZocSFiK6VP54/TI9OAJkABJYE7ndm7ndmAAUA0V3Z9fr1MDw4AAIAAGYE","Sima Yi":"ZmYRAn8/avVqwHflIP/9APPRDcgMUQFEmZlEqP9e2anZILsygP//ANdkGhBRpgYRZmYRAn8+z5bPILsxIP/9AOfBNaAkSQlEmZlEiL9fZ8hlYHdjgP/3AI9EakBRhgYRZmYRAH8/Hv+/gu/GIP/9AFyRVUBEWRlEmZlEhLppwJWKDCqZyKqZALcEqoCRpiYRZmYRE2omM7t3M7p2NaxmAR2RVQBEGRlEmZlExKYVzO7dzOrZzKqZQSEFqAARZmYRZmYREBhQAAAAAAAAMypmEopCVABEmZlEmZlEQAKBAKpVAKpVAAABRCIQqAARZmYRZmYQAReK3f/u3f/vAKBAEQgEFYEEmZlEmZlEDz8Xc/+7c/+/cPj0BAIA0PDxZmYRZmYRHV8v3f/uzf//2f3qAQEBAelUmZlEmZlEAQsFc/+7ANCgMvaqAAAAAFApZmYRZmYREFAgUHRoBA4Gha+WBQ8HgamQmZlEmZlEiL5dNL06BV8vM/+rEJgYAsJBZmYRZmYRQGAgHX82AECAXf9uBQeGQUFEmZlEmZlElL9eMn47c/97E79bEZtZBkZBZmYRZmYRTH4+Xf92HV+u3f/uhMyEicmEmZlEmZlEtr5ec/9rd///c/+7EZORBoaRZmYRZmYRHH4sSvv13f/+3f/uhafGGRkEmZlEmZlElb0Zdv7ud3+7M/+7AN6MJiYRZmYRZmYRXl4MQfFgnd+u1f/qgKDAGRkEmZlEmZlEhJ1KAAoEEz9bI/erAMCAZmYRZmYRZmYRYGoUGV0tHR8uxe/WgMCQmZlEmZlEmZlEgIRIEv96A0+LQ9/rAZFBZmYRZmYRZmYRYGEQAAAAAadC3f/uCiqSmZmkmZlEmZlEmJhANv++AQMBcv77BrxWhoaRZmYRZmYRYWEQgKLBAaFC2f/uDHutiYmEmZlEmZlEkpJAJ/epQfOhIPy6OXe7BgYBZmYRZmYRYmIQVfdj0fXi0PTpsu52AQEAmZlEmZlEmJhCIWWic/vTAtOi5FzsAQABZmYRZmYRZ2cRASFAENKhCY4FyLjYAAMBWRlEmZlEg4RTAAEBCAgIA1MrkHCwAAICqgqBZmYRS04LEBAQAAAAh6pXIOBgAAICqgAimJhEgy0rBAQEQEFAPs2+QMDAAAYCuhCYa2ATC21LkBCQAAoF/Jt9gICAAAYC6kBiugCYAUdFoKCgAhYK+Wf7AAAAAQUFuhCY7gBmAcaF4ODgCS418s72AAAAAAwE7kBmugCYAIeE8DLyI3Wr5JzsAAAAAQ0FugCY","Zhuge Liang":"qgARhRwMd4zMA46GcMnIc+vr////////gh5OoQdDXSMzwUdj3DIyHXIy////////GHMxqIORt4mNcNHY98jMDxicf7+/////CjkcaMDELeNj3HByXeJjxQ4P/x8f////hhwNauBhF3A0d8jMN2gsZ47Gf4/P////BBxMKuBkiTob3TIzPXIzxy4n1yc3////ijgZKuBhhxwMd4jMDzCUQ47Gc4vL////qmBkSsBEhw5H3SIzjTITAftxt/Lz/+//qAMRioCRow4GdonJuv//AfvZof35/7v/gj5WKgAEowZDwz836P//AP104PX4/+7/CHg4CgARogcTCP7dAAAAAAAAABEq/7v/AAAAKgBEhA1NAKBAAAoFAKpVAIUCf1V/iACBigARiBoZAIAAPb9e3f/uwOnQfyp/4oDEKgBEgAhIAQMBc/+/c/+7NPy6f1V/4EBhigARCAwIARcK0PTkBQ8G3v7tfypu8gCkKABAAAwIAS8VAcuFAKBBNP16fxE7+ABRogcDAKxIGV8ugLCgAAoEGHiofypu/ACoAAgIBC4kEz9bc//7CAoBMvZyPxE7/gBUEhcSAEaEHX8u3f/+1PXq0PDw/wBV/gCqCBoaBAYEEz9bd/+/Yf+1MPi4/wCq/gBUAR0IEFYkXf9u3f/u1f/uzPz8/wBV/wCqAA4EBCZUM3+7M/+7M/+7tr5e/wCq/wBVgQMCEBYEXf9u3f/u3P7s3f/ufwBV/wCqgQGBiMqKE3+7M/+7MP26AEqE/wCq/wBVwABA0PLiHX8u3f/u1fXkUXBp/wBV/wCq4ACgAAIAEz9bM/+7AKJBMfiw/wCq/wAl4ABACKpQHX8u3f/uAACAABQI/wBV/wCK8ACgAHGgEz9bMv+6AwcLIPCgfwAq/wAi8QEgwfLRHZ8u3P7sPHxsGBgIfwBV/wCI6QuJIOGgAz8bMPy6kPK1FpAQfwAq/wAihQ0swODABQ8W3f3s3P7sBFAg/wBS/gCIIiZ2IPCgAUOFM/+7MPy4DSAI/wCo+AAgERM7UHBhgKBABa9WwOjQGwAC/wAi8BCSBB0NgKmQIOiwAhcKAFCAPwAI/wCIUlJXAAAAYOjgWP5sAAgAAIAAPwAi/wAieVl7BB6OMHBwMv+6AECAAAAAfwAI/wCI3VXdAjuTHDg8Xf9ugKDAAAAAPwAi/wAidVV1ADGQDp6eM3+7MfmxAAAAD0BI/wCI3lbeCDkYB4+vnT+u2PzoAICAAiAi/wAid1V3BBwMAgdHw5fLMPq0ABAQABAQz4DI","Liu Bei":"7rv/7rv/6rn6oECAAAEA/x//6tPr7qvvu+7/u+7/sODgAAAAAAAAAwQD7Yjtk8bX7rv/77r+AAAAAAAAAAAAAAAASwVLOjM7u+7/uODwAAAAAAAAAAAAAAAAFQIVdWh17rv/wIDAAAAAAAAAAAAAAAAAAgQC1KnVu+7/AAAAAAAABQ0FAIAAAAAAAQEBq06v77r+AAAAAAAAKv9doODQAAAAAAAATptfuuz8AECAAQcD1f9/0Pp0AAAAAAAAOy4/7Lj5IKhIKr9dqv//qPzYAAAAAAAAbjt/uOn6Ff+3Xf93/f//0PhwAAAAAAAAOy4/4rPxqv/dqv/fqv/9qPzYAAAAAAAADhsfseXzVf93Vf933/9/VP50AAAAAAAAKy4v4rv1qv/9qv/dgdXVqv7dAIAAMPh4LisvoefrXf9/UPpyAAMDVv92AAGBhIyEExYX4KHhq//dgMCgKj8dqv/dAIMCAnYyFhMXsODwFF42AIAAAAEC1f/3AIBAAJqKOzo74LD0AwsFASmREhMVqv/dgMGBitrKOhs7ue35ERcTQfNpXf971f93AIBAAtpKeyp76Lv9h9emqP3aqv/fqv/dgMGChNTUOls7ue/7he9HVf93Xf//1f93QMJAEFgoW6pb6r/7js+tKv/dqv/dqv/dgMCBIPFwvA29uev7zN9OBU+nXf93Vf93QcNlQeLh3o7e7rv9mt/dovf1qv/dqv/doufDhsCC71fvuO79YOVCARcLVf93Vf93AOBABAIE79fv7rv+IGrUALVSqv/dqv/dwMWiBkGCb1Vvuu7+QHCoAAIFVf93Vf93Qe9FAaJBdyp37rv/IKBAACAQKj9dqv/diN+tAMGga2Vru+7/gcOjVP50FR8XVf93FZ9XQPBo9TJ17rv/oKaFCg8NCh8Nqv/dKr9bofjRehE6u+7/gMbCEbMzBY9HVP52Vf93Q/ZrzQjN7rv/4qPlq7+fis+toP3UovfXj9iv+KD4u+7/oePhFZ8XRe/HUfNVVP92P2i9/wDd7rv/6KnoAo+FiM2qAguFofTZ/6D3XwBXu+7/uu7+IKQiAKBAAR8LD86v9QDV/6D97rv/7rr+AAAAAAAAIL5U/6j/Xxpf/wB3u+7/u+7/EBAQAAUCD0Kv9SH1/+H9/wDd7rv/7Lj8iAiIACgQfwB2X1xf/xV3wABAu+7/kcDR0JDQBwAF9wPX/+X9+FDYBAIB7rr+owCjwIDAKgAqvxy//wB3AAMCQfjooMjpZ0Bl4YHh1wGT/6D1wACAQDwVQC4U","Xu Shu":"r7jqgICAAAAAAwABAAAAAAAAAwIC6juuq+i5gICAAAAA8wABPwAAAAAAAwIDqm47q7jtgICAKgAAqwEBGwAAsAAAAwIDqjtuq+i5wkBAgAAAAwEBFQAAVQAABwQFqm47q7jtyEBAAAAAAwEBAAAAIgAAJwQFqjtuq+y5wEBAAAAAAwEBAAAACAAAhwQFqm47q7juwEDAAAAACx8foPDwAAAABwQGqrvuq+y64CCgAAAAC79foP70AAAADwgKqu67q7ju8BCwDwELwBWAB1ED4ACgHxgaqrvuq+y69RCwcAAgABUqAFCoHQAIXxAaqu67q7ru8BCwABUKqv/dqv/dgNCgHxAaqrvuqu66gAKBXf93Vf93Vf939P32AgCCqu67qrvuAAECKv/dqv/9qv/fqv/9AIEAqrvuqu67AAIBWf93Vf9/Xf9/I/93AIBBqu67qrruAAQCgIKAKP3eyN3tAgIAgMCgqrvuqe25BM2EAHSgBA4HUNBQAF0qQWdDKi47oLbkAAUKqP3aAiuBgNCFKv9dgMCgitvOoOS0QctjAIAAARcrgKjAAQMBBK4mSk5bqLrqA8tFMHCwwovVhtKmGBUaImLAqruuqO+7AVcLHL9aAVcrkbu1Vf11QPFgKq67qLnsgo+VqvvVouvXqL3aCl+touPRKjtuqu66RddLVf9/Qfdr1d+3Vf9/RNZmqu67qrvuIm9Fqv/9ouvHgs+lqv/9qO3Mqrvuqu67kbezVf93Vd9b0ffzVf93Utpbqu67qrvuoLXSqv/dAkKBAoMFqP/aAluWqrvuqu67gNKFVP53AJAgAQsTUPp1ApZDqu67qrvuoLXiqvrcCEiIIiYkqv7dCptOqrvuqu67qeu5Uf11AQEBAQEBFj82Ci6bqu67qrvuorPhqvraKisJqKiIqr6dCpsOqrvuqu67gMCBUPh0FX8/UPj0FH82Cg4Lqu67qrvuAgBCKL1YoOjQKz8dKj5cgAmEqrvuqO25AQCBBy8XQOViBU+HQfTpAQUDKm47oLXmAAAAw1fLqv/dqv/dhtSmAAEAStvOoOakAAAAUHIxVf9/Vf/3HJwYAAAASs5L4Aa0AAAANDgsKv9eqv7ccHhoAAAATspasAbkAAAAHg4eBC4VQOhQ0OCwAAAAW8pO6iKyAAAABwsPgICAAwMDYKDgAAEALoqbuqvqAAAABQYD4PXqBVanwMCAAAEAG4qu6qu6AAAAAwECcLL1l5teAICAAAEALqq7uantAIAAAQAB3O28fW47AAAAAAMBOypu","Wei Yan":"3f/u2PvpktuTEJhIBQMC3f/u3f/u3f/uM/+7Iu6mQO3kigMDqBARCwcTM/+7M/+73f/uwNvRCqAAu01NuszMoABEXT+u3f/uM/+7BLakChERrjc3zvHxqhARiwcTM/+73f/uAEhAokZGu01NuszMoEBEoQBE3f/uM/+7ACEBpQcVhpGR6hERAA8VAOhQUT053P7uAoAEoEVEWvj4qkdDgPCgAAUCAQWEMP66CgERIBISAQcDfP/+BAIBQCAQAVEl2PzsCAQkoEFBEHkxAKhAAYgEEIhEAQkEMPq6AgBRAgYCDCwYL/9/oPDgAAECAU2t2PvpCAAkiBwMAINDAIAABA8OAPSoAS8aMPm0AoCREDIQUNyYAFUqAFCgAAIBA5NLwOTqIOBkASkkIKKhs/9/EP3aAVetAceCMPq1CLiZACAhQFdL4PnxTP9/RP93A4dL0PbqIu5mEDAUg5+tAODAEz8fE//fDc+GMPu5i7+fCJqIhL+XAFo0BA8HTH5+Ay8r2PzsNv9/Ba0lET9dFf/bgOHAEPnYje/GMP66HH8+YXczBH83QPh0AAcDwPRwAw8L3f/uBB6OEppaE79dAuLSISslMvLyLS8mM/+7AYcDQGYSDH+3xP/3RO9XwPpxQ+dr3f/uoIGAUtrCE/9dM///Ad+tGfv5Nff2M/+7AICQEHYyBH83zP9/QP91yP16Q/fr3f/uqICEBJyMAa9VEf/dEPXSOP3cBW/WM/+7CpEQAICBQPdrRP93RO9nXP5+Q+9r3f/uqAdFABUIEfvVEf/dAODAAD0YDW/OMv67qBYSACgRQPdzRP93EJEQAECAQ+9L3vzspFxMEDgYEfvVEf/dAAIBAKhQDV8uMvm5kHAwAHgwQPdrwPr0BQ8WQPz0Ay9b+tXEQsrGEPzYEb9dEPTYAFAgAAICHR8OKZeTBhYrgLq0BF8XwPnxBI8HwPToE78bpFxMG5tusLb1AY8FEffVEPzYAA4FHb8uAAECBlar7u6+IKBARP93xP32AFWqM387GxtOvL3+G1uuwMjQAF0MMf/9EPrcXX9u7u677u67xtbr6Oi6BAQERN1VAJkQM3+7oKDAAQEAvL3+O3uvgKiQAgoKAQEC3f/uAw8HYPTqLi4b7u77+Pq5AAAARUdDM/+7AJxILf9/AaFAOzvuvr7uAKBAAQEA3f/uIGSyFP19YPToBgYD7u67gMCgBAQQE387KLptBF0MWv7/AKBAGxsOsbHpCQlMHR9OFF22AECgMP16AFWoAAAAbGw55uazw8er","Zhang Liao":"AFX/AFX/AFX/AFX/AFT+AIAAAEwAANV/Var/Var/Var/YIDQAAAAABYqAAAAFWofAFX/Ck3tynB0AAAAAAAAAAMFgMPAABUPUar7UaT2EK+vQICAAQAAEKioAHAgBUIHBlX1BFX1RlVV1Hh4BAICpHJyAAgQAC0DR67uQarqFaqqFe/vQYCAEKioAAAAASYBB1fXRLW1blVVb9/f1Pj4RCIiAAAAAAEBUYvLVerqAECAFQ8vFOvrgAAAAAAAAQQBJAWVYEhQACpVAIBBLNXVIIDAAAAAABMBEYqqAAWKFX+30Pr0EQoqVgenkODgAAIAKgSUCl8tqv/dqv79AoBFiB1dYkhcAAEAUIDJVf93Xf933f/3QfBgMTq6UACgAAAACkPRqv/dqP/fqv/doOjQJjQ1gAAAAAMZUYPrVf93VP50Fb83UPp0FCAoAAAAMQ4bAkPlqv/9oODQovfVqPzaCgcXgMDAABU/UafzVf11QcdDVf93VP50BAwMACAgVQo/AEPhqv7cAAAACh8Nqv7dAgsJgNCQABV/UKDwBS8XAKBAlb+3VP92AAiAUFBQlSp/iNr6AgsFgtOlqv/dqv/dAkOBgKCgInf/VHD8IScjUPpxXf9/Vf93RMxUAOBgVd3/qf38AufXqv/dqv/9qv/dit7MAsTEqv//df39xe/nVf931f93Vf93Vf93FNKSXf///P38qu/Pqv/dqv/dovvVovvRChkJf39/dP79TN9OBVenVf93QddrUPhwBA0FnT8/q/7+Dt9foPlyqv/dqu/VoPrZgoYCSp+fVHb/AKdCAEmAFX+3Vd9XUPlyAEOBlaKniN3/AFAgEpISKj8dqv/doPrZIOBAJOlpVar/CamJAAAARU9H1f/3UPlyBfamCToaAFX/ACHAAFSoAgMFqv/douvRru/PAoaCVar/QYPBVf//AYdD1f/3QdVjVd5eUOjoAFX/IEXDAoMFoPXVqv/dis+Fqru7qru7Var/QKroAKkQFHy0VP92BF+uVX5+Vf7+AFX/AlT8Cl+toPT4oLqVKL1d6vv76vv7Var/VKr+Vf93UPhwACEiUfe3Ve7uVe7uAFX/AlT8AlclgNCgCAsVjt+fpLu76vv7Var/VKj8CQkJAAAABB8qXX5+Ve/vVe7uAFX/AFT+AAAAAAAAkrtT6vv7Tr+/pLu7Var/Var/QIDAACIhDa5OVO7u1f7+UOjoAFX/AFX/SCioJ9bWKjs7yre36vv7QKGhVar/VaPzVezsRc/PFK2ttV9fVa6uFYSE","Xu Huang":"////+vz8AAAAAAAAv39/////////////////0ODgAAAAAAAAXz8/////////////////QICAAAACgEAgAAAATj8//v///v//vv//gAAAAAgQAAAAAAAAAQAAO///u/////7+AAAAIECAAAAAAAAAAAAALh8f7v//uv7+AAECAAAAgAAAAAAAAAAACwcHu///7v//gAQIAAAACAAAAAAAAAAAAgEB7v//u///AJCgAAAAIQAAAAAAAB8KAYCAO///7v//gCBAAQAAGAAAAAAAAAoAAIAArn9/uv7+AECAAAAASAAAgAAAAAAAAAAAWz8/7f7+AACAAAAAAgAAAAAAAAAAAAAADj8/uPz9AIAAAAAAEAAAAQAACr9biPCgOx8f7Pn6AAAAAAAAAAAAVT8eVf/uUf7sDh8fuvr6AAAAAAAAAAMB7v/7qv+7qv+6Gx8f6Pj6AAAAAAAAFR8OVf/+Vf/uVP7tLp8fsvLyAAAAAAAACn877v+7qv+7qv/6Gz+/4PTyAAAAAAAAFf9uAECAEftqUPzoLh8fs/HxAAAAAAEAKP26IHo0Cg8LoOOlm7+/4PTyAwMBAcWCVf/uQODABW9WAMCALj8/s/HxAg4GIGNlqv+7GJgYAjcriMiIOz8/4PTyhY2NAaciVf/uFP/vEV+rUd/PDr/fsvHwBA2FALMVqv+76P/6KHu1zu/ri9+v6PDywkZGEXlqVf/uVf/+Uf3qVffnRu/PsPn4ISOjACsRqv+7qv+7gMul4vfzy++v6Pj4kVEwQeXiVf/uVf/uDT+eUfv6Ru/PvPj4KBiIIHoxqv+7qv67AIEAIHOli9+v6vz8DEQkgIGAVX+uVP7sEPRqAQcCRv/fuP38IhIKICAgKn87qPy4Ct6dgKtRi9+f6vz8jAQmAQEBFT8uUPjoFV8uEdGgBs+PtPn4IBCAREREKn87oOiwgMGAABERA4cH6NDQgEAggICAFf9uUPDgDT8XQevKCAkJgICAMBAQICUiCj9boPGwAGCgAjoSAwcHwEDAEFAwZUdjBY+WUfHqUPToELJqgICAYCBgIAAAzI3OgOLFrv+74Pr0IHiwY2NjOBg4A0MjixObhLSoBb9WVP78QnBhHBwcDwcPBwYHKgQmsHZ1AIsFoPq0AiBGggBCowGB/Pj8ykHJrhaeRFQoACgQDgQNoAGBqGRkcCBwulh6qkRm4OLhAIAASkRGigRGChkZgAGBrxWfKhEZrBScAAAAChEZChAZQkZGrEBkKgQmqkTmq0VnhAREMAAwqkBm","Xun Yu":"Bl5OIOdiAN2IAN2IAN2IB8yF/93//93/oRejCLkYgPWiAFUiAFUiA0Yi/3f//3f/QLXYhN7MAH0oAN2IAN2IAdOB/11//93/MOx2IfdjAFUSAFUiD18vwP/2fzd//3f/zLrdCLsZgNWEAN2Iv3+/4P/9P50//93/Me53BJ5MIOdiiP79X79foNeqH1Of/3f/DLudUafTE3czUv/+NVq1QKBAD0wv/93/I+5nEOtxib+fqP//AIAAAAUKBysX/zf/EDuZxLncAv/f4PjwAAoVBa9WB0CH/83/JO5mNOt1gP/3AIIFE79bM/+7A9Wj/zP/ETtZAq+XAPzYBy9X3f/u3f/uk/Dr/8z/wAqWCN9PAPFgF3+7M//7N/+7cfj1/zP/9MvlAD+dAsKCXP9v3f/+3P/v0Pno/0z/+bL5AH82AQEBNn87o/+7M/+7YPSy/zP//Oz8AL5cAAAAHX8u+P/t0fPqysrE/8z//jr+AHiwAAAAE79bAOigAwcDFLyY/zP//8z/ADBQAAEAHX+uJj+tBa9XEJIS/8z//zP/ggenAIIBM/9dBOSkAx8LEr+a/zP//8z/wMzIAQEAHn+v3P9und/OnN+vf8x//zP/4AzIQOFgN3+7c//7E79bR9/Pf7N//8z/5MbmgICAXP9v3f/+3f/uxe/m/0z//zP/4yPjICQgM3+7M/+7MPq1cvdy/xP//8z/4UHgwMLCVf9u3f/u0/fjmft6/0T//zH/+ADoMH08M3+7M/+7ANCgADoR/xP//8z//kT8HBwMVf9u3f/uwODQgIKC/0T//zH//xD+gACAM3+7E/+7BMSkEFAQf4F//8T//0T/gQGCHT9Off/ugcGAUHBgfwB//xH//xL/iQuJE5+7U/+7A4cDMPz4fwE//0T//0D/RY1Gxe/W3f/uBQ8GABSIvwC//xH//gH+lgOWIPWqU/+7AJQIAAgU3yCf/0T//QL9C8lLXf1oHX+eHR+OCUmJKlUq/wD/+gX6ReTlsv69A18rE9+fAMCAFSIV/wD/qF2torKy/X/uAUeC3P7uAYBBChUa/AL8SSpKUenpWj97APCoEL1aAAAAgQqJEYgREosbrLy8r5++2f3qAAIACAgIQwZGRCJESSpKVO7uV0tfsfu1AKBASEhIEFJSEYgRWMtZrr+/KyUv/f/uwPToICAgaShpRSJFTSxMVf7+FZKX+v/6sP36AAAANCQ0EYgRXMVcLv//iomLvn/+DH69AIAApLS0RCJEVjJWFf5+ReTlX7//kr/aCAgIKjI6","Sun Ce":"9///AKiQBj8fAKBAAAAABwcPd///Vd3//f//wOLhAOhgAAAAAAAAAQAAXX//1ff/9///QMrlAIAAAAAAAAAAAAAANR0fVd3//f//0PLwAAAAAAAAAAAAAAAABQcHVXf/9///VNT0AAAAAAAAAAAAAAAAAQEBVd3/3f//SGjoAAAAAAAAAAAAAAAAAAAAVXf/df3/UNDQAAAAAAAAAAAAAAAAAAAAFR1/VXf/IDCgAAAAACoqAMCAAAAAAKiQFTc/Vd3/ALAgAAABVf9uQenoAQMCUPToFR0/VXf/ADAgAAECEf+7EP66AY+LEP66NRcfVNz/ADAgAAIB1f9uVf/uVf/uVf/uFR0fVHb+ADAgAAkKVf+/Ef+7Ef+7Ef+7FRcfVNz+ADgQCAoF3f9/Vf/uVf/uVf/uFB2fVHb+ABgQABUKVf+/Uf+7Ef+7Ef+7NZcfVNz+ABgQCAoVhe9vVf/uVf/vUfvqFT2fFHb+ABQIABQKAIGCUf+7Ff+/AMShEbc/RN3+AAQICC4VAChQERsKFN+tEBsKFB2/EXf/UHpwAF0qFP++AEIBELhQlL49ETc/RNz+BM6MCK5VALBgAREiUPDgBQ0GVV1fEHb+ELqwIH+qERGRgYuVYuLSMDMxEVdfRN3+ALCQFb9uVf/uUfPqQdXiVP/uFF2/EXf/AGxIUX87Uf/7A6tVwfNlEPy6Ebe/RN3/ELKilb9vff//Vf3qUXfidP78Bd2/EXf/UF3YcX+rVf//EPq1wft1UPz6Ufd/RN3/RM7uja9WVf/uUvrt0fV4VP7sRNz/EXf/EDb0BVerEf+7A8eqcPr0EHq0EXf/RNz/QMj4iqpV1P5vAKBQMPBwUPRrRMz/ETP/CDroA1uqUH26DH26AAWCEXm1ETP/RMz/MIGyCC9V1P5tdf//AKrVELRrRMz/EDL+YCZlAlsqUf27Vf+/Vf//AeuTETP/QMj4ZudmCS+VUPpsICBAAAQAENGjRMz/RCBE0bfTAdWqVP66FX8/Wvr0BKDEETP/MoAydOl1gePVDf9WZPzcFR8KEMiQFAwfxqLGTitOoHWoBV+rEPq1Aa9bBIIERCJEI6sjM6ozSI5VCSsWVf/+Vf/uEQiREwoTzavNzKrM8qfyAEWCF3+/0Pr0HEocBCIEI6oj8+rzPKo8COhQAFcqAFChl64XEgoSxKLE/Lr8z6vPgM2KAAAAAAUCXDpcTCpMMagxP64/E4oTcOhxCKpViK5UMKgwMagxyKrIzqrOwKDAzKrMwpfKILKg2LrYxKLE","Sun Quan":"AAAAiAAADQAA3QAA/wAVwABAAgMCv4CqAAAAAQAAMwAAdwAA/wBK9ACQAAMB/4DVAAAADAAAzQAA3QAA/wIX/QBAAAEAv8DqAAAAIwAAMgAAdwAB/wQu9wCAQAEB/8DVAAAADAAAzwAA/wAA/wgd3QAA0AEAv+DqgAAAIwAAQRcrVf931/hy9wAAcAAAv+C1wACACgMFqv/dqv/d6v/eHUCA3AAAP/B64ABADS8XVf93Vf931/9/AdBgdgAAN3C18ACgqr9dqv/dqv/drv/foOjQXAAAM/hy+QFQXf+/Vf93Vf93Xf9/QPRoFgAAIXgx/AGoqv//qv/doPTUAg8Fqv7cDAAAITho+gJRVf93Vf11QMFABXW1VP12BgAAAngw8ACgAhYUiNzYABcLqv/dqv7dAIAAADAg8AJRAIAAQOpUAFAgFX83VP92AQcDQtDQ8AWigODACn49CahIig+Nqv/diIgIIGAg+AFRE5ARFT87Bb8XVf93Vf92RUeHArCQ9AWkqv7cKn89gt/Nqv/fqv/dAIQEANBQ0RlRVf11fX93Vf93df//Vf92AQODUnBQ4hOxqv78aP16qv/dqv/9qv7cAA4GCGBg0RNR0Px69f/3FX83Vf93VP92REREAsCA6gupqv7cIPFRqr+dqv/dqv7dAgMBiICA9Q1VVP92ADUqBRcrVf93Vf92Bh8OAkAA+gasqv/dAKhEIisFqv/dqv/dCJwcKGBg/AJWVP92ElKSQEZF1f93VP92AFCgIGBg/wCqqn7dAIAAAgIAqv/dqv/dILAQL/Bq/wBVFH82BR8PwPDgVX93VP92EnqyD3C1/wCqqD6cIDpUKDwYKj8dqv7dIPxYD1gq/wBVwDxUAHUiFF6WFT9XUPx1Vf11B6wV/wCq6h6sKj9dqv/+Cl8toPnSovvbEHMx/wBV9A9WFH42Xf9/BX83QeNFRPdmCFkI/wCq+gOpKn5cqv/dor+VAosFqO7MZOzk/wBV/ABUEHo0UftzRPViBF8ucH14Avby/wCq/gCqABQIICoRIKEAI3uzgPLhAqZC/wBV/wBVAAAAAAAAAAAAOL8/AJgIAA4E/wCq/gCqAEBAAAAAAQcDwPjwJO5mMHw4/wBV/ABUQOBgAAAAGH89AIcDxOfFgODA/wCq4BupkLCQAAABAKBAIHIxBIwMAAAA/wBVABkIAMSEAAQADh8OCDwsGDw4FB8e+QerAg4GGDw4AA4EAj4WAWdDQPDgQHBgQHFggYOBwODAAQcDgcGBAMCAAAAAgePB","Lu Su":"/lVFiMqIMP91IfjxFqcXA0ODVapV0SqR/6sRAsqCGH87gPLgTK5PB4YHVatV1CpE/VdHCKoIjL+dAeTBGB0eDQ4NV6hWUaoR/qsTIqoiQM9PAP93gPr0HRodV6xUVKhE/FdGBR8PgN+tAv/fIP/9Nfr1XaJZUKoQ+K8WK38/gO+XAP93iP//Af51XbJURKhE/FVFEH96ANCgAAAAAL9dAP/ddYphEaEQ+KsTAHQoAAUKAFWqAAsFAP93BOpEQ4pB8ldDAKECCl+tqv/fgNCoADcVAepRE6EQ8KYUARcrVf933f9/UPr1DB8OAFSqR4JB8FBEKr9dqv/dqv//qv7dAp4OAKhVByEE8KQRVf93Vf931f9/1f93RMxEFD4eBwKB8FFCqv/9qv/dAldVqv/doOzEAGNBDwVE8KIRXf93UNhQVf93Vf93QNZkEL08D4qh+lNCgv/tgsPBoPXiqv/doubSAEZCj4WE+KwUAgcHgeulBY8H3f93QPZiERkRD4qB+VFAKOvRoOjQan9dqv/9oObSIGVFHxUE+qoSQPVpwPHqXf/33f/3QPZiEDIyHwsR/FVFAgsLov7drv9/qv/doObSIiYEPxUE/6sR0ftzyf+31f//1f93QPZiALy4fysR/ldFovfzov/dqv/dqP3aoObSYPhw/1VE/asR1ffnwddrVf93QfdrQPZiAAAA/7sR/FVEru/Xqvt5qv/dit+toObSABAA/1VE/qoRQPZjAIoVVf93Vf9XQPZiACgQ/7sR/lREIPlQCFioKr9dqv/doObUKTlZvxWE/6oREHo0VP92FT8XVf93QOxkE3kzT6vB/1VEqD1YgYGBCp9Nqv/doOzEJ3NX5lTk/6oR0LoUHH4+BQ8HVf93AJhIT/ZvgW+l/1VE+F1IKv/douvFqv/dANiJn8dfQYdT/6sR9K4EAKJBQfdjVf93ALMQv86/gECA/1VE/FRCANWiovP1qv7dCstFf5x/Co8P/7sR/roQMXdX0ffzUPp0AB8q/Dv+APWw/1VE/lVEKn+/ovfVgNCgir5d/Xb9BV8P/7sR/7oQAbtb0NpUAIEAFf61+uT6AAUA/1VE/1VEgkqEgICACAoFq/1b9cn1UPDw/7sR/7oRwCDAAAAAAxcLV+t3UKPRAFgJ/1VE/VVFoFCgoKCgCq9Vn8ffwBnIQMzE/7sR/bgRUaHxQEFAFX+3Xa5fQIxEAGwk/1VE+FJA+HD4oKWiqv/dfpl+gDORCz8f/7sRwIQCVLh8gYeDVP521er9ABgIIe9n"};
+
+/* Names and biographies copied from Chapter 12 (EN and Traditional Chinese) */
+const BIOS={"Huang Zhong":{"zh":"黃忠","zs":"黄忠","en":"Huang Zhong was a general from Nanyang who first served Liu Biao and then Liu Bei. He rose in rank after helping conquer Yi Province. He is best known for killing Xiahou Yuan at the Battle of Mount Dingjun in 219, and he died in 220.","bz":"黃忠是南陽人，先後效力劉表與劉備，協助攻取益州後地位日隆。他最著名的戰績是219年定軍山之戰斬殺夏侯淵，220年去世。","bs":"黄忠是南阳人，先后效力刘表与刘备，协助攻取益州后地位日隆。他最著名的战绩是219年定军山之战斩杀夏侯渊，220年去世。","ja":"黄忠は南陽の出身で、劉表、のち劉備に仕えた。益州攻略を助けて昇進し、219年の定軍山で夏侯淵を討ったことで最も有名。220年に没した。","ko":"황충은 남양 출신으로 처음 유표를, 이어 유비를 섬겼다. 익주 정복을 도운 뒤 지위가 올랐으며, 219년 정군산 전투에서 하후연을 벤 것으로 가장 유명하다. 220년에 세상을 떠났다.","team":1},"Taishi Ci":{"zh":"太史慈","zs":"太史慈","en":"Taishi Ci was a late Han general renowned for his archery and bravery. He famously broke out of a Yellow Turban siege at Beihai to bring Liu Bei to the rescue. After Sun Ce captured and won him over, he secured Jiangxi for Wu and died in 206, mourned by Sun Quan.","bz":"太史慈是東漢末年的將領，以箭術與勇氣聞名。他曾突破黃巾軍對北海的包圍，向劉備求援。被孫策俘虜並招攬後，他為東吳鎮守江西，206年去世，孫權深表哀悼。","bs":"太史慈是东汉末年的将领，以箭术与勇气闻名。他曾突破黄巾军对北海的包围，向刘备求援。被孙策俘虏并招揽后，他为东吴镇守江西，206年去世，孙权深表哀悼。","ja":"太史慈は弓術と勇気で知られた後漢末の武将。黄巾軍に包囲された北海を突破し、劉備に救援を求めた話が有名。孫策に捕らえられて仕えるようになり、呉の江西を守り、206年に没して孫権に惜しまれた。","ko":"태사자는 활솜씨와 용기로 유명한 후한 말의 장수다. 황건적에게 포위된 북해를 뚫고 나가 유비에게 구원을 청한 일화로 유명하다. 손책에게 사로잡혀 귀순한 뒤 오나라의 강서를 지켰으며, 206년 세상을 떠나 손권이 애도했다.","team":2},"Xu Zhu":{"zh":"許褚","zs":"许褚","en":"Xu Zhu began as Cao Cao's bodyguard and later commanded Wei forces. His men nicknamed him \"Tiger Fool\" for his great strength and simple honesty. He is remembered for holding a fortress against a much larger rebel army and for protecting Cao Cao during a dangerous river crossing; he died around 230.","bz":"許褚起初是曹操的護衛，後來統領魏軍。他力大而憨直，被士兵稱為「虎癡」。他曾堅守堡壘抵禦人數遠勝的叛軍，又在渡河時護衛曹操脫險。他約於230年去世。","bs":"许褚起初是曹操的护卫，后来统领魏军。他力大而憨直，被士兵称为「虎痴」。他曾坚守堡垒抵御人数远胜的叛军，又在渡河时护卫曹操脱险。他约于230年去世。","ja":"許褚は曹操の護衛から始まり、のち魏軍を率いた。怪力と素朴な正直さから兵に「虎癡」と呼ばれた。はるかに多い賊軍から砦を守ったことや、危険な渡河で曹操を守ったことで知られ、230年ごろ没した。","ko":"허저는 조조의 호위로 시작해 훗날 위군을 지휘했다. 엄청난 힘과 순박한 정직함으로 병사들에게 \"호치\"라 불렸다. 훨씬 많은 반란군에게서 보루를 지켜낸 일과 위험한 도강에서 조조를 지킨 일로 기억되며 230년경 세상을 떠났다.","team":0},"Dian Wei":{"zh":"典韋","zs":"典韦","en":"Dian Wei served Cao Cao and was famed for his immense strength and his pair of ji halberds. He was killed in action at the Battle of Wancheng in 197 while covering Cao Cao's escape from Zhang Xiu's forces.","bz":"典韋效力曹操，以驚人的力氣與雙戟聞名。197年宛城之戰，他為掩護曹操逃離張繡軍而戰死。","bs":"典韦效力曹操，以惊人的力气与双戟闻名。197年宛城之战，他为掩护曹操逃离张绣军而战死。","ja":"典韋は曹操に仕え、並外れた怪力と一対の戟で名高い。197年の宛城の戦いで、張繡軍から曹操を逃がすために戦死した。","ko":"전위는 조조를 섬겼으며 엄청난 괴력과 한 쌍의 극으로 유명했다. 197년 완성 전투에서 장수의 군대로부터 조조를 탈출시키기 위해 싸우다 전사했다.","team":0},"Xiahou Dun":{"zh":"夏侯惇","zs":"夏侯惇","en":"Xiahou Dun fought in many of Cao Cao's campaigns against Lü Bu, Liu Bei and Sun Quan. An arrow cost him his left eye, earning him the nickname \"Blind Xiahou\". He was made General-in-Chief by Cao Pi in April 220 and died two months later.","bz":"夏侯惇參與曹操對抗呂布、劉備、孫權的多場戰役。他在戰中被箭射瞎左眼，人稱「盲夏侯」。220年4月曹丕封他為大將軍，兩個月後他便去世。","bs":"夏侯惇参与曹操对抗吕布、刘备、孙权的多场战役。他在战中被箭射瞎左眼，人称「盲夏侯」。220年4月曹丕封他为大将军，两个月后他便去世。","ja":"夏侯惇は曹操の呂布、劉備、孫権との多くの戦いに従った。矢で左目を失い「盲夏侯」と呼ばれた。220年4月に曹丕から大将軍に任じられ、その二か月後に没した。","ko":"하후돈은 조조가 여포, 유비, 손권과 벌인 많은 전투에 종군했다. 화살에 왼쪽 눈을 잃어 \"맹하후\"라 불렸다. 220년 4월 조비에게 대장군에 임명되었고 두 달 뒤 세상을 떠났다.","team":0},"Sun Jian":{"zh":"孫堅","zs":"孙坚","en":"Sun Jian was a general and warlord of the late Eastern Han. In 190 he joined Yuan Shu against the tyrant Dong Zhuo, and his courage made him one of the most influential men of his era. He was killed in 191 while attacking Liu Biao, and his son Sun Quan later founded Eastern Wu.","bz":"孫堅是東漢末年的將領與軍閥。190年他與袁術聯手討伐暴君董卓，憑勇敢與機智成為當世名人。191年他在進攻劉表時戰死，其子孫權後來建立東吳。","bs":"孙坚是东汉末年的将领与军阀。190年他与袁术联手讨伐暴君董卓，凭勇敢与机智成为当世名人。191年他在进攻刘表时战死，其子孙权后来建立东吴。","ja":"孫堅は後漢末の武将・軍閥。190年に袁術と組んで暴君董卓に挑み、その勇猛さで当代屈指の人物となった。191年に劉表を攻めて戦死し、のち子の孫権が呉を建国した。","ko":"손견은 후한 말의 장수이자 군벌이다. 190년 원술과 손잡고 폭군 동탁에 맞섰으며 그 용맹으로 당대 최고의 인물 중 하나가 되었다. 191년 유표를 공격하다 전사했고, 훗날 아들 손권이 오나라를 세웠다.","team":2},"Zhao Yun":{"zh":"趙雲","zs":"赵云","en":"Zhao Yun first served Gongsun Zan, then joined Liu Bei and followed him through most of his campaigns. He rescued Liu Shan and Lady Gan at the Battle of Changban and helped take Yi Province. He served Shu Han as a general until his death in 229.","bz":"趙雲早年跟隨公孫瓚，後來投靠劉備，參與其大部分戰役。他在長坂坡之戰救出劉禪與甘夫人，又協助奪取益州。他在蜀漢任將軍，直至229年去世。","bs":"赵云早年跟随公孙瓒，后来投靠刘备，参与其大部分战役。他在长坂坡之战救出刘禅与甘夫人，又协助夺取益州。他在蜀汉任将军，直至229年去世。","ja":"趙雲は初め公孫瓚に仕え、のち劉備に従って多くの戦いに参加した。長坂の戦いで劉禅と甘夫人を救い出し、益州攻略にも貢献した。蜀漢の将軍として229年に没した。","ko":"조운은 처음 공손찬을 섬기다가 유비를 따라 대부분의 전역에 참전했다. 장판 전투에서 유선과 감부인을 구해냈고 익주 정복에도 공을 세웠다. 촉한의 장군으로 229년에 세상을 떠났다.","team":1},"Ma Chao":{"zh":"馬超","zs":"马超","en":"Ma Chao was the eldest son of Ma Teng. In 211 he rose against Cao Cao and seized Liang Province before being driven out. He then defected to Liu Bei and helped take Yi Province, serving as General of Agile Cavalry until his death in 222.","bz":"馬超是馬騰的長子。211年他起兵反抗曹操，佔據涼州，後被擊敗。其後他投靠劉備，協助奪取益州，任驃騎將軍，222年去世。","bs":"马超是马腾的长子。211年他起兵反抗曹操，占据凉州，后被击败。其后他投靠刘备，协助夺取益州，任骠骑将军，222年去世。","ja":"馬超は馬騰の長男。211年に曹操に反旗を翻して涼州を奪ったが、のち追われた。その後劉備に降り、益州攻略を助け、驃騎将軍として222年に没した。","ko":"마초는 마등의 맏아들이다. 211년 조조에 맞서 일어나 양주를 차지했으나 곧 쫓겨났다. 이후 유비에게 귀순해 익주 정복을 도왔고, 표기장군으로 222년에 세상을 떠났다.","team":1},"Guan Yu":{"zh":"關羽","zs":"关羽","en":"Guan Yu was among Liu Bei's earliest followers, alongside Zhang Fei. He won fame by killing Yan Liang at Boma, and by defeating Yu Jin and killing Pang De at Fancheng in 219. After Sun Quan seized Liu Bei's Jing Province, Guan Yu was captured and executed in early 220.","bz":"關羽是劉備最早的追隨者之一，與張飛同為其左右。他在白馬之戰斬殺顏良，219年又在樊城擊敗于禁、斬殺龐德。孫權奪取荊州後，關羽被俘，於220年初被處死。","bs":"关羽是刘备最早的追随者之一，与张飞同为其左右。他在白马之战斩杀颜良，219年又在樊城击败于禁、斩杀庞德。孙权夺取荆州后，关羽被俘，于220年初被处死。","ja":"関羽は張飛とともに劉備の最古参の臣下。白馬で顔良を討ち、219年の樊城で于禁を破り龐徳を斬って名を上げた。孫権が荊州を奪うと捕らえられ、220年初めに処刑された。","ko":"관우는 장비와 함께 유비의 가장 오랜 수하였다. 백마에서 안량을 베어 이름을 떨쳤고, 219년 번성에서 우금을 격파하고 방덕을 죽였다. 손권이 형주를 빼앗자 사로잡혀 220년 초 처형되었다.","team":1},"Zhang Fei":{"zh":"張飛","zs":"张飞","en":"Zhang Fei served Liu Bei in the late Han and early Three Kingdoms. He fought at Red Cliffs, in the conquest of Yi Province, and in the Hanzhong campaign. He was assassinated by his own subordinates in 221, soon after Shu Han was founded.","bz":"張飛在漢末及三國初年效力劉備，參加過赤壁、入蜀及漢中之戰。221年蜀漢建國不久，他被部下刺殺。","bs":"张飞在汉末及三国初年效力刘备，参加过赤壁、入蜀及汉中之战。221年蜀汉建国不久，他被部下刺杀。","ja":"張飛は漢末から三国初期にかけて劉備に仕えた。赤壁、入蜀、漢中の戦いに参加。221年、蜀漢成立の直後に部下に暗殺された。","ko":"장비는 후한 말과 삼국 초기에 유비를 섬겼다. 적벽, 입촉, 한중 전투에 참가했다. 221년 촉한이 세워진 직후 부하에게 암살당했다.","team":1},"Lu Bu":{"zh":"呂布","zs":"吕布","en":"Lü Bu was a warlord renowned for his martial prowess and nicknamed the \"Flying General\". He killed Ding Yuan and joined Dong Zhuo, then assassinated Dong Zhuo in 192. He held Xu and Yan provinces at times, but was besieged at Xiapi and executed on Cao Cao's order in 199.","bz":"呂布是以武勇聞名的軍閥，人稱「飛將」。他殺死丁原後投靠董卓，192年又殺死董卓。他曾先後佔據徐州與兗州，但被曹操圍困於下邳，199年被處死。","bs":"吕布是以武勇闻名的军阀，人称「飞将」。他杀死丁原后投靠董卓，192年又杀死董卓。他曾先后占据徐州与兖州，但被曹操围困于下邳，199年被处死。","ja":"呂布は武勇で名高い軍閥で「飛将」と呼ばれた。丁原を殺して董卓に仕え、192年に董卓を暗殺した。徐州・兗州を一時支配したが、下邳で包囲され、199年に曹操の命で処刑された。","ko":"여포는 무용으로 이름난 군벌로 \"비장\"이라 불렸다. 정원을 죽이고 동탁에게 의탁했다가 192년 동탁을 암살했다. 한때 서주와 연주를 차지했으나 하비에서 포위되어 199년 조조의 명으로 처형되었다.","team":3},"Gan Ning":{"zh":"甘寧","zs":"甘宁","en":"Gan Ning was a former pirate who became a general under Sun Quan. He fought at Red Cliffs and at Ruxu, where his daring night raid on Cao Cao's camp became famous. His death is poorly recorded, but Sun Quan mourned him deeply.","bz":"甘寧原為江上水賊，後成為孫權麾下將領。他參加過赤壁與濡須口之戰，其夜襲曹營的壯舉廣為流傳。他的死期記載不詳，但孫權對他深感惋惜。","bs":"甘宁原为江上水贼，后成为孙权麾下将领。他参加过赤壁与濡须口之战，其夜袭曹营的壮举广为流传。他的死期记载不详，但孙权对他深感惋惜。","ja":"甘寧は元は水賊で、のち孫権に仕える将軍となった。赤壁や濡須口で戦い、百騎で曹操の陣に夜襲をかけた武勇伝で名高い。死去の時期は不明だが、孫権は深く惜しんだ。","ko":"감녕은 본래 강의 수적이었다가 손권 휘하의 장수가 되었다. 적벽과 유수구에서 싸웠고, 조조의 진영을 야습한 대담한 일화로 유명하다. 그의 죽음은 기록이 불분명하지만 손권이 크게 애도했다.","team":2},"Cao Cao":{"zh":"曹操","zs":"曹操","en":"Cao Cao was a statesman, warlord and poet of the late Eastern Han dynasty. As Imperial Chancellor to Emperor Xian he gained control of the central government. He beat Yuan Shao at Guandu in 200 and unified much of northern China, though he lost at Red Cliffs in 209. He died in 220 as King of Wei, and his son Cao Pi founded Cao Wei.","bz":"曹操是東漢末年的政治家、軍閥兼詩人，任丞相輔佐漢獻帝，掌握朝廷大權。他於200年在官渡擊敗袁紹，統一北方大部分地區，但在209年赤壁之戰中大敗。220年他以魏王身分逝世，其子曹丕後來建立曹魏。","bs":"曹操是东汉末年的政治家、军阀兼诗人，任丞相辅佐汉献帝，掌握朝廷大权。他于200年在官渡击败袁绍，统一北方大部分地区，但在209年赤壁之战中大败。220年他以魏王身分逝世，其子曹丕后来建立曹魏。","ja":"曹操は後漢末の政治家・軍閥・詩人。献帝の丞相として中央政権を握り、200年の官渡の戦いで袁紹を破って華北の大部分を統一したが、208年の赤壁で敗れた。220年に魏王として没し、子の曹丕が魏を建国した。","ko":"조조는 후한 말의 정치가이자 군벌, 시인이다. 헌제의 승상으로서 조정을 장악했고, 200년 관도 전투에서 원소를 꺾어 중국 북부 대부분을 통일했으나 208년 적벽에서 패했다. 220년 위왕으로 세상을 떠났으며, 아들 조비가 위나라를 세웠다.","team":0},"Pang Tong":{"zh":"龐統","zs":"庞统","en":"Pang Tong, known as the \"Fledgling Phoenix\", was a key adviser to Liu Bei. He helped persuade Liu Bei to seize Yi Province and became his Military Adviser. He was killed by a stray arrow during the siege of Luo County in 214.","bz":"龐統人稱「鳳雛」，是劉備的重要謀士。他勸說劉備奪取益州，出任軍師中郎將。214年他在圍攻雒縣時被流矢射中身亡。","bs":"庞统人称「凤雏」，是刘备的重要谋士。他劝说刘备夺取益州，出任军师中郎将。214年他在围攻雒县时被流矢射中身亡。","ja":"龐統は「鳳雛」と称され、劉備の重要な軍師だった。益州奪取を勧め、軍師中郎将となった。214年、雒県の包囲中に流れ矢に当たって戦死した。","ko":"방통은 \"봉추\"라 불린 유비의 핵심 모사였다. 유비에게 익주를 차지하도록 권하여 군사중랑장이 되었다. 214년 낙현 포위 중 유시에 맞아 전사했다.","team":1},"Lu Xun":{"zh":"陸遜","zs":"陆逊","en":"Lu Xun began serving Sun Quan at about twenty and rose steadily through the ranks of Eastern Wu. He is best known for defeating Guan Yu in 219 and winning decisively over Liu Bei at Xiaoting in 222. Drawn into a succession struggle, he fell out of favour and died in 245 despite serving as Imperial Chancellor.","bz":"陸遜二十歲左右開始效力孫權，在東吳步步高升。他最著名的功績是219年擊敗關羽，以及222年在猇亭大破劉備。後來他捲入孫權諸子的繼承之爭，失去寵信，245年憂憤而終，生前曾任丞相。","bs":"陆逊二十岁左右开始效力孙权，在东吴步步高升。他最著名的功绩是219年击败关羽，以及222年在猇亭大破刘备。后来他卷入孙权诸子的继承之争，失去宠信，245年忧愤而终，生前曾任丞相。","ja":"陸遜は20歳ごろ孫権に仕え、呉で着実に昇進した。219年に関羽を破り、222年の猇亭で劉備に大勝したことで最も有名。後継争いに巻き込まれて寵を失い、丞相でありながら245年に没した。","ko":"육손은 스무 살 무렵 손권을 섬기기 시작해 오나라에서 착실히 승진했다. 219년 관우를 격파하고 222년 효정에서 유비에게 대승을 거둔 것으로 가장 유명하다. 후계 다툼에 휘말려 총애를 잃고, 승상이었음에도 245년에 세상을 떠났다.","team":2},"Jia Xu":{"zh":"賈詡","zs":"贾诩","en":"Jia Xu served Li Jue and Zhang Xiu before joining Cao Cao. He helped win Guandu by urging a decisive attack, and advised sowing discord among rivals at Tong Pass. He also quietly guided Cao Cao toward naming Cao Pi as heir, became Grand Commandant, and died in 223.","bz":"賈詡先後效力李傕、張繡，後歸順曹操。他在官渡之戰建議果斷出擊，潼關之戰又獻離間之計。他也暗中促使曹操立曹丕為繼承人，後官至太尉，223年去世。","bs":"贾诩先后效力李傕、张绣，后归顺曹操。他在官渡之战建议果断出击，潼关之战又献离间之计。他也暗中促使曹操立曹丕为继承人，后官至太尉，223年去世。","ja":"賈詡は李傕、張繡に仕えたのち曹操に降った。官渡で決戦を促して勝利に貢献し、潼関では敵の離間を進言した。曹丕を後継者にするよう密かに導き、太尉となって223年に没した。","ko":"가후는 이각과 장수를 섬기다가 조조에게 귀순했다. 관도에서 결단을 촉구해 승리를 이끌었고, 동관에서는 적을 이간하는 계책을 올렸다. 또한 조비를 후계자로 세우도록 은밀히 이끌었으며, 태위가 되어 223년에 세상을 떠났다.","team":0},"Jiang Wei":{"zh":"姜維","zs":"姜维","en":"Jiang Wei was a Wei officer from Tianshui who surrendered to Zhuge Liang in 228 and became his protégé. After Zhuge Liang died he led most of Shu Han's northern campaigns against Wei. When Wei conquered Shu in 263, he tried to use Zhong Hui's rebellion to restore Shu, and was killed in 264.","bz":"姜維原是天水的曹魏將領，228年歸降諸葛亮，成為他的得意門生。諸葛亮去世後，他統領蜀漢多次北伐曹魏。263年曹魏滅蜀，他想利用鍾會謀反復興蜀漢，264年被殺。","bs":"姜维原是天水的曹魏将领，228年归降诸葛亮，成为他的得意门生。诸葛亮去世后，他统领蜀汉多次北伐曹魏。263年曹魏灭蜀，他想利用钟会谋反复兴蜀汉，264年被杀。","ja":"姜維は天水出身の魏の将で、228年に諸葛亮に降り、その愛弟子となった。諸葛亮の死後は、蜀漢の魏への北伐の多くを率いた。263年に魏が蜀を滅ぼすと、鍾会の反乱を利用して蜀の復興を図ったが、264年に殺された。","ko":"강유는 천수 출신의 위나라 장수로 228년 제갈량에게 항복해 그의 제자가 되었다. 제갈량이 죽은 뒤 위나라에 대한 촉한의 북벌을 대부분 이끌었다. 263년 위가 촉을 멸하자 종회의 반란을 이용해 촉을 되살리려 했으나 264년 살해되었다.","team":1},"Zhou Yu":{"zh":"周瑜","zs":"周瑜","en":"Zhou Yu was a general and strategist who served Sun Ce and then Sun Quan. He led the defeat of Cao Cao's larger army at Red Cliffs in 208 and again at Jiangling in 209. He died of illness in 210 aged 35 while preparing to invade Yi Province.","bz":"周瑜是將領與謀略家，先後效力孫策、孫權。他在208年赤壁之戰大破曹操大軍，209年又在江陵擊敗曹軍。210年他在籌備進攻益州時病逝，年僅三十五歲。","bs":"周瑜是将领与谋略家，先后效力孙策、孙权。他在208年赤壁之战大破曹操大军，209年又在江陵击败曹军。210年他在筹备进攻益州时病逝，年仅三十五岁。","ja":"周瑜は孫策、のち孫権に仕えた武将・軍略家。208年の赤壁で曹操の大軍を破り、209年には江陵でも勝利した。210年、益州侵攻の準備中に35歳で病没した。","ko":"주유는 손책과 손권을 섬긴 장수이자 책략가이다. 208년 적벽에서 조조의 대군을 격파했고 209년에는 강릉에서도 승리했다. 210년 익주 공략을 준비하던 중 35세로 병사했다.","team":2},"Guo Jia":{"zh":"郭嘉","zs":"郭嘉","en":"Guo Jia was Cao Cao's military adviser for about eleven years. His foresight helped defeat Lü Bu and Yuan Shao, and he predicted the victory at Guandu years in advance. He fell ill after the Battle of White Wolf Mountain in 207 and died soon after, in his late thirties.","bz":"郭嘉是曹操的軍師，輔佐約十一年。他的遠見助曹操擊敗呂布與袁紹，並早在多年前就預言官渡之勝。207年白狼山之戰後他病倒，不久去世，年僅三十多歲。","bs":"郭嘉是曹操的军师，辅佐约十一年。他的远见助曹操击败吕布与袁绍，并早在多年前就预言官渡之胜。207年白狼山之战后他病倒，不久去世，年仅三十多岁。","ja":"郭嘉は約11年間、曹操の軍師を務めた。先見の明で呂布や袁紹の撃破に貢献し、官渡の勝利を何年も前から予見した。207年の白狼山の戦いの後に病に倒れ、まもなく30代後半で没した。","ko":"곽가는 약 11년간 조조의 군사를 지냈다. 선견지명으로 여포와 원소를 꺾는 데 기여했고 관도의 승리를 몇 해 전에 예견했다. 207년 백랑산 전투 후 병이 나 곧 30대 후반의 나이로 세상을 떠났다.","team":0},"Sima Yi":{"zh":"司馬懿","zs":"司马懿","en":"Sima Yi served Cao Wei as a general and politician, and later as regent. He is best known for defending Wei against Shu invasions in 231–234 and for conquering Liaodong. In 249 he ousted his co-regent Cao Shuang in a coup; after his death in 251, his grandson Sima Yan founded the Jin dynasty.","bz":"司馬懿是曹魏的將領與政治家，後來出任輔政大臣。他以231至234年抵禦蜀漢北伐及平定遼東而聞名。249年他發動政變，推翻共同輔政的曹爽。251年他去世後，其孫司馬炎建立晉朝。","bs":"司马懿是曹魏的将领与政治家，后来出任辅政大臣。他以231至234年抵御蜀汉北伐及平定辽东而闻名。249年他发动政变，推翻共同辅政的曹爽。251年他去世后，其孙司马炎建立晋朝。","ja":"司馬懿は曹魏の武将・政治家で、のち摂政となった。231〜234年の蜀の侵攻を防ぎ、遼東を征服したことで知られる。249年にクーデターで曹爽を排除し、251年の死後、孫の司馬炎が晋を建てた。","ko":"사마의는 조위의 장수이자 정치가였으며 훗날 섭정이 되었다. 231~234년 촉의 침공을 막아냈고 요동을 정복한 것으로 유명하다. 249년 쿠데타로 공동 섭정 조상을 몰아냈으며, 251년 그가 죽은 뒤 손자 사마염이 진나라를 세웠다.","team":0},"Zhuge Liang":{"zh":"諸葛亮","zs":"诸葛亮","en":"Zhuge Liang was a statesman and strategist who served as chancellor and regent of Shu Han under Liu Bei and Liu Shan. He helped form the alliance that beat Cao Cao at Red Cliffs, pacified the southwest, and led repeated northern campaigns against Wei. He died of illness in 234 on the Wuzhang Plains.","bz":"諸葛亮是政治家與謀略家，歷任蜀漢丞相，輔佐劉備與劉禪。他促成孫劉聯盟，在赤壁大破曹操，並平定南中，多次北伐曹魏。234年他在五丈原病逝。","bs":"诸葛亮是政治家与谋略家，历任蜀汉丞相，辅佐刘备与刘禅。他促成孙刘联盟，在赤壁大破曹操，并平定南中，多次北伐曹魏。234年他在五丈原病逝。","ja":"諸葛亮は政治家・軍略家で、劉備・劉禅のもとで蜀漢の丞相、摂政を務めた。赤壁で曹操を破る同盟を成立させ、南方を平定し、魏へ繰り返し北伐を行った。234年、五丈原で病没した。","ko":"제갈량은 정치가이자 책략가로 유비와 유선 아래에서 촉한의 승상과 섭정을 지냈다. 적벽에서 조조를 꺾은 동맹을 이끌었고 남중을 평정했으며 위나라를 향해 여러 차례 북벌을 단행했다. 234년 오장원에서 병사했다.","team":1},"Liu Bei":{"zh":"劉備","zs":"刘备","en":"Liu Bei was a warlord of the late Eastern Han who rose from poverty and founded the state of Shu Han. Supported by his sworn brothers Guan Yu and Zhang Fei and by Zhuge Liang, he allied with Sun Quan to beat Cao Cao at Red Cliffs. He took Yi Province, proclaimed himself emperor in 221, and died in 223 after the defeat at Yiling.","bz":"劉備是東漢末年的軍閥，出身貧寒，後來建立蜀漢。他有結義兄弟關羽、張飛及諸葛亮輔佐，與孫權聯手在赤壁大破曹操。他奪取益州，221年稱帝，223年在夷陵戰敗後病逝。","bs":"刘备是东汉末年的军阀，出身贫寒，后来建立蜀汉。他有结义兄弟关羽、张飞及诸葛亮辅佐，与孙权联手在赤壁大破曹操。他夺取益州，221年称帝，223年在夷陵战败后病逝。","ja":"劉備は後漢末の軍閥で、貧しい身から身を起こして蜀漢を建国した。義兄弟の関羽・張飛と諸葛亮に支えられ、孫権と同盟して赤壁で曹操を破った。益州を奪い、221年に皇帝を称し、夷陵の敗戦後の223年に没した。","ko":"유비는 후한 말의 군벌로 가난에서 일어나 촉한을 세웠다. 의형제 관우, 장비와 제갈량의 보좌를 받아 손권과 동맹해 적벽에서 조조를 꺾었다. 익주를 차지하고 221년 황제를 칭했으며, 이릉에서 패한 뒤 223년에 세상을 떠났다.","team":1},"Xu Shu":{"zh":"徐庶","zs":"徐庶","en":"Xu Shu turned from a vigilante swordsman into a scholar. He advised Liu Bei for about a year and recommended Zhuge Liang to him. After Cao Cao captured his mother he defected to Cao Cao, and later served Cao Wei until he died of illness in the 230s.","bz":"徐庶早年任俠，後來改習學問。他輔佐劉備約一年，並向其推薦諸葛亮。曹操俘虜他的母親後，他轉投曹操，後來在曹魏任職，於230年代病逝。","bs":"徐庶早年任侠，后来改习学问。他辅佐刘备约一年，并向其推荐诸葛亮。曹操俘虏他的母亲后，他转投曹操，后来在曹魏任职，于230年代病逝。","ja":"徐庶は任侠の剣客から学者に転じた。劉備に約一年仕え、諸葛亮を推薦した。母が曹操に捕らえられると曹操のもとへ去り、のち魏に仕え、230年代に病没した。","ko":"서서는 협객 검사에서 학자로 변신했다. 약 1년간 유비를 보좌하며 제갈량을 추천했다. 조조가 그의 어머니를 사로잡자 조조에게 갔고, 이후 위나라에서 벼슬하다 230년대에 병사했다.","team":1},"Wei Yan":{"zh":"魏延","zs":"魏延","en":"Wei Yan served Liu Bei and later Liu Shan. He distinguished himself in the conquest of Yi Province and the defence of Hanzhong, and fought in Zhuge Liang's Northern Expeditions. After Zhuge Liang died in 234, he clashed with Yang Yi and was executed by Ma Dai for alleged treason.","bz":"魏延效力劉備與劉禪，在平定益州及防守漢中時立下戰功，並參與諸葛亮北伐。234年諸葛亮逝世後，他與楊儀衝突，被馬岱以謀反罪名處死。","bs":"魏延效力刘备与刘禅，在平定益州及防守汉中时立下战功，并参与诸葛亮北伐。234年诸葛亮逝世后，他与杨仪冲突，被马岱以谋反罪名处死。","ja":"魏延は劉備、のち劉禅に仕えた。益州攻略や漢中防衛で功を立て、諸葛亮の北伐にも従った。234年に諸葛亮が没すると楊儀と対立し、謀反の疑いで馬岱に斬られた。","ko":"위연은 유비와 훗날 유선을 섬겼다. 익주 정복과 한중 방어에서 공을 세웠고 제갈량의 북벌에도 참여했다. 234년 제갈량이 죽자 양의와 충돌했고, 반역 혐의로 마대에게 처형되었다.","team":1},"Zhang Liao":{"zh":"張遼","zs":"张辽","en":"Zhang Liao served Ding Yuan, Dong Zhuo and Lü Bu before joining Cao Cao in 199. He is best known for defending Hefei against Sun Quan's huge army at Xiaoyao Ford in 214–215. He died in 222, weakened by illness after a campaign against Eastern Wu.","bz":"張遼曾先後效力丁原、董卓、呂布，199年歸順曹操。他最著名的戰績是214至215年在合肥以少勝多，於逍遙津擊退孫權大軍。222年他在征吳後積勞成疾而逝。","bs":"张辽曾先后效力丁原、董卓、吕布，199年归顺曹操。他最著名的战绩是214至215年在合肥以少胜多，于逍遥津击退孙权大军。222年他在征吴后积劳成疾而逝。","ja":"張遼は丁原、董卓、呂布に仕えたのち、199年に曹操に降った。214〜215年、合肥で孫権の大軍を逍遥津で撃退したことで最も有名。222年、呉征伐後に病が重くなり没した。","ko":"장료는 정원, 동탁, 여포를 섬기다가 199년 조조에게 귀순했다. 214~215년 합비에서 손권의 대군을 소요진에서 물리친 것으로 가장 유명하다. 222년 오나라 원정 뒤 병이 깊어 세상을 떠났다.","team":0},"Xu Huang":{"zh":"徐晃","zs":"徐晃","en":"Xu Huang served Cao Cao and later Cao Wei under Cao Pi and Cao Rui. He is best known for breaking the siege of Fancheng in 219 by routing Guan Yu. Chen Shou counted him among Wei's Five Elite Generals, and he died in 227.","bz":"徐晃效力曹操，後在曹魏效力於曹丕、曹叡。他最著名的功績是219年擊敗關羽，解樊城之圍。陳壽將他列為曹魏五子良將之一，227年去世。","bs":"徐晃效力曹操，后在曹魏效力于曹丕、曹叡。他最著名的功绩是219年击败关羽，解樊城之围。陈寿将他列为曹魏五子良将之一，227年去世。","ja":"徐晃は曹操に仕え、のち曹丕・曹叡の魏に仕えた。219年に関羽を破って樊城の包囲を解いたことで最も有名。陳寿は魏の五良将の一人に数え、227年に没した。","ko":"서황은 조조를 섬겼고 이후 조비와 조예 아래 위나라에서 활약했다. 219년 관우를 격파해 번성의 포위를 푼 것으로 가장 유명하다. 진수는 그를 위나라 오자양장의 한 명으로 꼽았으며 227년에 세상을 떠났다.","team":0},"Xun Yu":{"zh":"荀彧","zs":"荀彧","en":"Xun Yu was a politician from Yingchuan who served as Cao Cao's adviser. He recommended many capable men, helped defend Juancheng against Lü Bu, and urged Cao to secure his heartland and stay the protector of the Han. In 212 he opposed making Cao a duke, fell ill, and died that year in suspicious circumstances.","bz":"荀彧是潁川人，擔任曹操的謀臣。他舉薦眾多人才，協助守衛鄄城對抗呂布，並勸曹操先穩固根本、維護漢室。212年他反對曹操晉爵國公，隨後患病，同年去世，死因令人起疑。","bs":"荀彧是颍川人，担任曹操的谋臣。他举荐众多人才，协助守卫鄄城对抗吕布，并劝曹操先稳固根本、维护汉室。212年他反对曹操晋爵国公，随后患病，同年去世，死因令人起疑。","ja":"荀彧は潁川出身の政治家で、曹操の参謀を務めた。多くの人材を推挙し、呂布から鄄城を守る助けとなり、本拠地を固めて漢室の守護者であり続けるよう勧めた。212年に曹操の公爵就任に反対して病に伏し、不審な状況で没した。","ko":"순욱은 영천 출신의 정치가로 조조의 참모를 맡았다. 많은 인재를 천거했고 견성에서 여포를 막아내는 데 도움을 주었으며, 본거지를 굳히고 한나라의 수호자로 남으라고 권했다. 212년 조조의 공작 책봉에 반대하고 병이 들어 그해 수상한 정황 속에 세상을 떠났다.","team":0},"Sun Ce":{"zh":"孫策","zs":"孙策","en":"Sun Ce was a late Eastern Han commander who laid the groundwork for Eastern Wu. After breaking with Yuan Shu, he conquered the Jiangdong region and was named Marquis of Wu. Known as the \"Little Conqueror\", he was assassinated in 200 aged only 25.","bz":"孫策是東漢末年將領，為東吳奠定基業。他脫離袁術後平定江東，被封為吳侯，人稱「小霸王」。他於200年遇刺身亡，年僅二十五歲。","bs":"孙策是东汉末年将领，为东吴奠定基业。他脱离袁术后平定江东，被封为吴侯，人称「小霸王」。他于200年遇刺身亡，年仅二十五岁。","ja":"孫策は後漢末の武将で、呉の基礎を築いた。袁術と決別後、江東を平定して呉侯となった。「小覇王」と呼ばれたが、200年に25歳の若さで暗殺された。","ko":"손책은 후한 말의 장수로 오나라의 기틀을 닦았다. 원술과 결별한 뒤 강동을 평정하여 오후에 봉해졌다. \"소패왕\"이라 불렸으나 200년 25세의 젊은 나이에 암살당했다.","team":2},"Sun Quan":{"zh":"孫權","zs":"孙权","en":"Sun Quan inherited the Jiangdong base from his brother Sun Ce in 200 and ruled for over fifty years. He allied with Liu Bei to defeat Cao Cao at Red Cliffs, then seized Jing Province in 219 and beat Liu Bei at Yiling. He proclaimed himself emperor of Eastern Wu in 229 and died in 252.","bz":"孫權於200年繼承兄長孫策的江東基業，統治長達五十餘年。他聯合劉備在赤壁大破曹操，219年奪取荊州，又在夷陵擊敗劉備。229年他稱帝建立東吳，252年去世。","bs":"孙权于200年继承兄长孙策的江东基业，统治长达五十余年。他联合刘备在赤壁大破曹操，219年夺取荆州，又在夷陵击败刘备。229年他称帝建立东吴，252年去世。","ja":"孫権は200年に兄孫策から江東の地盤を継ぎ、50年以上にわたり統治した。劉備と同盟して赤壁で曹操を破り、219年に荊州を奪い、夷陵で劉備を破った。229年に呉の皇帝を称し、252年に没した。","ko":"손권은 200년 형 손책에게서 강동의 기반을 물려받아 50년 넘게 통치했다. 유비와 동맹하여 적벽에서 조조를 꺾고, 219년 형주를 차지했으며 이릉에서 유비를 물리쳤다. 229년 오나라 황제를 칭했고 252년에 세상을 떠났다.","team":2},"Lu Su":{"zh":"魯肅","zs":"鲁肃","en":"Lu Su served Sun Quan and advised him on a long-term plan to build a power base. He was the first to urge an alliance with Liu Bei against Cao Cao before Red Cliffs. After Zhou Yu died he took over as frontline commander and kept the alliance alive until his death in 217.","bz":"魯肅效力孫權，為其獻上建立霸業的長遠策略。赤壁之戰前，他最早主張聯合劉備共抗曹操。周瑜去世後，他接任前線統帥，維持聯盟，217年去世。","bs":"鲁肃效力孙权，为其献上建立霸业的长远策略。赤壁之战前，他最早主张联合刘备共抗曹操。周瑜去世后，他接任前线统帅，维持联盟，217年去世。","ja":"魯肅は孫権に仕え、地盤を築く長期戦略を進言した。赤壁の前に劉備との同盟を最初に唱えた。周瑜の死後は前線の指揮を引き継ぎ、217年に没するまで同盟を維持した。","ko":"노숙은 손권을 섬기며 세력 기반을 다질 장기 전략을 올렸다. 적벽 전에 유비와의 동맹을 가장 먼저 주장했다. 주유가 죽은 뒤 최전선 지휘를 이어받아 217년 세상을 떠날 때까지 동맹을 지켰다.","team":2}};
+
+/* Background of each battle in 5 languages: en, zt (繁體), zs (简体), ja, ko. History first, then what the novel 三國演義 added. */
+const WARS = [
+ { t: { en: 'Bowang Slope', zt: '博望坡', zs: '博望坡', ja: '博望坡の戦い', ko: '박망파 전투' },
+   b: { en: "Battle of Bowang, about 202 AD. Cao Cao sent Xiahou Dun south against Liu Bei. Liu Bei burned his own camp and pretended to retreat, drawing the enemy into a narrow valley of grass and trees, then ambushed them. History records the ambush, but in the novel it becomes Zhuge Liang's first great plan (in history he joined Liu Bei a few years later).",
+        zt: '博望坡之戰，約建安七年（202年）。曹操派夏侯惇南下攻打劉備。劉備燒毀營寨、假裝撤退，把敵軍誘入草木叢生的狹窄山谷，再伏擊之。史書記載了這場伏擊，但在演義中成了諸葛亮出山後的第一場妙計（歷史上他數年後才投奔劉備）。',
+        zs: '博望坡之战，约建安七年（202年）。曹操派夏侯惇南下攻打刘备。刘备烧毁营寨、假装撤退，把敌军诱入草木丛生的狭窄山谷，再伏击之。史书记载了这场伏击，但在演义中成了诸葛亮出山后的第一场妙计（历史上他数年后才投奔刘备）。',
+        ja: '博望坡の戦い（202年頃）。曹操は夏侯惇を南に送り劉備を攻めさせた。劉備は自ら陣を焼いて退くふりをし、草木の茂る狭い谷に敵を誘い込んで伏兵で破った。正史にも伏兵の記録があるが、演義では諸葛亮の初陣の妙計として描かれる（史実では彼が劉備に仕えるのは数年後）。',
+        ko: '박망파 전투(약 202년). 조조는 하후돈을 남쪽으로 보내 유비를 공격하게 했다. 유비는 스스로 진영을 불태우고 후퇴하는 척하여, 풀과 나무가 우거진 좁은 골짜기로 적을 끌어들인 뒤 매복으로 격파했다. 정사에도 매복 기록이 있으나, 연의에서는 제갈량의 첫 번째 묘책으로 그려진다(역사에서는 몇 해 뒤에 유비를 섬겼다).' } },
+ { t: { en: 'Changban Bridge', zt: '長坂橋', zs: '长坂桥', ja: '長坂橋', ko: '장판교' },
+   b: { en: "Battle of Changban, 208 AD. Cao Cao's cavalry caught Liu Bei, who was fleeing south with tens of thousands of civilians. History records that Zhao Yun protected Liu Bei's young son Liu Shan and Lady Gan, and that Zhang Fei held the bridge with about twenty riders, glaring and shouting until no one dared advance. The novel adds Zhao Yun's seven charges through the enemy and Zhang Fei breaking the bridge.",
+        zt: '長坂坡之戰，建安十三年（208年）。曹操騎兵追上帶著數萬百姓南逃的劉備。史載趙雲保護劉備幼子劉禪與甘夫人，張飛率約二十騎據橋怒目大喝，敵軍無人敢近。演義另加入趙雲七進七出，以及張飛拆橋的情節。',
+        zs: '长坂坡之战，建安十三年（208年）。曹操骑兵追上带着数万百姓南逃的刘备。史载赵云保护刘备幼子刘禅与甘夫人，张飞率约二十骑据桥怒目大喝，敌军无人敢近。演义另加入赵云七进七出，以及张飞拆桥的情节。',
+        ja: '長坂の戦い（208年）。曹操の騎兵は、数万の民と共に南へ逃げる劉備に追いついた。正史では趙雲が劉備の幼子劉禅と甘夫人を守り、張飛が二十騎ほどで橋に立って睨みつけ、誰も近づけなかったと記される。演義では趙雲の七進七出や、張飛が橋を落とす場面が加わる。',
+        ko: '장판파 전투(208년). 조조의 기병이 수만 명의 백성과 함께 남쪽으로 달아나던 유비를 따라잡았다. 정사에는 조운이 유비의 어린 아들 유선과 감 부인을 지키고, 장비가 기병 스무 명 남짓으로 다리에 서서 노려보자 아무도 다가오지 못했다고 기록된다. 연의는 조운의 일곱 번 돌파와 장비가 다리를 끊는 장면을 더한다.' } },
+ { t: { en: 'Red Cliffs: Burning the Chained Ships', zt: '赤壁·火燒連環船', zs: '赤壁·火烧连环船', ja: '赤壁・連環の火計', ko: '적벽·연환선 화공' },
+   b: { en: "Battle of Red Cliffs, winter 208 AD. Liu Bei and Sun Quan allied against Cao Cao on the Yangtze. History records that Cao Cao's ships were joined bow to stern and that Huang Gai burned them with fire ships, helped by the wind. The novel adds Pang Tong's Chain Scheme and Zhuge Liang borrowing the east wind at an altar.",
+        zt: '赤壁之戰，建安十三年冬（208年）。劉備與孫權聯軍在長江迎戰曹操。史書記載曹軍戰船首尾相連，黃蓋以火船乘風縱火。演義另加入龐統獻連環計，以及諸葛亮築壇借東風。',
+        zs: '赤壁之战，建安十三年冬（208年）。刘备与孙权联军在长江迎战曹操。史书记载曹军战船首尾相连，黄盖以火船乘风纵火。演义另加入庞统献连环计，以及诸葛亮筑坛借东风。',
+        ja: '赤壁の戦い（208年冬）。劉備と孫権は同盟し、長江で曹操を迎え撃った。正史にも曹操の船が首尾相連なっていたこと、黄蓋が火船で風に乗せて焼き払ったことが記される。演義では龐統の連環の計と、諸葛亮が祭壇で東風を借りる話が加わる。',
+        ko: '적벽대전(208년 겨울). 유비와 손권은 동맹하여 장강에서 조조에 맞섰다. 정사에는 조조의 배들이 이물과 고물을 이어 묶여 있었고, 황개가 화공선으로 바람을 타고 불태웠다고 기록된다. 연의는 방통의 연환계와 제갈량이 제단에서 동남풍을 빌리는 이야기를 더한다.' } },
+ { t: { en: 'Huarong Path', zt: '華容道', zs: '华容道', ja: '華容道', ko: '화용도' },
+   b: { en: "Huarong Path, 208 AD. After Red Cliffs, Cao Cao retreated along a muddy road. History records that he had weak soldiers lay grass to fill the mud so the cavalry could pass, and many were trampled. The famous scene where Guan Yu lets Cao Cao go, repaying an old kindness, is an invention of the novel.",
+        zt: '華容道，建安十三年（208年）。赤壁戰後，曹操沿泥濘小路撤退。史載他命體弱士兵背草填路，讓騎兵通過，許多人被踩死。關羽義釋曹操、報答舊恩的名場面，則是演義的創作。',
+        zs: '华容道，建安十三年（208年）。赤壁战后，曹操沿泥泞小路撤退。史载他命体弱士兵背草填路，让骑兵通过，许多人被踩死。关羽义释曹操、报答旧恩的名场面，则是演义的创作。',
+        ja: '華容道（208年）。赤壁の後、曹操はぬかるんだ道を退却した。正史には、弱った兵に草を背負わせて泥を埋め、騎兵を通したが、多くが踏み殺されたと記される。関羽が昔の恩に報いて曹操を見逃す有名な場面は、演義の創作である。',
+        ko: '화용도(208년). 적벽 이후 조조는 진흙길을 따라 퇴각했다. 정사에는 약한 병사들에게 풀을 지고 진창을 메우게 하여 기병이 지나갔고, 많은 병사가 밟혀 죽었다고 기록된다. 관우가 옛 은혜를 갚으려 조조를 놓아주는 유명한 장면은 연의의 창작이다.' } },
+ { t: { en: 'Fallen Phoenix Slope: The Phoenix Lives', zt: '落鳳坡·鳳雛不隕', zs: '落凤坡·凤雏不陨', ja: '落鳳坡・鳳雛は落ちず', ko: '낙봉파·봉추불운' },
+   b: { en: "Fallen Phoenix Slope, about 214 AD. In the novel, Pang Tong leads the vanguard along a slope with an ominous name and is shot dead by Zhang Ren's archers. History says he was hit by a stray arrow while attacking Luo county. This act is my own what-if: the Eight Trigrams Gate opens, futuristic weapons arrive, and the Phoenix survives.",
+        zt: '落鳳坡，約建安十九年（214年）。演義中龐統率先鋒軍行至這處不祥地名的山坡，被張任伏兵亂箭射死。史書則記載他在進攻雒縣時被流矢擊中身亡。本關是作者自創的假設：八陣圖之門開啟，未來武器降臨，鳳雛因而倖存。',
+        zs: '落凤坡，约建安十九年（214年）。演义中庞统率先锋军行至这处不祥地名的山坡，被张任伏兵乱箭射死。史书则记载他在进攻雒县时被流矢击中身亡。本关是作者自创的假设：八阵图之门开启，未来武器降临，凤雏因而幸存。',
+        ja: '落鳳坡（214年頃）。演義では、龐統は不吉な名の坂を先鋒として進み、張任の伏兵の矢に倒れる。正史では雒城攻めの際に流れ矢に当たって亡くなったとされる。この章は作者による「もしも」の物語で、八陣図の門が開き、未来の武器が現れ、鳳雛は生き延びる。',
+        ko: '낙봉파(214년경). 연의에서 방통은 불길한 이름의 비탈을 선봉으로 지나다가 장임의 매복 화살에 맞아 죽는다. 정사에는 낙현을 공격할 때 유시(流矢)에 맞아 죽었다고 한다. 이 장은 작자가 만든 가정으로, 팔진도의 문이 열려 미래의 무기가 나타나고 봉추가 살아남는다.' } }
+];
+
+/* Hex Bastion: all the game's DATA lives here (towers, enemies, heroes, factions, story). Change numbers here to rebalance. */
+const ERAS = [{ id: 0, en: 'Ancient', zh: '古代' }, { id: 1, en: 'Mystic', zh: '玄術' }, { id: 2, en: 'Future', zh: '未來' }];
+/* Every tower is a general from Chapter 12 (face + bio) holding the weapon he carries in the novel 三國演義.
+   nm = key in FACES/BIOS. team 0 Wei, 1 Shu, 2 Wu, 3 others. ico = small badge drawn by icon(). range = hex steps (1 = next tile). rate = shots/s. dmg = per shot. */
+const TOWERS = {
+  huangzhong: { nm: 'Huang Zhong', team: 1, era: 0, wz: '寶雕弓', we: 'Jeweled Carved Bow', cost: 55, kind: 'shot', ico: 'archer', range: 3.4, dmg: 11, rate: 1.5, speed: 9, air: 1, phys: 1, col: '#d4a15a', info: 'Old but deadly archer. Steady arrows. Can shoot flyers.' },
+  taishici:   { nm: 'Taishi Ci', team: 2, era: 0, wz: '神射弓', we: 'Marksman Bow', cost: 80, kind: 'shot', ico: 'archer', range: 3.9, dmg: 8, rate: 2.2, speed: 11, air: 1, phys: 1, col: '#e0b36a', info: 'Long range, quick shots. Can shoot flyers.' },
+  xuzhu:      { nm: 'Xu Zhu', team: 0, era: 0, wz: '大刀', we: 'Great Saber', cost: 95, kind: 'pulse', ico: 'sword', range: 1.15, dmg: 44, rate: 1.0, stun: 0.2, air: 0, phys: 1, col: '#c9d1d9', info: 'Heavy saber swing hits every enemy on the 6 tiles around him. May stun.' },
+  dianwei:    { nm: 'Dian Wei', team: 0, era: 0, wz: '雙鐵戟', we: 'Twin Iron Halberds', cost: 80, kind: 'pulse', ico: 'sword', range: 1.15, dmg: 14, rate: 3.0, air: 0, phys: 1, col: '#b8c0cc', info: 'Very fast double strikes on all adjacent enemies.' },
+  xiahoudun:  { nm: 'Xiahou Dun', team: 0, era: 0, wz: '長槍', we: 'Iron Spear', cost: 70, kind: 'line', ico: 'spear', range: 2.2, dmg: 22, rate: 1.2, pierce: 2, air: 0, phys: 1, col: '#9aa7b4', info: 'One-eyed fury. Thrusts through 2 enemies in a line.' },
+  sunjian:    { nm: 'Sun Jian', team: 2, era: 0, wz: '古錠刀', we: 'Ancient Ingot Saber', cost: 85, kind: 'pulse', ico: 'sword', range: 1.15, dmg: 26, rate: 1.4, pierceArmor: 0.35, air: 0, phys: 1, col: '#d28b8b', info: 'Tiger of Jiangdong. Cuts through part of armour, hits adjacent enemies.' },
+  zhaoyun:    { nm: 'Zhao Yun', team: 1, era: 0, wz: '龍膽亮銀槍', we: 'Dragon-Gall Silver Spear', cost: 110, kind: 'line', ico: 'spear', range: 2.6, dmg: 26, rate: 1.3, pierce: 3, air: 0, phys: 1, col: '#e6edf3', info: 'Seven in, seven out. Quick thrusts through 3 enemies.' },
+  machao:     { nm: 'Ma Chao', team: 1, era: 0, wz: '虎頭湛金槍', we: 'Tiger-Head Gold Spear', cost: 135, kind: 'line', ico: 'spear', range: 3.4, dmg: 36, rate: 1.1, pierce: 2, pierceArmor: 0.2, air: 0, phys: 1, col: '#e5c35a', info: 'Cavalry charge: a long, hard thrust through 2 enemies.' },
+  ganning:    { nm: 'Gan Ning', team: 2, era: 0, wz: '鐵鏈流星鎚', we: 'Iron Chain Meteor Hammer', cost: 110, kind: 'splash', ico: 'hammer', range: 2.8, dmg: 38, rate: 0.7, radius: 0.95, stun: 0.25, air: 0, phys: 1, col: '#b0763c', info: 'Whirls a spiked ball on a chain. Smashes a crowd, may stun.' },
+  zhangfei:   { nm: 'Zhang Fei', team: 1, era: 0, wz: '丈八蛇矛', we: 'Eight-Span Serpent Spear', cost: 130, kind: 'pulse', ico: 'spear', range: 1.7, dmg: 34, rate: 1.0, stun: 0.3, air: 0, phys: 1, col: '#7a5cff', info: 'His roar shakes the tiles around him. Good chance to stun.' },
+  guanyu:     { nm: 'Guan Yu', team: 1, era: 0, wz: '青龍偃月刀', we: 'Green Dragon Crescent Blade', cost: 175, kind: 'line', ico: 'halberd', range: 3.0, dmg: 62, rate: 0.75, pierce: 5, pierceArmor: 0.3, air: 0, phys: 1, col: '#2ea043', info: 'A giant sweep through up to 5 enemies. Cuts armour.' },
+  lubu:       { nm: 'Lu Bu', team: 3, era: 0, wz: '方天畫戟', we: 'Sky-Piercer Halberd', cost: 200, kind: 'pulse', ico: 'halberd', range: 1.95, dmg: 76, rate: 0.85, pierceArmor: 0.5, air: 0, phys: 1, col: '#e5484d', info: 'The best warrior alive. Crescent blades sweep a wide circle. Cuts through armour.' },
+  caocao:     { nm: 'Cao Cao', team: 0, era: 0, wz: '青釭劍', we: 'Qinggang Sword', cost: 90, kind: 'banner', ico: 'banner', range: 0, dmg: 0, rate: 0, buff: 0.25, rbuff: 0.1, col: '#58a6ff', info: 'Commander. Boosts the 6 towers touching him: +25% damage, +10% speed.' },
+  pangtong:   { nm: 'Pang Tong', team: 1, era: 1, wz: '連環雷符', we: 'Chain Thunder Talisman', cost: 140, kind: 'chain', ico: 'lightning', range: 3.0, dmg: 28, rate: 0.9, jumps: 4, fall: 0.8, air: 1, phys: 0, elem: 'elec', col: '#7cc7ff', info: 'The Chain Scheme: lightning jumps between up to 4 enemies. Hits flyers.' },
+  luxun:      { nm: 'Lu Xun', team: 2, era: 1, wz: '火燒連營', we: 'Camp-Burning Fire Pots', cost: 130, kind: 'zone', ico: 'fire', range: 3.2, dmg: 14, rate: 0.36, radius: 1.0, dps: 26, life: 3.2, air: 0, phys: 0, elem: 'fire', col: '#ff7a2f', info: 'Throws fire pots that burn the ground for a few seconds.' },
+  jiaxu:      { nm: 'Jia Xu', team: 0, era: 1, wz: '寒霧毒計', we: 'Chilling Fog Scheme', cost: 100, kind: 'aura', ico: 'frost', range: 2.5, dmg: 4, rate: 1, slow: 0.35, air: 1, phys: 0, elem: 'ice', col: '#9be7ff', info: 'A cold, poisonous plot: everything nearby moves slower. Hits flyers.' },
+  jiangwei:   { nm: 'Jiang Wei', team: 1, era: 2, wz: '綠沉機槍', we: 'Green-Sinking Gatling', cost: 150, kind: 'shot', ico: 'gun', range: 3.6, dmg: 6, rate: 6.0, speed: 16, air: 1, phys: 1, col: '#8bd450', info: 'His spear, rebuilt as a machine gun. Streams of bullets. Hits flyers.' },
+  zhouyu:     { nm: 'Zhou Yu', team: 2, era: 2, wz: '赤壁火箭', we: 'Red Cliffs Rockets', cost: 220, kind: 'splash', ico: 'missile', range: 4.6, dmg: 95, rate: 0.45, radius: 1.3, speed: 7, air: 0, phys: 1, pierceArmor: 0.5, missile: 1, col: '#ff9f43', info: 'Fire from the sky. A big blast that breaks armour.' },
+  guojia:     { nm: 'Guo Jia', team: 0, era: 2, wz: '遺計追蹤彈', we: 'Last-Plan Homing Missiles', cost: 240, kind: 'homing', ico: 'homing', range: 6.0, dmg: 30, rate: 0.5, salvo: 3, speed: 5, air: 1, phys: 1, col: '#c084fc', info: 'He plans ahead: 3 missiles chase their targets. Hits flyers.' },
+  simayi:     { nm: 'Sima Yi', team: 0, era: 2, wz: '狼顧雷射', we: 'Wolf-Gaze Laser', cost: 260, kind: 'beam', ico: 'laser', range: 4.2, dmg: 28, rate: 1, ramp: 4.0, air: 1, phys: 0, elem: 'energy', col: '#ff4fa3', info: 'A patient stare: the beam burns hotter the longer it stays on one target.' },
+  zhugeliang: { nm: 'Zhuge Liang', team: 1, era: 2, wz: '羽扇能量場', we: 'Feather-Fan Force Field', cost: 200, kind: 'orbit', ico: 'field', range: 1.25, dmg: 40, rate: 0, orbs: 3, spin: 2.4, air: 1, phys: 0, elem: 'energy', col: '#4cc9f0', info: 'His fan spins into rotating energy orbs that shred anything touching them.' }
+};
+const TOWER_ORDER = Object.keys(TOWERS);
+const UP_DMG = [1, 1.55, 2.3], UP_RATE = [1, 1.1, 1.2], UP_RANGE = [0, 0.25, 0.5], UP_COST = [0, 0.7, 1.0];
+const TEAM_FAC = ['wei', 'shu', 'wu', null];
+
+/* speed in tiles per second. bounty = gold. armor = flat damage taken off every physical hit. */
+const ENEMIES = {
+  footman:   { en: 'Foot Soldier',  zh: '步卒',   hp: 42,  speed: 0.8,  armor: 0,  bounty: 5,  pts: 1,   ico: '🪖', era: 0 },
+  runner:    { en: 'Scout',         zh: '斥候',   hp: 26,  speed: 1.6,  armor: 0,  bounty: 4,  pts: 0.8, ico: '🏃', era: 0 },
+  shield:    { en: 'Shield Guard',  zh: '盾兵',   hp: 95,  speed: 0.65, armor: 6,  bounty: 9,  pts: 2.2, ico: '🛡️', era: 0 },
+  rider:     { en: 'Cavalry',       zh: '騎兵',   hp: 85,  speed: 1.3,  armor: 2,  bounty: 8,  pts: 2.4, ico: '🐎', era: 0 },
+  shaman:    { en: 'Fell Sorcerer', zh: '妖道',   hp: 75,  speed: 0.7,  armor: 0,  bounty: 12, pts: 3,   ico: '🧙', era: 1, heal: 9 },
+  ghost:     { en: 'Wailing Ghost', zh: '怨靈',   hp: 62,  speed: 1.0,  armor: 0,  bounty: 8,  pts: 2,   ico: '👻', era: 1, air: 1 },
+  marine:    { en: 'Wei Marine',    zh: '水軍',   hp: 125, speed: 0.8,  armor: 4,  bounty: 10, pts: 3,   ico: '⚓', era: 1 },
+  firespirit:{ en: 'Fire Spirit',   zh: '火靈',   hp: 95,  speed: 1.1,  armor: 0,  bounty: 11, pts: 3,   ico: '🔥', era: 1, resist: { fire: 0.15 } },
+  drone:     { en: 'Rift Drone',    zh: '無人機', hp: 58,  speed: 1.8,  armor: 0,  bounty: 8,  pts: 1.6, ico: '🛸', era: 2, air: 1 },
+  robot:     { en: 'Iron Trooper',  zh: '機械兵', hp: 230, speed: 0.8,  armor: 10, bounty: 18, pts: 5,   ico: '🤖', era: 2 },
+  mech:      { en: 'Shield Mech',   zh: '重裝機甲', hp: 620, speed: 0.55, armor: 14, bounty: 42, pts: 14, ico: '🦾', era: 2, shield: 160 },
+  yujin:     { en: 'Yu Jin, Vanguard',        zh: '于禁·前部先鋒', hp: 1700, speed: 0.5,  armor: 5,  bounty: 160, pts: 0, ico: '🏇', boss: 1, lives: 5, heal: 4, era: 0 },
+  tigercav:  { en: 'Tiger-Leopard Cavalry',   zh: '虎豹騎',        hp: 2400, speed: 0.62, armor: 6,  bounty: 200, pts: 0, ico: '🐅', boss: 1, lives: 5, era: 0 },
+  fleet:     { en: 'Chained Fleet',           zh: '連環戰船',      hp: 3600, speed: 0.45, armor: 8,  bounty: 260, pts: 0, ico: '🚢', boss: 1, lives: 5, resist: { fire: 0.5 }, era: 1 },
+  caoguard:  { en: "Cao Cao's Rearguard",     zh: '曹軍後衛',      hp: 4200, speed: 0.5,  armor: 9,  bounty: 300, pts: 0, ico: '🏯', boss: 1, lives: 6, shield: 300, era: 1 },
+  titan:     { en: 'Rift Titan',              zh: '時空巨像',      hp: 8000, speed: 0.42, armor: 12, bounty: 520, pts: 0, ico: '👾', boss: 1, lives: 8, shield: 700, era: 2 }
+};
+
+/* Commanders: tap a portrait for a big power. cd = seconds. They are NOT towers, so no general appears twice. */
+const HEROES = {
+  'Liu Bei':    { zh: '劉備', fx: 'heal', cd: 60, amt: 5, name: 'Benevolent Rule', nz: '仁德', info: 'Restore 5 lives at the gate.' },
+  'Wei Yan':    { zh: '魏延', fx: 'raid', cd: 32, amt: 120, stun: 1.2, name: 'Ziwu Valley Dash', nz: '子午奇謀', info: 'Hurts every ground enemy on the road and stuns them briefly.' },
+  'Xu Shu':     { zh: '徐庶', fx: 'slowall', cd: 44, t: 8, f: 0.55, name: 'Eight Gates Lock', nz: '八門金鎖', info: 'He read the enemy formation. All enemies slow by 55% for 8 seconds.' },
+  'Zhang Liao': { zh: '張遼', fx: 'strike', cd: 24, amt: 190, n: 5, stun: 1.5, name: 'Charge at Xiaoyao Ford', nz: '逍遙津突襲', info: 'Hits the 5 front enemies hard and stuns them.' },
+  'Xu Huang':   { zh: '徐晃', fx: 'frenzy', cd: 42, t: 8, mul: 0.5, name: 'Iron Discipline', nz: '治軍嚴整', info: 'All towers attack 50% faster for 8 seconds.' },
+  'Xun Yu':     { zh: '荀彧', fx: 'gold', cd: 50, amt: 120, name: 'Recommend Talents', nz: '薦才', info: 'Wise advisors arrive: gain gold right now (grows each wave).' },
+  'Sun Ce':     { zh: '孫策', fx: 'strike', cd: 26, amt: 220, n: 4, name: 'Little Conqueror', nz: '小霸王', info: 'A huge blow on the 4 enemies closest to your gate.' },
+  'Sun Quan':   { zh: '孫權', fx: 'heal', cd: 60, amt: 5, name: 'Defend Jiangdong', nz: '保衛江東', info: 'Restore 5 lives at the gate.' },
+  'Lu Su':      { zh: '魯肅', fx: 'slowall', cd: 44, t: 8, f: 0.5, name: 'Alliance Pact', nz: '孫劉聯盟', info: 'Allies close in on the enemy. All enemies slow by 50% for 8 seconds.' }
+};
+const FACTIONS = {
+  shu: { en: 'Shu', zh: '蜀', lord: 'Liu Bei', col: '#3fb950', heroes: ['Liu Bei', 'Wei Yan', 'Xu Shu'], pas: { cost: 0.92 }, info: 'Benevolence: towers cost 8% less.' },
+  wei: { en: 'Wei', zh: '魏', lord: 'Cao Cao', col: '#58a6ff', heroes: ['Zhang Liao', 'Xu Huang', 'Xun Yu'], pas: { bounty: 1.2, gold: 40 }, info: 'Ambition: +20% gold from kills, +40 starting gold.' },
+  wu:  { en: 'Wu',  zh: '吳', lord: 'Sun Quan', col: '#f85149', heroes: ['Sun Ce', 'Sun Quan', 'Lu Su'], pas: { magic: 1.2 }, info: 'River Mastery: Mystic and Future energy towers hit 20% harder.' }
+};
+const LORD_FACE = { shu: 'Liu Bei', wei: 'Cao Cao', wu: 'Sun Quan' };
+/* Generals of your own kingdom hit 10% harder. */
+const TEAM_BONUS = 1.1;
+
+/* Scripted battle events (4th item of an event line): 'burn' the road, 'roar' stun everyone, 'wind' east wind (fire +40%). */
+/* Story. speaker is a name in FACES (or null = narrator). Each line: [speaker, English, 繁體]. Scenes are from 三國演義. */
+const ACTS = [
+  { id: 1, en: 'Bowang Slope', zh: '博望坡', year: '202 AD', waves: 10, era: 0, theme: 'field', seed: 2020, gold: 230, hpMul: 1.35,
+    pool: [['footman', 1], ['runner', 2], ['shield', 3], ['rider', 5]], boss: { wave: 10, type: 'yujin' }, mini: [5],
+    intro: [
+      [null, '202 AD. Cao Cao sends Xiahou Dun south with 100,000 men. Liu Bei has just won Zhuge Liang, and his generals still grumble. The banner you choose fights beside them.', '建安七年，曹操遣夏侯惇領十萬大軍南下。劉備新得諸葛亮，帳下諸將尚未心服。你所選的旗幟，與他們並肩作戰。'],
+      ['Zhang Fei', 'Brother, why not send "Water" to fight them? Let us see what he can do!', '兄長何不使「水」去退敵？讓我們看看他有何本事！'],
+      ['Zhuge Liang', 'Bowang Slope has woods on both sides and a narrow road between. It is a place made for fire. Hold the road, let them walk deep in, then strike.', '博望坡兩旁山林，中間道路狹窄，正宜用火。守住道路，待敵深入，然後一擊。'],
+      [null, 'Build generals on the green tiles. Enemies follow the road. Tap a commander at the top for a big power.', '在綠色地塊安排將領。敵軍沿道路而來。點擊上方統帥使用大招。']
+    ],
+    events: { 6: ['Zhuge Liang', 'The enemy is deep in the pass. Now, set the fire!', '敵軍已入谷中，放火！', 'burn'] },
+    outro: [['Zhang Fei', 'Master Kongming is a true hero! I will follow his orders from now on.', '孔明真英傑也！往後我服從軍師號令。'],
+            [null, 'Xiahou Dun fled in shame. Cao Cao had not yet learned to fear the "village scholar".', '夏侯惇大敗而逃。曹操還不知道這個「村夫」的厲害。']] },
+  { id: 2, en: 'Changban Bridge', zh: '長坂橋', year: '208 AD', waves: 12, era: 0, theme: 'river', seed: 2081, gold: 300, hpMul: 2.7,
+    pool: [['footman', 1], ['runner', 1], ['shield', 2], ['rider', 2]], boss: { wave: 12, type: 'tigercav' }, mini: [6, 9],
+    intro: [
+      [null, '208 AD. Liu Bei flees south with tens of thousands of villagers. Cao Cao\'s Tiger-Leopard Cavalry rides a day and a night to catch them at Changban.', '建安十三年，劉備攜數萬百姓南逃。曹操虎豹騎一日一夜疾馳，追至長坂。'],
+      ['Zhao Yun', 'My lord\'s young son is lost in the battle. I will find him, even through fire and spears.', '主公幼子失陷陣中，雲縱赴湯蹈火，也要尋回。'],
+      ['Zhang Fei', 'I am Zhang Yide of Yan! Who dares to fight me to the death?', '我乃燕人張翼德！誰敢與我決一死戰？']
+    ],
+    events: { 6: ['Zhang Fei', 'Roooar! Come on, if you dare!', '呀——！誰敢前來？', 'roar'] },
+    outro: [[null, 'Zhang Fei\'s roar shook the bridge. Cao Cao feared an ambush in the woods behind him, and the cavalry fell back.', '張飛一聲怒吼，橋樑震動。曹操疑橋東林中有伏兵，騎兵退卻。'],
+            ['Liu Bei', 'My brother is brave, but he broke the bridge. That was a mistake, and it showed the enemy we have no troops.', '吾弟勇則勇矣，惜失於計較。拆橋反而讓敵人知道我們沒有伏兵。']] },
+  { id: 3, en: 'Red Cliffs: Burning the Chained Ships', zh: '赤壁·火燒連環船', year: '208 AD', waves: 12, era: 1, theme: 'river', seed: 2082, gold: 330, hpMul: 3.3,
+    pool: [['marine', 1], ['runner', 1], ['shaman', 3], ['ghost', 4], ['firespirit', 6], ['shield', 2]], boss: { wave: 12, type: 'fleet' }, mini: [6],
+    intro: [
+      [null, 'Winter, 208 AD. Cao Cao\'s army is said to number 800,000. His northern troops are seasick, so Pang Tong offers a scheme: chain the ships together.', '建安十三年冬。曹軍號稱八十萬，北方士卒不慣水戰暈船，龐統獻計：以鐵環連鎖戰船。'],
+      ['Pang Tong', 'Lash the big ships and small ships in rows of thirty, bow to stern with iron rings. Your men will walk on them as on flat ground.', '將大船小船連成一排，首尾以鐵環鎖住，士卒行走其上，如履平地。'],
+      ['Zhou Yu', 'Everything is ready, except the east wind.', '萬事俱備，只欠東風。'],
+      ['Zhuge Liang', 'I will build an altar on Nanping Hill and borrow the east wind. Mystic arts are now open to us: thunder, fire and frost.', '亮將在南屏山築七星壇借東風。玄術之門已開：雷、火、冰。']
+    ],
+    events: { 6: ['Zhuge Liang', 'The east wind rises! Fire burns 40% hotter!', '東南風起！火勢增強四成！', 'wind'],
+              9: ['Zhou Yu', 'Now! Huang Gai\'s fire ships, light the chained fleet!', '時候到了！黃蓋火船，點燃連環戰船！', 'burn'] },
+    outro: [[null, 'The Yangtze burns red from bank to bank. Cao Cao escapes with a handful of men, on the road to Huarong.', '長江兩岸烈火映紅，曹操僅率數人突圍，奔往華容。']] },
+  { id: 4, en: 'Huarong Path', zh: '華容道', year: '208 AD', waves: 14, era: 1, theme: 'marsh', seed: 2083, gold: 380, hpMul: 4.0, mud: 0.12,
+    pool: [['footman', 1], ['shield', 1], ['rider', 2], ['shaman', 2], ['ghost', 3], ['marine', 4], ['firespirit', 5]], boss: { wave: 14, type: 'caoguard' }, mini: [7, 11],
+    intro: [
+      [null, 'Rain turns the road to mud. Cao Cao\'s beaten army limps along the narrow Huarong Path, horses sinking to their knees.', '大雨之後，道路泥濘。曹軍敗兵沿華容小道艱難前行，馬陷泥中。'],
+      ['Zhuge Liang', 'Cao Cao\'s time has not yet come. I send Yunchang to repay an old kindness.', '曹操命不該絕。亮派雲長前去，還他一份舊日人情。'],
+      ['Guan Yu', 'I hold this road. Soldiers, stand firm. Whatever comes, no one passes without my say.', '關某把守此路。眾將士穩住，無我號令，無人可過。'],
+      ['Cao Cao', 'Haha! If I had an enemy waiting here, Heaven truly means to destroy me!', '哈哈！若此處有伏兵，真是天要亡我！']
+    ],
+    events: { 12: ['Cao Cao', 'Yunchang, do you remember the kindness at Xu Chang, and the five passes you crossed?', '雲長，可還記得許昌舊恩，與過五關之事？'] },
+    outro: [['Guan Yu', 'He was kind to me once. I cannot cut him down. Let the soldiers pass.', '昔日曹公待我不薄，關某不忍下手。放行。'],
+            [null, 'Guan Yu let Cao Cao go. Zhuge Liang had expected it, and Liu Bei pleaded to spare his sworn brother from the military oath.', '關羽放走曹操。孔明早有所料，劉備代為求情，才免去軍令之罪。']] },
+  { id: 5, en: 'Fallen Phoenix Slope: The Phoenix Lives', zh: '落鳳坡·鳳雛不隕', year: '214 AD (what if)', waves: 15, era: 2, theme: 'rift', seed: 2145, gold: 650, hpMul: 1.6,
+    pool: [['drone', 1], ['robot', 2], ['shield', 1], ['ghost', 2], ['mech', 6], ['firespirit', 3]], boss: { wave: 15, type: 'titan' }, mini: [8],
+    intro: [
+      [null, '214 AD. In the novel, Pang Tong is shot dead by arrows on Fallen Phoenix Slope. But tonight Zhuge Liang has opened the Eight Trigrams Gate, and the future has come to help. (A what-if of my own.)', '建安十九年。演義中，龐統中箭殞命於落鳳坡。但今夜諸葛亮開啟了八陣圖之門，未來的力量前來助陣。（這是我自創的假設情節。）'],
+      ['Pang Tong', 'I am called the Fledgling Phoenix, and this place is called Fallen Phoenix. That is a bad omen.', '我號鳳雛，此地名為落鳳坡，於我不利。'],
+      ['Zhuge Liang', 'The Wooden Ox and Flowing Horse were never mere carts. They are keys to the gate. Take what the future offers: guns, missiles, lasers, shields of pure energy.', '木牛流馬從來不只是運糧的車，它們是開門的鑰匙。善用未來的饋贈：槍砲、導彈、鐳射、純能量護盾。'],
+      ['Zhao Yun', 'Iron men in the sky? I have charged through armies before. Let me guard the Phoenix.', '天上有鐵人？雲曾單騎闖陣。讓我來守護鳳雛。']
+    ],
+    events: { 8: ['Zhuge Liang', 'A far greater signal comes through the Gate. Hold the slope!', '更強的訊號正穿過大門。守住山坡！'] },
+    outro: [['Pang Tong', 'The Phoenix did not fall today. Thank you all.', '鳳雛今日未墜。多謝諸位。'],
+            ['Zhuge Liang', 'Now close the Gate. History must go on, with the Phoenix at my side.', '關閉大門吧。歷史仍要繼續，只是這次，鳳雛在我身旁。']] }
+];
+const ENDLESS = { id: 6, en: 'Endless Siege', zh: '無盡圍城', year: 'Any age', waves: 999, theme: 'field', gold: 360, hpMul: 1.0,
+  pool: [['footman', 1], ['runner', 1], ['shield', 2], ['rider', 3], ['shaman', 5], ['ghost', 6], ['marine', 6], ['firespirit', 8], ['drone', 9], ['robot', 11], ['mech', 16]] };
+
+/* Hex Bastion: hex-grid tower defence on the kit. Data (towers, enemies, heroes, story) is in data.js, portraits in faces.js. */
+(() => {
+const { $, store, ui, rng, sfx, settings } = KIT;
+const S = store('kevinhyhau.ch21.v2', { dark: true, sound: true, lang: 'en', fx: true, auto: false, speed: 1, faction: 'shu', diff: 'normal', progress: {}, bl: 'en', best: { endless: 0 }, save: null }), st = S.st;
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovMenu', 'ovStory', 'ovEnd', 'ovPause']);
+settings([
+  { id: 'lang', label: 'Story language', type: 'select', options: [['en', 'English'], ['zh', '繁體中文'], ['both', 'English + 繁體中文']], def: 'en' },
+  { id: 'fx', label: 'Visual effects', type: 'check', def: true },
+  { id: 'auto', label: 'Start the next wave automatically', type: 'check', def: false },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); });
+
+/* ---------- hex geometry (pointy-top, odd rows shifted right) ---------- */
+const COLS = 9, ROWS = 12, HS = 30, SPC = Math.sqrt(3) * HS, OX = SPC / 2 + 3, OY = HS + 3;
+const W = Math.round(OX + SPC * (COLS - 1 + .5) + SPC / 2 + 3), H = Math.round(OY + 1.5 * HS * (ROWS - 1) + HS + 3);
+const cx = (c, r) => OX + SPC * (c + .5 * (r & 1)), cy = r => OY + 1.5 * HS * r;
+const cube = (c, r) => { const q = c - ((r - (r & 1)) >> 1); return [q, r, -q - r]; };
+const cdist = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]), Math.abs(a[2] - b[2]));
+const NB = [[[1, 0], [-1, 0], [0, -1], [-1, -1], [0, 1], [-1, 1]], [[1, 0], [-1, 0], [1, -1], [0, -1], [1, 1], [0, 1]]];
+function nbrs(i) { const r = (i / COLS) | 0, c = i % COLS, o = []; for (const [dc, dr] of NB[r & 1]) { const cc = c + dc, rr = r + dr; if (cc >= 0 && cc < COLS && rr >= 0 && rr < ROWS) o.push(rr * COLS + cc); } return o; }
+function pix2tile(x, y) { const px = x - OX, py = y - OY, qf = (Math.sqrt(3) / 3 * px - py / 3) / HS, rf = (2 / 3 * py) / HS;
+  let q = Math.round(qf), r = Math.round(rf), s = Math.round(-qf - rf); const dq = Math.abs(q - qf), dr = Math.abs(r - rf), ds = Math.abs(s - (-qf - rf));
+  if (dq > dr && dq > ds) q = -r - s; else if (dr > ds) r = -q - s; const c = q + ((r - (r & 1)) >> 1);
+  return c >= 0 && c < COLS && r >= 0 && r < ROWS ? r * COLS + c : -1; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ---------- map: one winding road from the top to the bottom, made from a seed ---------- */
+function genMap(seed, theme) {
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const rnd = rng.mulberry(seed + attempt * 7919), pts = [[2 + Math.floor(rnd() * 5), 0]]; let side = rnd() < .5 ? 0 : 1;
+    const rows = [0, 2 + Math.floor(rnd() * 2), 5 + Math.floor(rnd() * 2), 8 + Math.floor(rnd() * 2), ROWS - 1];
+    for (let k = 1; k < rows.length - 1; k++) { pts.push([side ? 6 + Math.floor(rnd() * 2) : 1 + Math.floor(rnd() * 2), rows[k]]); side = 1 - side; }
+    pts.push([2 + Math.floor(rnd() * 5), ROWS - 1]);
+    const path = []; let ok = true;
+    for (let k = 0; k + 1 < pts.length && ok; k++) { const a = cube(pts[k][0], pts[k][1]), b = cube(pts[k + 1][0], pts[k + 1][1]), n = cdist(a, b);
+      for (let s = 0; s <= n; s++) { const t = n ? s / n : 0, q = a[0] + (b[0] - a[0]) * t + 1e-6, r = a[1] + (b[1] - a[1]) * t + 1e-6, z = a[2] + (b[2] - a[2]) * t - 2e-6;
+        let rq = Math.round(q), rr = Math.round(r), rz = Math.round(z); const dq = Math.abs(rq - q), dr = Math.abs(rr - r), dz = Math.abs(rz - z);
+        if (dq > dr && dq > dz) rq = -rr - rz; else if (dr > dz) rr = -rq - rz; const c = rq + ((rr - (rr & 1)) >> 1), i = rr * COLS + c;
+        if (c < 0 || c >= COLS || rr < 0 || rr >= ROWS) { ok = false; break; } if (!path.length || path[path.length - 1] !== i) path.push(i); } }
+    if (!ok || new Set(path).size !== path.length || path.length < 22 || path.length > 46) continue;
+    const onPath = new Set(path), tiles = [];
+    for (let i = 0; i < COLS * ROWS; i++) { const r = (i / COLS) | 0, c = i % COLS; tiles.push({ i, c, r, x: cx(c, r), y: cy(r), type: 'build', pi: -1, tower: null, shade: rnd(), decor: '' }); }
+    path.forEach((i, k) => { tiles[i].type = 'path'; tiles[i].pi = k; });
+    const DEC = { field: ['🌲', '🪨', '🌳'], river: ['🌾', '🪨', '🎋'], rift: ['⚙️', '🔷', '📡'], marsh: ['🌿', '🪨', '🎋'] }[theme] || ['🌲'];
+    for (const t of tiles) if (t.type === 'build') { const near = nbrs(t.i).some(j => onPath.has(j)), x = rnd(); if (!near && x < .13) { t.type = 'block'; t.decor = DEC[Math.floor(rnd() * DEC.length)]; } else if (x > .90) t.type = 'hill'; }
+    return { tiles, path, spawn: path[0], base: path[path.length - 1] };
+  }
+  throw new Error('map failed');
+}
+
+/* ---------- portraits (the 960-byte Chapter 12 format) ---------- */
+const FPAL = [[18, 16, 22], [40, 60, 200], [200, 50, 40], [190, 70, 190], [60, 170, 70], [70, 190, 200], [225, 200, 70], [245, 240, 232]], FCACHE = {}, FCV = {};
+/* Same smoothing recipe as Chapter 12: blur the 64x40 pixels, stretch to the original 128:141 shape, enlarge, soften, then sharpen a little. */
+function blur3(src, w, h) { const t = new Float32Array(src.length), o = new Float32Array(src.length);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) t[(y * w + x) * 3 + c] = (src[(y * w + Math.max(0, x - 1)) * 3 + c] + 2 * src[(y * w + x) * 3 + c] + src[(y * w + Math.min(w - 1, x + 1)) * 3 + c]) / 4;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) o[(y * w + x) * 3 + c] = (t[(Math.max(0, y - 1) * w + x) * 3 + c] + 2 * t[(y * w + x) * 3 + c] + t[(Math.min(h - 1, y + 1) * w + x) * 3 + c]) / 4; return o; }
+function face(name) {
+  if (FCACHE[name]) return FCACHE[name]; const b64 = FACES[name]; if (!b64) return '';
+  try { const bin = atob(b64), K = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) K[i] = bin.charCodeAt(i);
+    const r = new Float32Array(64 * 40 * 3);
+    for (let y = 0; y < 40; y++) for (let px = 0; px < 64; px++) { const by = y * 24 + (px >> 3) * 3, bit = 7 - (px & 7), v = (K[by] >> bit & 1) | (K[by + 1] >> bit & 1) << 1 | (K[by + 2] >> bit & 1) << 2, p = FPAL[v], o = (y * 64 + px) * 3; r[o] = p[0]; r[o + 1] = p[1]; r[o + 2] = p[2]; }
+    const d = blur3(r, 64, 40), c = document.createElement('canvas'); c.width = 64; c.height = 40; const x = c.getContext('2d'), im = x.createImageData(64, 40);
+    for (let i = 0; i < 64 * 40; i++) { im.data[i * 4] = d[i * 3]; im.data[i * 4 + 1] = d[i * 3 + 1]; im.data[i * 4 + 2] = d[i * 3 + 2]; im.data[i * 4 + 3] = 255; } x.putImageData(im, 0, 0);
+    const k = 192, hh = 212, m = document.createElement('canvas'); m.width = 128; m.height = 141; const mx = m.getContext('2d'); mx.imageSmoothingEnabled = true; mx.imageSmoothingQuality = 'high'; mx.drawImage(c, 0, 0, 128, 141);
+    const D = document.createElement('canvas'); D.width = k; D.height = hh; const J = D.getContext('2d'); J.imageSmoothingEnabled = true; J.imageSmoothingQuality = 'high'; J.drawImage(m, 0, 0, k, hh);
+    const se = J.getImageData(0, 0, k, hh), X = se.data, U = new Float32Array(k * hh * 3); for (let i = 0; i < k * hh; i++) { U[i * 3] = X[i * 4]; U[i * 3 + 1] = X[i * 4 + 1]; U[i * 3 + 2] = X[i * 4 + 2]; }
+    let oe = blur3(U, k, hh); oe = blur3(oe, k, hh); oe = blur3(oe, k, hh);
+    for (let i = 0; i < k * hh; i++) { let F = [U[i * 3], U[i * 3 + 1], U[i * 3 + 2]].map((T, q) => T + .85 * (T - oe[i * 3 + q])); const g = .3 * F[0] + .59 * F[1] + .11 * F[2]; F = F.map(T => (g + (T - g) * 1.15 - 128) * 1.1 + 128); X[i * 4] = F[0]; X[i * 4 + 1] = F[1]; X[i * 4 + 2] = F[2]; }
+    J.putImageData(se, 0, 0); FCV[name] = D; return FCACHE[name] = D.toDataURL('image/jpeg', .92); } catch (e) { return ''; }
+}
+
+/* ---------- tower pictures drawn with lines (also used for the shop buttons) ---------- */
+function icon(ctx, id, x, y, s) {
+  ctx.save(); ctx.translate(x, y); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#fff'; ctx.fillStyle = '#fff'; ctx.lineWidth = Math.max(1.5, s * .16);
+  const L = (a, b, c, d) => { ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); };
+  switch (id) {
+    case 'archer': ctx.beginPath(); ctx.arc(-s * .25, 0, s * .8, -1.25, 1.25); ctx.stroke(); L(-s * .25 + Math.cos(1.25) * s * .8, Math.sin(1.25) * s * .8, -s * .25 + Math.cos(1.25) * s * .8, -Math.sin(1.25) * s * .8); L(-s * .7, 0, s * .8, 0); ctx.beginPath(); ctx.moveTo(s * .85, 0); ctx.lineTo(s * .45, -s * .22); ctx.lineTo(s * .45, s * .22); ctx.fill(); break;
+    case 'sword': L(-s * .7, s * .7, s * .65, -s * .65); L(-s * .15, s * .1, s * .25, s * .5); ctx.beginPath(); ctx.arc(-s * .78, s * .78, s * .13, 0, 7); ctx.fill(); break;
+    case 'spear': L(-s * .8, s * .8, s * .45, -s * .45); ctx.beginPath(); ctx.moveTo(s * .85, -s * .85); ctx.lineTo(s * .35, -s * .6); ctx.lineTo(s * .6, -s * .35); ctx.closePath(); ctx.fill(); break;
+    case 'hammer': ctx.beginPath(); ctx.moveTo(-s * .75, s * .75); ctx.quadraticCurveTo(-s * .1, s * .1, s * .3, -s * .3); ctx.stroke(); ctx.beginPath(); ctx.arc(s * .38, -s * .38, s * .36, 0, 7); ctx.fill(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; L(s * .38 + Math.cos(a) * s * .36, -s * .38 + Math.sin(a) * s * .36, s * .38 + Math.cos(a) * s * .55, -s * .38 + Math.sin(a) * s * .55); } break;
+    case 'halberd': L(0, s * .95, 0, -s * .85); ctx.beginPath(); ctx.moveTo(-s * .65, -s * .1); ctx.quadraticCurveTo(-s * .65, -s * .7, 0, -s * .55); ctx.quadraticCurveTo(s * .65, -s * .7, s * .65, -s * .1); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, -s * 1); ctx.lineTo(-s * .17, -s * .6); ctx.lineTo(s * .17, -s * .6); ctx.fill(); break;
+    case 'banner': L(-s * .5, s * .9, -s * .5, -s * .9); ctx.beginPath(); ctx.moveTo(-s * .5, -s * .85); ctx.lineTo(s * .8, -s * .45); ctx.lineTo(-s * .5, -s * .05); ctx.fill(); break;
+    case 'lightning': ctx.beginPath(); ctx.moveTo(s * .2, -s * .95); ctx.lineTo(-s * .5, s * .1); ctx.lineTo(-s * .05, s * .1); ctx.lineTo(-s * .25, s * .95); ctx.lineTo(s * .55, -s * .2); ctx.lineTo(s * .1, -s * .2); ctx.closePath(); ctx.fill(); break;
+    case 'fire': ctx.beginPath(); ctx.moveTo(0, -s * .95); ctx.bezierCurveTo(s * .9, -s * .1, s * .7, s * .85, 0, s * .85); ctx.bezierCurveTo(-s * .7, s * .85, -s * .8, s * .1, -s * .15, -s * .35); ctx.bezierCurveTo(-s * .15, -s * .1, 0, 0, s * .1, s * .05); ctx.bezierCurveTo(s * .2, -s * .4, 0, -s * .6, 0, -s * .95); ctx.fill(); break;
+    case 'frost': for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; L(Math.cos(a) * s * .9, Math.sin(a) * s * .9, -Math.cos(a) * s * .9, -Math.sin(a) * s * .9); } for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; L(Math.cos(a) * s * .55, Math.sin(a) * s * .55, Math.cos(a + .5) * s * .8, Math.sin(a + .5) * s * .8); } break;
+    case 'gun': ctx.fillRect(-s * .8, -s * .22, s * 1.2, s * .4); ctx.fillRect(-s * .55, s * .1, s * .3, s * .65); ctx.fillRect(s * .4, -s * .12, s * .5, s * .2); L(s * .95, -s * .5, s * 1.1, -s * .7); break;
+    case 'missile': ctx.rotate(-Math.PI / 4); ctx.beginPath(); ctx.ellipse(0, 0, s * .85, s * .27, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.moveTo(-s * .5, 0); ctx.lineTo(-s * .85, -s * .55); ctx.lineTo(-s * .2, 0); ctx.lineTo(-s * .85, s * .55); ctx.closePath(); ctx.fill(); break;
+    case 'laser': ctx.beginPath(); ctx.moveTo(0, -s * .8); ctx.lineTo(s * .45, 0); ctx.lineTo(0, s * .8); ctx.lineTo(-s * .45, 0); ctx.closePath(); ctx.fill(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + Math.PI / 8; L(Math.cos(a) * s * .65, Math.sin(a) * s * .65, Math.cos(a) * s * 1.0, Math.sin(a) * s * 1.0); } break;
+    case 'homing': ctx.save(); ctx.rotate(-Math.PI / 4); ctx.beginPath(); ctx.ellipse(s * .2, 0, s * .6, s * .2, 0, 0, 7); ctx.fill(); ctx.restore(); ctx.beginPath(); ctx.setLineDash([s * .18, s * .22]); ctx.moveTo(-s * .85, s * .7); ctx.quadraticCurveTo(-s * .8, -s * .1, -s * .05, s * .05); ctx.stroke(); ctx.setLineDash([]); break;
+    case 'field': ctx.beginPath(); ctx.arc(0, 0, s * .28, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(0, 0, s * .8, 0, 7); ctx.stroke(); for (let k = 0; k < 3; k++) { const a = k * 2.094 + .6; ctx.beginPath(); ctx.arc(Math.cos(a) * s * .8, Math.sin(a) * s * .8, s * .2, 0, 7); ctx.fill(); } break;
+  }
+  ctx.restore();
+}
+function hexPath(ctx, x, y, r) { ctx.beginPath(); for (let k = 0; k < 6; k++) { const a = Math.PI / 180 * (60 * k - 30); ctx[k ? 'lineTo' : 'moveTo'](x + r * Math.cos(a), y + r * Math.sin(a)); } ctx.closePath(); }
+const TEAMCOL = ['#58a6ff', '#3fb950', '#f85149', '#a371f7'];
+const wname = T => st.lang === 'zh' ? T.wz : st.lang === 'both' ? T.wz + ' ' + T.we : T.we;
+const pname = T => { const b = BIOS[T.nm]; return st.lang === 'zh' ? b.zh : st.lang === 'both' ? b.zh + ' ' + T.nm : T.nm; };
+const bioHtml = nm => { const b = BIOS[nm]; if (!b) return ''; return '<details class="bio"><summary>📖 ' + (st.lang === 'zh' ? '生平' : 'Bio') + '</summary><p>' + (st.lang === 'zh' ? b.bz : st.lang === 'both' ? b.en + '<br><span class="zh">' + b.bz + '</span>' : b.en) + '</p></details>'; };
+const sameTeam = T => TEAM_FAC[T.team] === (G && G.facId);
+
+/* ---------- state ---------- */
+const DIFF = { easy: { hp: .8, gold: 1.25, lives: 25, en: 'Easy' }, normal: { hp: 1, gold: 1, lives: 20, en: 'Normal' }, hard: { hp: 1.2, gold: .9, lives: 14, en: 'Hard' } };
+const cv = $('cv'); cv.style.aspectRatio = W + '/' + H; const C = KIT.canvas(cv, W, H), ctx = C.ctx;
+let G = null, menuAct = 1;
+const cleared = () => Object.keys(st.progress).filter(k => st.progress[k] > 0 && +k >= 1 && +k <= ACTS.length).length;
+const endlessEra = () => { const c = cleared(); return c >= 4 ? 2 : c >= 2 ? 1 : 0; };
+const eraAllowed = g => g.mode === 'endless' ? endlessEra() : g.def.era;
+const T_ = id => TOWERS[id], tx = (en, zh) => st.lang === 'zh' ? zh : st.lang === 'both' ? en + '<br><span class="zh">' + zh + '</span>' : en;
+
+function newGame(o) {
+  const def = o.mode === 'endless' ? ENDLESS : ACTS[o.act - 1], seed = o.mode === 'endless' ? (o.seed || Math.floor(Math.random() * 1e9)) : def.seed;
+  const theme = o.mode === 'endless' ? ['field', 'river', 'rift'][seed % 3] : def.theme, map = genMap(seed, theme), fac = FACTIONS[o.fac], dif = DIFF[o.diff];
+  G = { mode: o.mode, act: o.act, def, fac, facId: o.fac, dif, difId: o.diff, seed, theme, tiles: map.tiles, path: map.path, spawn: map.spawn, base: map.base,
+    gold: Math.round(def.gold * dif.gold + (fac.pas.gold || 0)), lives: dif.lives, maxLives: dif.lives, wave: 0, running: false, queue: [], clock: 0, enemies: [], projs: [], zones: [], fx: [], towers: [], sel: -1,
+    heroCd: fac.heroes.map(h => HEROES[h].cd * .4), frenzyT: 0, frenzyMul: 0, score: 0, over: false, modal: false, wind: false, id: 1, goldMul: fac.pas.bounty || 1, speed: st.speed || 1, kills: 0, auto: 0, shake: 0 };
+  G.eraMax = eraAllowed(G); G.airLen = Math.hypot(G.tiles[G.spawn].x - G.tiles[G.base].x, G.tiles[G.spawn].y - G.tiles[G.base].y) / SPC;
+  if (o.resume) { const s = o.resume; G.wave = s.wave; G.gold = s.gold; G.lives = s.lives; G.score = s.score || 0; G.heroCd = s.heroCd.slice(); G.wind = !!s.wind;
+    s.towers.forEach(([i, k, lv, mode]) => { if (G.tiles[i] && G.tiles[i].type !== 'path' && G.tiles[i].type !== 'block' && TOWERS[k]) { const t = mkTower(i, k); t.lv = clamp(lv | 0, 0, 2); t.mode = mode || 'first'; t.spent = costOf(k) * (1 + [0, .7, 1.7][t.lv]); } }); recalc(); }
+  O.hideAll(); $('bw').classList.remove('over'); renderHeroes(); renderSel(); S.save(); setSpeed(G.speed);
+}
+function mkTower(i, k) { const t = G.tiles[i], tw = { i, k, lv: 0, cd: 0, mode: 'first', x: t.x, y: t.y, kills: 0, heat: 0, lock: null, ang: 0, spent: 0, buff: 0, rbuff: 0, id: G.id++ }; t.tower = tw; G.towers.push(tw); return tw; }
+const costOf = k => Math.round(T_(k).cost * (G.fac.pas.cost || 1));
+const upCost = tw => Math.round(T_(tw.k).cost * UP_COST[tw.lv + 1] * (G.fac.pas.cost || 1));
+const sellVal = tw => Math.round(tw.spent * .7);
+function recalc() { G.towers.forEach(tw => { tw.buff = 0; tw.rbuff = 0; }); G.towers.forEach(b => { const T = T_(b.k); if (T.kind !== 'banner') return; nbrs(b.i).forEach(j => { const o = G.tiles[j].tower; if (o && o !== b) { o.buff += T.buff + .08 * b.lv; o.rbuff += T.rbuff + .03 * b.lv; } }); }); }
+function tstat(tw) {
+  const T = T_(tw.k), til = G.tiles[tw.i]; let dmg = T.dmg * UP_DMG[tw.lv] * (1 + tw.buff), rate = T.rate * UP_RATE[tw.lv] * (1 + tw.rbuff + (G.frenzyT > 0 ? G.frenzyMul : 0)), range = T.range + UP_RANGE[tw.lv] + (til.type === 'hill' ? .5 : 0);
+  if (til.type === 'hill') dmg *= 1.1; if (sameTeam(T)) dmg *= TEAM_BONUS; if (!T.phys && G.fac.pas.magic && T.kind !== 'banner') dmg *= G.fac.pas.magic; if (T.elem === 'fire' && G.wind) dmg *= 1.4;
+  return { dmg, rate, range: range * SPC, slow: (T.slow || 0) + .1 * tw.lv, jumps: (T.jumps || 0) + tw.lv, salvo: (T.salvo || 0) + tw.lv, orbs: (T.orbs || 0) + (tw.lv >= 2 ? 1 : 0) };
+}
+
+/* ---------- waves ---------- */
+function makeWave(n) {
+  const def = G.def, r = rng.mulberry(G.seed * 31 + n * 17), groups = [], endless = G.mode === 'endless';
+  let pool = def.pool.filter(p => p[1] <= n && (!endless || ENEMIES[p[0]].era <= G.eraMax)).map(p => p[0]); if (!pool.length) pool = ['footman'];
+  const bossType = !endless ? (def.boss && n === def.boss.wave ? def.boss.type : null) : (n % 10 === 0 ? ['tigercav', 'fleet', 'caoguard', 'titan'][(n / 10 - 1) % 4] : null);
+  let budget = (10 + 8 * n + .6 * n * n) * (bossType ? .5 : 1); const counts = {}, order = [];
+  while (budget > .8) { const w = pool.map((t, i) => 1 + i * .5), tot = w.reduce((a, b) => a + b, 0); let x = r() * tot, k = 0; while (x > w[k] && k < pool.length - 1) { x -= w[k]; k++; } const t = pool[k]; if (!counts[t]) { counts[t] = 0; order.push(t); } counts[t]++; budget -= ENEMIES[t].pts; }
+  const gap = clamp(1.25 - n * .02, .4, 1.25); order.forEach(t => groups.push({ type: t, count: counts[t], gap: gap * (ENEMIES[t].speed > 1.2 ? .7 : 1), mul: 1 }));
+  if (def.mini && def.mini.includes(n)) { const best = pool.slice().sort((a, b) => ENEMIES[b].pts - ENEMIES[a].pts)[0]; groups.push({ type: best, count: 1, gap: 1, mul: 3.5, elite: true }); }
+  if (bossType) groups.push({ type: bossType, count: 1, gap: 1, mul: 1, boss: true });
+  return groups;
+}
+const waveScale = n => G.mode === 'endless' ? (1 + .25 * (n - 1)) * (n > 15 ? Math.pow(1.07, n - 15) : 1) : 1 + .36 * (n - 1);
+function startWave() {
+  if (!G || G.over || G.modal) return; const total = G.def.waves; if (G.wave >= total) return;
+  if (G.running) G.gold += 8; G.wave++; const n = G.wave, groups = makeWave(n); let t = G.clock + .3;
+  groups.forEach(g => { for (let k = 0; k < g.count; k++) { G.queue.push({ t, type: g.type, mul: g.mul, elite: g.elite, boss: g.boss, n }); t += g.gap; } t += 1.2; });
+  G.queue.sort((a, b) => a.t - b.t); G.running = true; G.auto = 0; A.slide(200, 520, .25, 'sawtooth', .06);
+  const ev = G.def.events && G.def.events[n]; if (ev) { runScript(ev[3]); showStory([ev]); }
+  renderSel(); updateMsg();
+}
+function runScript(name) {
+  if (!name || !G) return; const list = G.enemies.filter(e => !e.dead);
+  if (name === 'wind') G.wind = true;
+  if (name === 'roar') { list.forEach(e => e.stunT = Math.max(e.stunT, 3 * (e.boss ? .5 : 1))); G.shake = .5; }
+  if (name === 'burn') G.path.forEach(i => G.zones.push({ x: G.tiles[i].x, y: G.tiles[i].y, r: SPC * .62, life: 7, max: 7, dps: 40 * (1 + .1 * G.wave) * .8, tw: null }));
+  G.fx.push({ k: 'flash', life: .5, max: .5, col: name === 'burn' ? '#ff6a00' : '#ffffff' });
+}
+function spawn(q) {
+  const E = ENEMIES[q.type], n = q.n, hpm = G.def.hpMul * G.dif.hp * (E.boss ? 1 : waveScale(n)) * (q.mul || 1), hp = Math.round(E.hp * hpm);
+  const e = { id: G.id++, type: q.type, E, hp, max: hp, shield: (E.shield || 0) * G.dif.hp * (E.boss ? 1 : Math.min(2, waveScale(n))), d: 0, x: 0, y: 0, air: !!E.air, armor: E.armor, resist: E.resist, bounty: Math.round(E.bounty * (q.elite ? 3 : 1)), boss: !!(E.boss || q.elite), lives: E.lives || 1, slowT: 0, slowF: 0, stunT: 0, hitT: 0, shT: 0, wob: Math.random() * 6, dead: false, speed: E.speed };
+  e.maxShield = e.shield; G.enemies.push(e); place(e);
+}
+function place(e) { if (e.air) { const a = G.tiles[G.spawn], b = G.tiles[G.base], t = clamp(e.d / G.airLen, 0, 1); e.x = a.x + (b.x - a.x) * t; e.y = a.y + (b.y - a.y) * t; }
+  else { const i = Math.min(G.path.length - 2, Math.floor(e.d)), t = Math.min(1, e.d - i), a = G.tiles[G.path[i]], b = G.tiles[G.path[i + 1]]; e.x = a.x + (b.x - a.x) * t; e.y = a.y + (b.y - a.y) * t; } }
+const prog = e => e.d / (e.air ? G.airLen : G.path.length - 1);
+
+/* ---------- damage ---------- */
+function hurt(e, dmg, o, tw) {
+  if (e.dead || dmg <= 0) return; let d = dmg;
+  if (o.phys) d *= 20 / (20 + e.armor * (1 - (o.pa || 0)));
+  if (o.elem && e.resist && e.resist[o.elem] != null) d *= e.resist[o.elem];
+  if (e.shield > 0) { if (o.elem === 'energy') d *= 1.3; const a = Math.min(e.shield, d); e.shield -= a; d -= a; e.shT = 0; }
+  e.hp -= d; e.hitT = .08; if (e.hp <= 0) kill(e, tw);
+}
+function kill(e, tw) { if (e.dead) return; e.dead = true; const g = Math.round(e.bounty * G.goldMul); G.gold += g; G.score += e.bounty * 10; G.kills++; if (tw) tw.kills++;
+  if (st.fx) { G.fx.push({ k: 'text', x: e.x, y: e.y - 8, t: '+' + g, life: .8, max: .8, col: '#ffd24a' }); for (let k = 0; k < 4; k++) G.fx.push({ k: 'spark', x: e.x, y: e.y, vx: (Math.random() - .5) * 90, vy: (Math.random() - .5) * 90, life: .4, max: .4, col: e.boss ? '#ffd24a' : '#fff' }); }
+  if (A.lastKill == null || performance.now() - A.lastKill > 60) { A.beep(e.boss ? 160 : 700 + Math.random() * 200, .05, 'square', .035); A.lastKill = performance.now(); } }
+const dist2 = (a, b) => (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
+function targets(tw, s, T) { const r2 = s.range * s.range, out = []; for (const e of G.enemies) { if (e.dead) continue; if (e.air && !T.air) continue; if (dist2(tw, e) <= r2 + (e.boss ? 200 : 0)) out.push(e); } return out; }
+function pickTarget(list, mode, tw) { if (!list.length) return null; let best = null, bv = -1e9;
+  for (const e of list) { const v = mode === 'first' ? prog(e) : mode === 'last' ? -prog(e) : mode === 'strong' ? e.hp + e.shield : mode === 'weak' ? -(e.hp + e.shield) : -dist2(tw, e); if (v > bv) { bv = v; best = e; } } return best; }
+const optsOf = T => ({ phys: !!T.phys, elem: T.elem, pa: T.pierceArmor || 0 });
+
+/* ---------- one step of the whole battle ---------- */
+function update(dt) {
+  if (!G || G.over || G.modal) return; G.clock += dt; if (G.frenzyT > 0) G.frenzyT -= dt; G.heroCd = G.heroCd.map(c => Math.max(0, c - dt)); if (G.shake > 0) G.shake -= dt;
+  while (G.queue.length && G.queue[0].t <= G.clock) spawn(G.queue.shift());
+  /* enemies */
+  for (const e of G.enemies) { if (e.dead) continue; e.hitT = Math.max(0, e.hitT - dt); e.shT += dt; if (e.shield < e.maxShield && e.shT > 3) e.shield = Math.min(e.maxShield, e.shield + e.maxShield * .15 * dt);
+    if (e.slowT > 0) e.slowT -= dt; else e.slowF = 0; if (e.stunT > 0) e.stunT -= dt;
+    const sp = e.stunT > 0 ? 0 : e.speed * (1 - Math.min(.8, e.slowF)) * (1 - (G.def.mud || 0)); e.d += sp * dt; place(e);
+    if (e.E.heal) for (const o of G.enemies) if (o !== e && !o.dead && o.hp < o.max && dist2(e, o) < (SPC * 1.5) * (SPC * 1.5)) o.hp = Math.min(o.max, o.hp + e.E.heal * dt);
+    if (e.d >= (e.air ? G.airLen : G.path.length - 1)) { e.dead = true; G.lives -= e.lives; G.shake = .25; A.beep(120, .25, 'sawtooth', .12); if (st.fx) G.fx.push({ k: 'text', x: G.tiles[G.base].x, y: G.tiles[G.base].y - 14, t: '-' + e.lives + ' ❤', life: 1, max: 1, col: '#ff5a5a' });
+      if (G.lives <= 0) { G.lives = 0; endGame(false); } } }
+  /* towers */
+  for (const tw of G.towers) towerStep(tw, dt);
+  /* projectiles */
+  for (const p of G.projs) projStep(p, dt);
+  for (const z of G.zones) { z.life -= dt; for (const e of G.enemies) if (!e.dead && !e.air && dist2(z, e) <= z.r * z.r) hurt(e, z.dps * dt, { elem: 'fire' }, z.tw); }
+  for (const f of G.fx) { f.life -= dt; if (f.k === 'spark') { f.x += f.vx * dt; f.y += f.vy * dt; } else if (f.k === 'text') f.y -= 18 * dt; }
+  G.enemies = G.enemies.filter(e => !e.dead); G.projs = G.projs.filter(p => !p.done); G.zones = G.zones.filter(z => z.life > 0); G.fx = G.fx.filter(f => f.life > 0);
+  /* wave finished? */
+  if (G.running && !G.queue.length && !G.enemies.length && !G.over) { G.running = false; const bonus = 18 + 3 * G.wave; G.gold += bonus; G.score += bonus;
+    if (st.fx) G.fx.push({ k: 'text', x: W / 2, y: H / 2, t: 'Wave ' + G.wave + ' cleared  +' + bonus + '💰', life: 1.6, max: 1.6, col: '#9be564' });
+    if (G.mode === 'act' && G.wave >= G.def.waves) endGame(true); else { saveGame(); if (st.auto) G.auto = 2.5; renderSel(); updateMsg(); } }
+  if (!G.running && G.auto > 0 && !G.over) { G.auto -= dt; if (G.auto <= 0) startWave(); }
+}
+function towerStep(tw, dt) {
+  const T = T_(tw.k), s = tstat(tw), opts = optsOf(T), kind = T.kind; if (kind === 'banner') return; tw.cd = Math.max(0, tw.cd - dt); if (tw.beam) tw.beam.t -= dt; if (tw.fireT) tw.fireT -= dt;
+  if (kind === 'aura') { for (const e of targets(tw, s, T)) { e.slowT = .3; e.slowF = Math.max(e.slowF, s.slow); hurt(e, s.dmg * dt, { elem: 'ice' }, tw); } return; }
+  if (kind === 'orbit') { tw.ang += T.spin * dt; const n = s.orbs, R = s.range, rr = SPC * .3; tw.orbPos = [];
+    for (let k = 0; k < n; k++) { const a = tw.ang + k * Math.PI * 2 / n, ox = tw.x + Math.cos(a) * R, oy = tw.y + Math.sin(a) * R; tw.orbPos.push([ox, oy]);
+      for (const e of G.enemies) { if (e.dead) continue; e.orb = e.orb || {}; if ((e.orb[tw.id + ':' + k] || 0) > G.clock) continue; if ((e.x - ox) ** 2 + (e.y - oy) ** 2 < (rr + (e.boss ? 12 : 8)) ** 2) { e.orb[tw.id + ':' + k] = G.clock + .3; hurt(e, s.dmg * .3, { elem: 'energy' }, tw); e.slowT = .4; e.slowF = Math.max(e.slowF, .2); } } } return; }
+  if (kind === 'beam') { let tg = tw.lock && !tw.lock.dead && (!tw.lock.air || T.air) && dist2(tw, tw.lock) <= s.range * s.range ? tw.lock : null;
+    if (!tg) { tg = pickTarget(targets(tw, s, T), tw.mode, tw); if (tg !== tw.lock) tw.heat = 0; tw.lock = tg; } if (!tg) { tw.heat = 0; return; }
+    tw.heat = Math.min(T.ramp, tw.heat + dt); const dps = s.dmg * (1 + 3 * tw.heat / T.ramp); hurt(tg, dps * dt, { elem: 'energy' }, tw); tw.beam = { x: tg.x, y: tg.y, t: .06 }; return; }
+  if (tw.cd > 0) return; const list = targets(tw, s, T), tg = pickTarget(list, tw.mode, tw); if (!tg) return; tw.cd = 1 / s.rate; tw.fireT = .12; tw.ang = Math.atan2(tg.y - tw.y, tg.x - tw.x);
+  const snd = (f, d, ty, v) => { if (!tw.snd || performance.now() - tw.snd > 150) { A.beep(f, d, ty, v); tw.snd = performance.now(); } };
+  switch (kind) {
+    case 'shot': G.projs.push({ k: 'shot', x: tw.x, y: tw.y, tgt: tg, tx: tg.x, ty: tg.y, sp: T.speed * SPC, dmg: s.dmg, opts, tw, col: T.col }); snd(T.ico === 'gun' ? 520 : 330, .04, T.ico === 'gun' ? 'square' : 'triangle', .035); break;
+    case 'pulse': for (const e of list) { hurt(e, s.dmg, opts, tw); if (T.stun && Math.random() < T.stun) e.stunT = Math.max(e.stunT, e.boss ? .3 : .7); } G.fx.push({ k: 'ring', x: tw.x, y: tw.y, r: s.range, life: .22, max: .22, col: T.col }); snd(T.ico === 'sword' ? 250 : 160, .08, 'sawtooth', .05); break;
+    case 'line': { const dx = tg.x - tw.x, dy = tg.y - tw.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L; const hit = [];
+      for (const e of G.enemies) { if (e.dead || (e.air && !T.air)) continue; const px = e.x - tw.x, py = e.y - tw.y, along = px * ux + py * uy, off = Math.abs(px * uy - py * ux); if (along > 0 && along <= s.range && off < SPC * .3) hit.push([along, e]); }
+      hit.sort((a, b) => a[0] - b[0]).slice(0, T.pierce + tw.lv).forEach(([, e]) => hurt(e, s.dmg, opts, tw)); G.fx.push({ k: 'line', x: tw.x, y: tw.y, x2: tw.x + ux * s.range, y2: tw.y + uy * s.range, life: .15, max: .15, col: '#fff', w: 3 }); snd(280, .06, 'sawtooth', .04); break; }
+    case 'splash': G.projs.push({ k: 'splash', x: tw.x, y: tw.y, tgt: tg, tx: tg.x, ty: tg.y, sp: (T.speed || 10) * SPC, dmg: s.dmg, opts, tw, rad: T.radius * SPC, stun: T.stun || 0, col: T.col, missile: !!T.missile }); snd(T.missile ? 140 : 200, .1, 'sawtooth', .05); break;
+    case 'chain': { let cur = tg, prev = tw; const hit = new Set(); let dmg = s.dmg; for (let j = 0; j <= s.jumps && cur; j++) { hit.add(cur); hurt(cur, dmg, opts, tw); G.fx.push({ k: 'bolt', x: prev.x, y: prev.y, x2: cur.x, y2: cur.y, life: .18, max: .18, col: '#bfe6ff' }); dmg *= T.fall; prev = cur; let nx = null, nd = (SPC * 1.7) ** 2; for (const e of G.enemies) if (!e.dead && !hit.has(e) && (!e.air || T.air)) { const d = dist2(cur, e); if (d < nd) { nd = d; nx = e; } } cur = nx; } snd(700, .08, 'sawtooth', .04); break; }
+    case 'zone': G.projs.push({ k: 'pot', x: tw.x, y: tw.y, tx: tg.x, ty: tg.y, sp: 7 * SPC, dmg: s.dmg, opts, tw, rad: T.radius * SPC, life: T.life, dps: T.dps * (s.dmg / T.dmg) }); snd(220, .1, 'triangle', .04); break;
+    case 'homing': { const l = list.slice().sort((a, b) => prog(b) - prog(a)); for (let j = 0; j < s.salvo; j++) G.projs.push({ k: 'home', x: tw.x, y: tw.y, a: tw.ang + (j - (s.salvo - 1) / 2) * .9, tgt: l[j % l.length], sp: T.speed * SPC, dmg: s.dmg, opts, tw, life: 5 }); snd(420, .12, 'sawtooth', .04); break; }
+  }
+}
+function projStep(p, dt) {
+  if (p.k === 'home') { p.life -= dt; let t = p.tgt; if (!t || t.dead) { t = null; let nd = (SPC * 3.5) ** 2; for (const e of G.enemies) if (!e.dead) { const d = dist2(p, e); if (d < nd) { nd = d; t = e; } } p.tgt = t; }
+    if (p.life <= 0) { p.done = true; return; } if (t) { let da = Math.atan2(t.y - p.y, t.x - p.x) - p.a; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI; p.a += clamp(da, -7 * dt, 7 * dt); }
+    p.x += Math.cos(p.a) * p.sp * dt; p.y += Math.sin(p.a) * p.sp * dt; if (st.fx && Math.random() < .5) G.fx.push({ k: 'spark', x: p.x, y: p.y, vx: 0, vy: 0, life: .25, max: .25, col: '#d8b4fe' });
+    if (t && dist2(p, t) < 11 * 11) { p.done = true; hurt(t, p.dmg, p.opts, p.tw); G.fx.push({ k: 'ring', x: p.x, y: p.y, r: SPC * .4, life: .2, max: .2, col: '#c084fc' }); } return; }
+  let tx_ = p.tgt && !p.tgt.dead ? p.tgt.x : p.tx, ty_ = p.tgt && !p.tgt.dead ? p.tgt.y : p.ty; if (p.tgt && !p.tgt.dead) { p.tx = tx_; p.ty = ty_; }
+  const dx = tx_ - p.x, dy = ty_ - p.y, L = Math.hypot(dx, dy), step = p.sp * dt; p.a = Math.atan2(dy, dx);
+  if (L <= step + 3) { p.done = true;
+    if (p.k === 'shot') { if (p.tgt && !p.tgt.dead) hurt(p.tgt, p.dmg, p.opts, p.tw); }
+    else if (p.k === 'splash') { for (const e of G.enemies) if (!e.dead && !e.air && (e.x - tx_) ** 2 + (e.y - ty_) ** 2 <= p.rad * p.rad) { hurt(e, p.dmg, p.opts, p.tw); if (p.stun && Math.random() < p.stun) e.stunT = Math.max(e.stunT, .7); }
+      G.fx.push({ k: 'ring', x: tx_, y: ty_, r: p.rad, life: .3, max: .3, col: p.missile ? '#ffb347' : '#e0b070', fill: 1 }); A.beep(p.missile ? 90 : 130, .12, 'sawtooth', .05); }
+    else if (p.k === 'pot') { G.zones.push({ x: tx_, y: ty_, r: p.rad, life: p.life, max: p.life, dps: p.dps, tw: p.tw }); } return; }
+  p.x += dx / L * step; p.y += dy / L * step;
+}
+
+/* ---------- hero powers ---------- */
+function useHero(idx) {
+  if (!G || G.over || G.modal) return; const name = G.fac.heroes[idx], h = HEROES[name]; if (!h || G.heroCd[idx] > 0) return; const wm = 1 + .1 * G.wave, list = G.enemies.filter(e => !e.dead);
+  const front = list.slice().sort((a, b) => prog(b) - prog(a));
+  switch (h.fx) {
+    case 'strike': front.slice(0, h.n).forEach(e => { hurt(e, h.amt * wm, { elem: 'energy' }); if (h.stun) e.stunT = Math.max(e.stunT, h.stun * (e.boss ? .5 : 1)); G.fx.push({ k: 'bolt', x: e.x, y: e.y - 60, x2: e.x, y2: e.y, life: .35, max: .35, col: '#ffe08a' }); }); break;
+    case 'stun': list.forEach(e => e.stunT = Math.max(e.stunT, h.t * (e.boss ? .5 : 1))); break;
+    case 'slowall': list.forEach(e => { e.slowT = h.t; e.slowF = Math.max(e.slowF, h.f * (e.boss ? .7 : 1)); }); break;
+    case 'gold': G.gold += Math.round(h.amt * wm); G.fx.push({ k: 'text', x: W / 2, y: H * .6, t: '+' + Math.round(h.amt * wm) + ' 💰', life: 1.2, max: 1.2, col: '#ffd24a' }); break;
+    case 'frenzy': G.frenzyT = h.t; G.frenzyMul = h.mul; break;
+    case 'burnpath': G.path.forEach(i => G.zones.push({ x: G.tiles[i].x, y: G.tiles[i].y, r: SPC * .62, life: h.t, max: h.t, dps: h.dps * wm * .8, tw: null })); break;
+    case 'heal': G.lives = Math.min(G.maxLives, G.lives + h.amt); break;
+    case 'raid': list.filter(e => !e.air).forEach(e => { hurt(e, h.amt * wm, { elem: 'energy' }); e.stunT = Math.max(e.stunT, h.stun * (e.boss ? .5 : 1)); }); break;
+  }
+  G.fx.push({ k: 'flash', life: .35, max: .35, col: G.fac.col }); G.heroCd[idx] = h.cd; A.slide(260, 880, .35, 'triangle', .09);
+}
+
+/* ---------- actions on tiles and towers ---------- */
+function selectTile(i) { if (!G || G.over || G.modal) return; G.sel = i === G.sel ? -1 : i; G.pick = null; renderSel(); }
+function build(i, k) {
+  const t = G && G.tiles[i]; if (!t || t.tower || (t.type !== 'build' && t.type !== 'hill') || !TOWERS[k] || TOWERS[k].era > G.eraMax) return false; const c = costOf(k); if (G.gold < c) return false;
+  G.gold -= c; const tw = mkTower(i, k); tw.spent = c; recalc(); G.pick = null; renderSel(); A.beep(520, .08, 'triangle', .08); A.beep(780, .08, 'triangle', .06, .07);
+  G.fx.push({ k: 'ring', x: tw.x, y: tw.y, r: HS, life: .3, max: .3, col: '#fff' }); return true;
+}
+function upgrade(i) { const tw = G.tiles[i] && G.tiles[i].tower; if (!tw || tw.lv >= 2) return false; const c = upCost(tw); if (G.gold < c) return false; G.gold -= c; tw.spent += c; tw.lv++; recalc(); renderSel(); A.beep(660, .08, 'square', .06); A.beep(990, .1, 'square', .05, .08); return true; }
+function sell(i) { const tw = G.tiles[i] && G.tiles[i].tower; if (!tw) return false; G.gold += sellVal(tw); G.tiles[i].tower = null; G.towers = G.towers.filter(x => x !== tw); recalc(); G.sel = -1; renderSel(); A.beep(300, .12, 'sawtooth', .06); return true; }
+const MODES = ['first', 'last', 'strong', 'weak', 'close'], MODE_NAME = { first: 'First (closest to gate)', last: 'Last', strong: 'Strongest', weak: 'Weakest', close: 'Closest to tower' };
+
+/* ---------- save between waves ---------- */
+function saveGame() { if (!G || G.over) return; st.save = { mode: G.mode, act: G.act, fac: G.facId, diff: G.difId, seed: G.seed, wave: G.wave, gold: G.gold, lives: G.lives, score: G.score, wind: G.wind, heroCd: G.heroCd, towers: G.towers.map(t => [t.i, t.k, t.lv, t.mode]) }; S.save(); }
+function endGame(win) {
+  if (G.over) return; G.over = true; G.running = false; const stars = win ? (G.lives >= G.maxLives * .9 ? 3 : G.lives >= G.maxLives * .5 ? 2 : 1) : 0; st.save = null;
+  if (G.mode === 'act' && win) st.progress[G.act] = Math.max(st.progress[G.act] || 0, stars); if (G.mode === 'endless') st.best.endless = Math.max(st.best.endless || 0, G.wave - (win ? 0 : 1)); S.save();
+  [523, 659, 784, 1047].forEach((f, i) => win && A.beep(f, .16, 'triangle', .12, i * .09)); if (!win) A.slide(400, 70, .8, 'sawtooth', .12);
+  const done = () => { $('endH').textContent = win ? 'Victory!  ' + '⭐'.repeat(stars) : G.mode === 'endless' ? 'The bastion falls' : 'Defeat';
+    $('endP').textContent = (G.mode === 'endless' ? 'You reached wave ' + G.wave + ' (best ' + st.best.endless + '). ' : '') + 'Score ' + G.score + ' · enemies defeated ' + G.kills + (win ? ' · lives left ' + G.lives + '/' + G.maxLives : '');
+    const nextAct = win && G.mode === 'act' && G.act < ACTS.length ? G.act + 1 : 0;
+    $('endB').innerHTML = (nextAct ? '<button class="btn primary" data-act="next" data-a="' + nextAct + '" type="button">Next: Act ' + 'I'.repeat(nextAct) + '</button> ' : '') + '<button class="btn" data-act="again" type="button">Play again</button> <button class="btn" data-act="menu" type="button">Menu</button>';
+    O.show('ovEnd'); };
+  if (win && G.def.outro) showStory(G.def.outro, done); else done();
+}
+
+/* ---------- story pop-ups ---------- */
+let storyLines = [], storyIdx = 0, storyDone = null;
+function showStory(lines, done) { storyLines = lines; storyIdx = 0; storyDone = done || null; if (G) G.modal = true; renderStory(); O.show('ovStory'); }
+function renderStory() {
+  const l = storyLines[storyIdx], sp = l[0] === 'LORD' ? LORD_FACE[G.facId] : l[0], name = sp && BIOS[sp] ? BIOS[sp].zh : '', last = storyIdx >= storyLines.length - 1;
+  const zhName = name;
+  $('ovStory').innerHTML = '<div class="sbox">' + (sp ? '<img class="spt" src="' + face(sp) + '" alt="">' : '<div class="spt nar">📜</div>') + '<div class="sname">' + (sp ? sp + (zhName ? ' · ' + zhName : '') : 'Narrator') + '</div><div class="stext">' + tx(l[1], l[2]) + '</div>' +
+    '<div><button class="btn primary" data-act="snext" type="button">' + (last ? 'OK ▶' : 'Next ▶') + '</button> <button class="btn sm" data-act="sskip" type="button">Skip</button></div></div>';
+}
+function storyNext() { storyIdx++; if (storyIdx >= storyLines.length) { O.hide('ovStory'); if (G) G.modal = false; const d = storyDone; storyDone = null; d && d(); } else renderStory(); }
+
+/* ---------- chronicle at the bottom: wars and generals in 5 languages ---------- */
+const LANGS = [['en', 'EN'], ['zt', '繁'], ['zs', '简'], ['ja', '日'], ['ko', '한']], SIMP = { '雙': '双', '鐵': '铁', '長': '长', '龍': '龙', '膽': '胆', '銀': '银', '頭': '头', '鏈': '链', '鎚': '锤', '畫': '画', '劍': '剑', '連': '连', '燒': '烧', '營': '营', '霧': '雾', '計': '计', '綠': '绿', '機': '机', '遺': '遗', '蹤': '踪', '彈': '弹', '顧': '顾', '場': '场', '錠': '锭', '壇': '坛', '釭': '釭', '義': '义', '術': '术' };
+const simp = t => t.replace(/./g, c => SIMP[c] || c);
+const bioOf = (b, l) => l === 'zt' ? b.bz : l === 'zs' ? b.bs : l === 'ja' ? b.ja : l === 'ko' ? b.ko : b.en;
+const nameOf = (nm, l) => { const b = BIOS[nm]; return l === 'en' ? nm : l === 'zs' ? b.zs : b.zh; };
+const WORDS = { en: ['The Wars', 'The Generals', 'Commanders (top buttons)', 'Weapon'], zt: ['戰役', '名將', '統帥（上方按鈕）', '兵器'], zs: ['战役', '名将', '统帅（上方按钮）', '兵器'], ja: ['戦い', '武将', '統帥（上のボタン）', '武器'], ko: ['전투', '장수', '지휘관(위쪽 버튼)', '무기'] };
+function renderLore() {
+  const el = $('lore'); if (!el) return; const l = st.bl in WORDS ? st.bl : 'en', w = WORDS[l];
+  const wn = T => l === 'en' ? T.we : l === 'zs' ? simp(T.wz) : T.wz;
+  const gen = (nm, sub) => '<details class="gen"><summary><img class="gimg" data-n="' + nm + '" alt=""><span><b>' + nameOf(nm, l) + (l === 'zt' || l === 'zs' || l === 'ja' || l === 'ko' ? ' <small>' + nm + '</small>' : '') + '</b><small>' + sub + '</small></span></summary><p>' + bioOf(BIOS[nm], l) + '</p></details>';
+  el.innerHTML = '<div class="lang">' + LANGS.map(([k, n]) => '<button class="btn sm' + (k === l ? ' on' : '') + '" data-act="bl" data-l="' + k + '" type="button">' + n + '</button>').join(' ') + '</div>' +
+    '<h4>' + w[0] + '</h4>' + WARS.map((x, i) => '<details class="gen war"><summary><b>' + (i + 1) + '. ' + x.t[l] + '</b></summary><p>' + x.b[l] + '</p></details>').join('') +
+    '<h4>' + w[1] + '</h4>' + TOWER_ORDER.map(k => { const T = TOWERS[k]; return gen(T.nm, w[3] + ': ' + wn(T) + (l === 'en' ? '' : ' · ' + T.we)); }).join('') +
+    '<h4>' + w[2] + '</h4>' + Object.keys(HEROES).map(n => { const h = HEROES[n]; return gen(n, h.name + ' · ' + h.nz); }).join('');
+  const imgs = [...el.querySelectorAll('img[data-n]')]; (function next() { const im = imgs.shift(); if (!im) return; im.src = face(im.dataset.n); setTimeout(next, 25); })();
+}
+document.getElementById('loreBox').addEventListener('toggle', e => { if (e.target.open) renderLore(); });
+
+/* ---------- menu ---------- */
+let menuFac = st.faction in FACTIONS ? st.faction : 'shu', menuDiff = st.diff in DIFF ? st.diff : 'normal';
+function stars(n) { return n ? '⭐'.repeat(n) : ''; }
+function showMenu() {
+  if (G) G.modal = true; const unlocked = a => a === 1 || (st.progress[a - 1] || 0) > 0, sv = st.save;
+  const facs = Object.keys(FACTIONS).map(f => { const F = FACTIONS[f]; return '<button class="fac' + (menuFac === f ? ' on' : '') + '" data-act="fac" data-f="' + f + '" type="button" style="--c:' + F.col + '"><img src="' + face(LORD_FACE[f]) + '" alt=""><b>' + F.zh + ' ' + F.en + '</b><small>' + F.info + '</small><small class="hl">' + F.heroes.join(' · ') + '</small></button>'; }).join('');
+  const acts = ACTS.map(a => '<button class="act' + (menuAct === a.id ? ' on' : '') + (unlocked(a.id) ? '' : ' lock') + '" data-act="act" data-a="' + a.id + '" type="button"' + (unlocked(a.id) ? '' : ' disabled') + '><b>' + (unlocked(a.id) ? '' : '🔒 ') + 'Act ' + 'I'.repeat(a.id) + ' · ' + a.en + '</b><small>' + a.zh + ' · ' + a.year + ' · ' + a.waves + ' waves · ' + ERAS[a.era].en + ' towers ' + stars(st.progress[a.id]) + '</small></button>').join('') +
+    '<button class="act' + (menuAct === ENDLESS.id ? ' on' : '') + '" data-act="act" data-a="' + ENDLESS.id + '" type="button"><b>♾️ Endless Siege</b><small>無盡圍城 · random hex map · best wave ' + (st.best.endless || 0) + ' · towers of ' + endlessEra() + ' cleared acts</small></button>';
+  const dif = Object.keys(DIFF).map(d => '<button class="btn sm' + (menuDiff === d ? ' on' : '') + '" data-act="diff" data-d="' + d + '" type="button">' + DIFF[d].en + '</button>').join(' ');
+  $('ovMenu').innerHTML = '<div class="mbox"><div class="mtitle">Hex Bastion <span>六角堡壘</span></div>' + (sv ? '<button class="btn primary wide" data-act="resume" type="button">▶ Continue: ' + (sv.mode === 'endless' ? 'Endless' : 'Act ' + 'I'.repeat(sv.act)) + ', wave ' + sv.wave + ' ready</button>' : '') + (G && !G.over ? '<button class="btn wide" data-act="back" type="button">↩ Back to battle</button>' : '') +
+    '<h4>1 · Choose your banner</h4><div class="facs">' + facs + '</div><h4>2 · Choose a campaign</h4><div class="acts">' + acts + '</div><h4>3 · Difficulty</h4><div>' + dif + '</div><button class="btn primary wide" data-act="play" type="button">⚔ Start</button></div>';
+  O.show('ovMenu');
+}
+function beginFromMenu() { st.faction = menuFac; st.diff = menuDiff; S.save(); const mode = menuAct === ENDLESS.id ? 'endless' : 'act'; newGame({ mode, act: menuAct, fac: menuFac, diff: menuDiff });
+  const intro = mode === 'act' ? G.def.intro : [[null, 'Endless Siege: waves never stop and get tougher. Survive as long as you can. Your unlocked eras decide which towers you can build.', '無盡圍城：敵人永不停歇，越來越強。盡量堅持，你已解鎖的時代決定可建造的塔樓。']]; showStory(intro); }
+function resumeSave() { const s = st.save; if (!s) return; try { newGame({ mode: s.mode, act: s.act, fac: s.fac, diff: s.diff, seed: s.seed, resume: s }); } catch (e) { st.save = null; S.save(); showMenu(); } }
+
+/* ---------- panels under the board ---------- */
+function renderHeroes() { if (!G) return; $('heroes').innerHTML = G.fac.heroes.map((n, i) => { const h = HEROES[n]; return '<button class="hero" data-act="hero" data-i="' + i + '" type="button" title="' + h.info + '"><img src="' + face(n) + '" alt=""><span class="hn">' + h.zh + ' ' + n.split(' ')[0] + '</span><span class="hp">' + h.name + '</span><span class="cdv" id="cd' + i + '"></span></button>'; }).join(''); }
+function renderSel() {
+  const el = $('sel'); if (!G) { el.innerHTML = ''; return; } const i = G.sel, t = i >= 0 ? G.tiles[i] : null;
+  if (!t) { el.innerHTML = '<div class="selhelp">Tap a hex tile to build. Tap a general to upgrade him.</div>'; return; }
+  const head = (T, extra) => '<div class="tinfo"><img src="' + face(T.nm) + '" alt="" style="--tc:' + TEAMCOL[T.team] + '"><div><b>' + pname(T) + '</b>' + (sameTeam(T) ? ' <span class="star">★ +10%</span>' : '') + extra + '<br><small>⚔ ' + wname(T) + '</small><br><small>' + T.info + '</small>';
+  if (t.tower) { const tw = t.tower, T = T_(tw.k), s = tstat(tw), up = tw.lv < 2 ? upCost(tw) : 0; const dps = T.kind === 'banner' ? 0 : T.kind === 'beam' ? s.dmg * 2.5 : T.kind === 'aura' ? s.dmg : T.kind === 'orbit' ? s.dmg * s.orbs : s.dmg * s.rate * (T.kind === 'homing' ? s.salvo : 1);
+    el.innerHTML = head(T, ' · level ' + (tw.lv + 1) + '/3 ' + (t.type === 'hill' ? '▲' : '')) + '<br><small>' + (T.kind === 'banner' ? 'Buff +' + Math.round((T.buff + .08 * tw.lv) * 100) + '% damage, +' + Math.round((T.rbuff + .03 * tw.lv) * 100) + '% speed to touching towers' : 'Damage/s ≈ ' + Math.round(dps) + ' · range ' + (s.range / SPC).toFixed(1) + (T.air ? ' · ✈ hits flyers' : '') + (tw.buff ? ' · banner +' + Math.round(tw.buff * 100) + '%' : '') + ' · kills ' + tw.kills) + '</small></div></div>' + bioHtml(T.nm) +
+      '<div class="tbar">' + (tw.lv < 2 ? '<button class="btn primary sm" data-act="up" data-cost="' + up + '" type="button">⬆ Upgrade 💰' + up + '</button>' : '<span class="kl">Max level</span>') + '<button class="btn sm" data-act="sell" type="button">Sell +💰' + sellVal(tw) + '</button>' + (T.kind !== 'banner' && T.kind !== 'aura' && T.kind !== 'orbit' ? '<button class="btn sm" data-act="mode" type="button">🎯 ' + MODE_NAME[tw.mode] + '</button>' : '') + '</div>'; return; }
+  if (t.type !== 'build' && t.type !== 'hill') { el.innerHTML = '<div class="selhelp">' + (t.type === 'path' ? 'This is the road. Enemies walk here. Build next to it.' : 'Rocks and trees. You cannot build here.') + '</div>'; return; }
+  const pick = G.pick;
+  const grid = TOWER_ORDER.map(k => { const T = T_(k), lock = T.era > G.eraMax, c = costOf(k), b = BIOS[T.nm]; return '<button class="tw' + (pick === k ? ' on' : '') + (lock ? ' lock' : '') + '" data-act="pick" data-k="' + k + '" data-cost="' + c + '" type="button" style="--tc:' + TEAMCOL[T.team] + '"><img src="' + face(T.nm) + '" alt=""><b>' + (st.lang === 'en' ? T.nm : b.zh) + (sameTeam(T) ? ' <span class="star">★</span>' : '') + '</b><small>' + (st.lang === 'zh' ? T.wz : st.lang === 'both' ? T.nm : T.we) + '</small><i>' + (lock ? '🔒 ' + ERAS[T.era].en : '💰' + c) + '</i></button>'; }).join('');
+  let det = '<div class="selhelp">' + (t.type === 'hill' ? '▲ Hill: +0.5 range, +10% damage. ' : '') + 'Tap a general to see his weapon and story. ★ = your kingdom (+10% damage).</div>';
+  if (pick) { const T = T_(pick), c = costOf(pick); det = head(T, ' · ' + ERAS[T.era].en) + '<br><small>Range ' + (T.range + (t.type === 'hill' ? .5 : 0)).toFixed(1) + (T.air ? ' · ✈ hits flyers' : ' · ground only') + '</small></div></div>' + bioHtml(T.nm) + '<div class="tbar"><button class="btn primary" data-act="build" data-k="' + pick + '" data-cost="' + c + '" type="button">🔨 Build 💰' + c + '</button></div>'; }
+  el.innerHTML = det + '<div class="shop">' + grid + '</div>';
+}
+function refreshAfford() { document.querySelectorAll('[data-cost]').forEach(b => { const c = +b.dataset.cost; b.classList.toggle('poor', G && G.gold < c); }); }
+function updateMsg() {
+  if (!G) return; let m; if (G.over) m = G.lives > 0 ? 'Victory!' : 'Defeat.';
+  else if (G.running) m = (G.def.era !== undefined || true ? '' : '') + 'Wave ' + G.wave + ' · ' + (G.enemies.length + G.queue.length) + ' enemies left. Tap ▶ to call the next wave early (+8💰).';
+  else { const nxt = G.wave + 1; if (G.mode === 'act' && nxt > G.def.waves) m = 'All waves done.'; else { const gs = makeWave(nxt), by = {}; let fly = false; gs.forEach(g => { by[g.type] = (by[g.type] || 0) + g.count; if (ENEMIES[g.type].air) fly = true; });
+      m = (G.wave ? 'Wave ' + G.wave + ' cleared. ' : '') + 'Next, wave ' + nxt + (G.mode === 'act' ? '/' + G.def.waves : '') + ': ' + Object.keys(by).map(t => ENEMIES[t].ico + '×' + by[t]).join(' ') + (fly ? '  ✈ flyers!' : '') + (gs.some(g => g.boss) ? '  👑 BOSS' : ''); } }
+  KIT.setText($('msg'), m);
+}
+function setSpeed(n) { G && (G.speed = n); st.speed = n; $('bSpeed').textContent = '⏩ ×' + n; }
+
+/* ---------- drawing ---------- */
+const THEMES = { field: { build: ['#3e6b3b', '#467642'], path: '#c2a46a', hill: '#6e8f43', block: '#2f4d2a', edge: 'rgba(0,0,0,.28)', dot: 'rgba(255,255,255,.35)' },
+  river: { build: ['#2d5a47', '#346550'], path: '#2f78b8', hill: '#53805c', block: '#28463a', edge: 'rgba(0,0,0,.3)', dot: 'rgba(255,255,255,.4)' },
+  marsh: { build: ['#4b5a3a', '#546640'], path: '#7a6a45', hill: '#6c7c4c', block: '#34402c', edge: 'rgba(0,0,0,.32)', dot: 'rgba(255,255,255,.3)' },
+  rift: { build: ['#262b44', '#2d3350'], path: '#0fa3b2', hill: '#3d4375', block: '#1e2238', edge: 'rgba(0,0,0,.35)', dot: 'rgba(255,255,255,.45)' } };
+const EMOJI = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+function rangeTiles(x, y, r) { const out = []; for (const t of G.tiles) if ((t.x - x) ** 2 + (t.y - y) ** 2 <= (r + 2) * (r + 2)) out.push(t); return out; }
+function draw() {
+  ctx.clearRect(0, 0, W, H); if (!G) return; ctx.save(); if (G.shake > 0) ctx.translate((Math.random() - .5) * 6, (Math.random() - .5) * 6); const P = THEMES[G.theme], now = performance.now() / 1000;
+  for (const t of G.tiles) { hexPath(ctx, t.x, t.y, HS - .8); ctx.fillStyle = t.type === 'path' ? P.path : t.type === 'hill' ? P.hill : t.type === 'block' ? P.block : P.build[t.shade > .5 ? 1 : 0]; ctx.fill(); ctx.strokeStyle = P.edge; ctx.lineWidth = 1; ctx.stroke();
+    if (t.type === 'hill') { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.beginPath(); ctx.moveTo(t.x, t.y - 8); ctx.lineTo(t.x - 9, t.y + 6); ctx.lineTo(t.x + 9, t.y + 6); ctx.closePath(); ctx.fill(); }
+    if (t.decor) { ctx.font = '20px ' + EMOJI; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t.decor, t.x, t.y + 1); } }
+  ctx.strokeStyle = P.dot; ctx.lineWidth = 2; ctx.setLineDash([2, 7]); ctx.lineCap = 'round'; ctx.beginPath(); G.path.forEach((i, k) => ctx[k ? 'lineTo' : 'moveTo'](G.tiles[i].x, G.tiles[i].y)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.font = '24px ' + EMOJI; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(G.theme === 'rift' ? '🌀' : '🚩', G.tiles[G.spawn].x, G.tiles[G.spawn].y); ctx.fillText(G.theme === 'rift' ? '🏰' : '🏯', G.tiles[G.base].x, G.tiles[G.base].y - 1);
+  /* selection and range */
+  if (G.sel >= 0) { const t = G.tiles[G.sel]; let r = 0; if (t.tower) r = tstat(t.tower).range; else if (G.pick) r = (T_(G.pick).range + (t.type === 'hill' ? .5 : 0)) * SPC; if (r) for (const o of rangeTiles(t.x, t.y, r)) { hexPath(ctx, o.x, o.y, HS - 3); ctx.fillStyle = 'rgba(255,255,255,.16)'; ctx.fill(); }
+    hexPath(ctx, t.x, t.y, HS - 1); ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3; ctx.stroke(); }
+  /* zones */
+  for (const z of G.zones) { const a = clamp(z.life / (z.max || 1), 0, 1), g = ctx.createRadialGradient(z.x, z.y, 2, z.x, z.y, z.r); g.addColorStop(0, 'rgba(255,200,80,' + (.55 * a + .15) + ')'); g.addColorStop(1, 'rgba(255,60,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.fill(); }
+  /* towers */
+  for (const tw of G.towers) { const T = T_(tw.k); if (T.kind === 'banner') { ctx.strokeStyle = 'rgba(255,215,90,.5)'; ctx.lineWidth = 2; nbrs(tw.i).forEach(j => { if (G.tiles[j].tower) { ctx.beginPath(); ctx.moveTo(tw.x, tw.y); ctx.lineTo(G.tiles[j].x, G.tiles[j].y); ctx.stroke(); } }); }
+    const pulse = tw.fireT > 0 ? 1.12 : 1; hexPath(ctx, tw.x, tw.y, HS - 4); ctx.fillStyle = T.col; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 2.5; ctx.stroke();
+    face(T.nm); const fc = FCV[T.nm], R = 19 * pulse, fy = tw.y - 2;
+    if (fc) { ctx.save(); ctx.beginPath(); ctx.arc(tw.x, fy, R, 0, 7); ctx.clip(); ctx.drawImage(fc, 0, (fc.height - fc.width) * .3, fc.width, fc.width, tw.x - R, fy - R, 2 * R, 2 * R); ctx.restore(); }
+    ctx.strokeStyle = TEAMCOL[T.team]; ctx.lineWidth = sameTeam(T) ? 3.2 : 2.2; ctx.beginPath(); ctx.arc(tw.x, fy, R, 0, 7); ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,.78)'; ctx.beginPath(); ctx.arc(tw.x + 15, tw.y + 11, 7, 0, 7); ctx.fill(); icon(ctx, T.ico, tw.x + 15, tw.y + 11, 4.6);
+    if (sameTeam(T)) { ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffd24a'; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.lineWidth = 2; ctx.strokeText('★', tw.x - 15, tw.y - 14); ctx.fillText('★', tw.x - 15, tw.y - 14); }
+    for (let l = 0; l <= tw.lv; l++) { ctx.fillStyle = '#ffd24a'; ctx.beginPath(); ctx.arc(tw.x - tw.lv * 3.5 + l * 7, tw.y + HS - 9, 2.4, 0, 7); ctx.fill(); }
+    if (T.kind === 'beam' && tw.beam && tw.beam.t > 0) { ctx.strokeStyle = T.col; ctx.lineWidth = 2 + 4 * (tw.heat / T.ramp); ctx.globalAlpha = .85; ctx.beginPath(); ctx.moveTo(tw.x, tw.y); ctx.lineTo(tw.beam.x, tw.beam.y); ctx.stroke(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.globalAlpha = 1; }
+    if (T.kind === 'orbit' && tw.orbPos) { ctx.strokeStyle = 'rgba(76,201,240,.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(tw.x, tw.y, tstat(tw).range, 0, 7); ctx.stroke(); for (const [ox, oy] of tw.orbPos) { const g = ctx.createRadialGradient(ox, oy, 1, ox, oy, 10); g.addColorStop(0, '#fff'); g.addColorStop(.5, T.col); g.addColorStop(1, 'rgba(76,201,240,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(ox, oy, 10, 0, 7); ctx.fill(); } }
+    if (T.kind === 'aura') { ctx.strokeStyle = 'rgba(155,231,255,' + (.18 + .08 * Math.sin(now * 3)) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(tw.x, tw.y, tstat(tw).range, 0, 7); ctx.stroke(); } }
+  /* enemies: ground first, flyers on top */
+  const ordered = G.enemies.slice().sort((a, b) => (a.air - b.air) || a.y - b.y);
+  for (const e of ordered) { const r = e.boss ? 15 : 11, ey = e.y - (e.air ? 7 : 0) + Math.sin(now * 6 + e.wob) * (e.air ? 2 : .6);
+    if (e.air) { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(e.x, e.y + 6, r * .8, r * .35, 0, 0, 7); ctx.fill(); }
+    ctx.fillStyle = e.hitT > 0 ? '#fff' : '#1b2230'; ctx.beginPath(); ctx.arc(e.x, ey, r, 0, 7); ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = e.slowF > 0 && e.slowT > 0 ? '#7fd8ff' : e.boss ? '#ffd24a' : 'rgba(255,255,255,.45)'; ctx.stroke();
+    ctx.font = (e.boss ? 24 : 16) + 'px ' + EMOJI; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.fillText(e.E.ico, e.x, ey + 1); if (e.stunT > 0) ctx.fillText('💫', e.x, ey - r - 8);
+    const bw = e.boss ? 34 : 22, by = ey - r - 6; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(e.x - bw / 2, by, bw, 4); ctx.fillStyle = e.hp / e.max > .5 ? '#46c15a' : e.hp / e.max > .25 ? '#e0b22e' : '#e5484d'; ctx.fillRect(e.x - bw / 2, by, bw * clamp(e.hp / e.max, 0, 1), 4); if (e.maxShield > 0 && e.shield > 0) { ctx.fillStyle = '#5ad1ff'; ctx.fillRect(e.x - bw / 2, by - 3, bw * clamp(e.shield / e.maxShield, 0, 1), 2.5); } }
+  /* projectiles */
+  for (const p of G.projs) { if (p.k === 'shot') { ctx.strokeStyle = p.col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - Math.cos(p.a || 0) * 8, p.y - Math.sin(p.a || 0) * 8); ctx.stroke(); }
+    else if (p.k === 'splash') { ctx.fillStyle = p.missile ? '#ffb347' : '#b0763c'; ctx.beginPath(); ctx.arc(p.x, p.y, p.missile ? 4 : 6, 0, 7); ctx.fill(); if (p.missile && st.fx) G.fx.push({ k: 'spark', x: p.x, y: p.y, vx: 0, vy: 0, life: .3, max: .3, col: '#ff9f43' }); }
+    else if (p.k === 'pot') { ctx.fillStyle = '#ff7a2f'; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, 7); ctx.fill(); }
+    else if (p.k === 'home') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = '#e9d5ff'; ctx.fillRect(-5, -2, 10, 4); ctx.restore(); } }
+  /* effects */
+  for (const f of G.fx) { const a = clamp(f.life / f.max, 0, 1);
+    if (f.k === 'ring') { const r = f.r * (1 - a * .6); ctx.globalAlpha = a; if (f.fill) { ctx.fillStyle = f.col; ctx.globalAlpha = a * .5; ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, 7); ctx.fill(); ctx.globalAlpha = a; } ctx.strokeStyle = f.col; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, 7); ctx.stroke(); ctx.globalAlpha = 1; }
+    else if (f.k === 'line' || f.k === 'bolt') { ctx.globalAlpha = a; ctx.strokeStyle = f.col; ctx.lineWidth = f.w || 3; ctx.beginPath(); ctx.moveTo(f.x, f.y); if (f.k === 'bolt') { const mx = (f.x + f.x2) / 2 + (Math.random() - .5) * 14, my = (f.y + f.y2) / 2 + (Math.random() - .5) * 14; ctx.lineTo(mx, my); } ctx.lineTo(f.x2, f.y2); ctx.stroke(); ctx.globalAlpha = 1; }
+    else if (f.k === 'text') { ctx.globalAlpha = a; ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(f.t, f.x, f.y); ctx.fillStyle = f.col; ctx.fillText(f.t, f.x, f.y); ctx.globalAlpha = 1; }
+    else if (f.k === 'spark') { ctx.globalAlpha = a; ctx.fillStyle = f.col; ctx.fillRect(f.x - 1.5, f.y - 1.5, 3, 3); ctx.globalAlpha = 1; }
+    else if (f.k === 'flash') { ctx.globalAlpha = a * .28; ctx.fillStyle = f.col; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; } }
+  ctx.restore();
+}
+
+/* ---------- input ---------- */
+cv.addEventListener('pointerdown', e => { if (!G) return; e.preventDefault(); const p = C.pos(e), i = pix2tile(p.x, p.y); if (i >= 0) selectTile(i); });
+let pauseOn = false;
+function pause() { if (!G || G.over) return; pauseOn = !pauseOn; if (pauseOn) { G.modal = true; O.show('ovPause'); } else { G.modal = false; O.hide('ovPause'); } }
+ui.actions(document.body, {
+  wave: () => startWave(), speed: () => setSpeed(G ? (G.speed % 3) + 1 : 1), pause, menu: () => showMenu(),
+  fac: b => { menuFac = b.dataset.f; showMenu(); }, act: b => { menuAct = +b.dataset.a; showMenu(); }, diff: b => { menuDiff = b.dataset.d; showMenu(); },
+  play: beginFromMenu, resume: resumeSave, back: () => { O.hide('ovMenu'); if (G) G.modal = pauseOn; },
+  next: b => { menuAct = +b.dataset.a; beginFromMenu(); }, again: () => { menuAct = G.mode === 'endless' ? ENDLESS.id : G.act; beginFromMenu(); },
+  snext: storyNext, sskip: () => { storyIdx = storyLines.length; storyNext(); },
+  bl: b => { st.bl = b.dataset.l; S.save(); renderLore(); }, hero: b => useHero(+b.dataset.i), pick: b => { if (G && !b.classList.contains('lock')) { G.pick = G.pick === b.dataset.k ? null : b.dataset.k; renderSel(); } else if (b.classList.contains('lock')) KIT.setText($('msg'), 'That era unlocks as you clear acts of the campaign.'); },
+  build: b => { if (!build(G.sel, b.dataset.k)) KIT.setText($('msg'), 'Not enough gold.'); }, up: () => { if (!upgrade(G.sel)) KIT.setText($('msg'), 'Not enough gold.'); }, sell: () => sell(G.sel),
+  mode: () => { const tw = G.tiles[G.sel].tower; if (tw) { tw.mode = MODES[(MODES.indexOf(tw.mode) + 1) % MODES.length]; renderSel(); } }
+});
+window.addEventListener('keydown', e => { if (!G || e.ctrlKey || e.metaKey || e.altKey || /^(input|select|textarea)$/i.test(e.target.tagName)) return; const k = e.key.toLowerCase();
+  if (k === ' ') { e.preventDefault(); startWave(); } else if (k === 'p') pause(); else if (k >= '1' && k <= '3') useHero(+k - 1); else if (k === 'u' && G.sel >= 0) upgrade(G.sel); else if (k === 's' && G.sel >= 0) sell(G.sel); else if (k === 'escape') { G.sel = -1; G.pick = null; renderSel(); } });
+
+/* ---------- main loop ---------- */
+const L = KIT.loop(dt => { if (!G) return; for (let k = 0; k < (G.speed || 1); k++) update(dt); }, () => {
+  draw(); if (!G) return; KIT.setText($('lv'), G.lives); KIT.setText($('gd'), Math.floor(G.gold)); KIT.setText($('wv'), G.wave + (G.mode === 'act' ? '/' + G.def.waves : '')); KIT.setText($('sc'), G.score);
+  G.heroCd.forEach((c, i) => { const el = $('cd' + i); if (el) { const t = c > 0 ? String(Math.ceil(c)) : ''; if (el.textContent !== t) { el.textContent = t; el.parentElement.classList.toggle('ready', c <= 0); } } });
+  refreshAfford(); $('bWave').disabled = G.over || G.modal || (G.mode === 'act' && G.wave >= G.def.waves); if (G.running !== G._r) { G._r = G.running; updateMsg(); } else if (G.running && Math.floor(G.clock * 2) !== G._m) { G._m = Math.floor(G.clock * 2); updateMsg(); }
+}); L.start();
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+(function boot() { try { const f = FACES; } catch (e) {} showMenu(); })();
+KIT.hook({ get G() { return G; }, newGame, build, upgrade, sell, startWave, update, useHero, makeWave, tstat, genMap, selectTile, endGame, TOWERS, ENEMIES, ACTS, costOf, upCost, nbrs, SPC, setSpeed, showMenu, beginFromMenu, ENDLESS, st });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

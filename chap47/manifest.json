@@ -1,0 +1,31 @@
+{
+  "name": "Mancala",
+  "short_name": "Mancala",
+  "description": "The seed-sowing family: pick up a pit, sow it round, capture the seeds. Kalah, West-African Oware, and the Turkish / Arab Mangala. Play the computer or a friend",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#4a2f17",
+  "theme_color": "#4a2f17",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

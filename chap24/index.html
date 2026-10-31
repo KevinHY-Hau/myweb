@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 24 · Connect 5</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Connect 5">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:620px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.tboardwrap{position:relative}
+.cv{display:block;width:100%;border-radius:12px;touch-action:manipulation;cursor:pointer;aspect-ratio:1/1}
+.tmsg{min-height:1.5em;text-align:center;font-weight:700}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+.setup{display:flex;flex-direction:column;gap:6px}
+.grp{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.grp .kl{min-width:4.6em;color:var(--muted);font-size:13px}.setup .btn.sm{padding:.25rem .55rem;font-size:13px}
+.setup .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.tpanel{margin-top:2px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Connect 5</h2>
+  <p>Chapter 24 · Line up five stones before the other side does (also known as Gomoku). Play the computer at four levels, or a friend on the same device, on three board sizes</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TURN</small><b id="s1">-</b></div>
+    <div class="tstat"><small>YOU ARE</small><b id="s2">-</b></div>
+    <div class="tstat"><small>MOVES</small><b id="s3">0</b></div>
+    <div class="tstat"><small>BOARD</small><b id="s4">15×15</b></div>
+  </div>
+  <div class="tboardwrap">
+    <canvas id="cv" class="cv" aria-label="Connect 5 board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH"></h3><p id="endP"></p><div><button class="btn primary" data-act="again" type="button">Play again</button> <button class="btn" data-act="close" type="button">Look at board</button></div></div>
+  </div>
+  <div class="tmsg" id="msg"></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" id="bUndo" type="button">↶ Undo</button>
+    <button class="btn sm" data-act="hint" id="bHint" type="button">💡 Hint</button>
+    <button class="btn sm" id="bNew" type="button">🔄 New game</button>
+  </div>
+  <div class="rec" id="recLine"></div>
+  <div id="setup" class="setup"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">Rules: take turns placing a stone on a crossing of the lines. Black goes first. The first player to line up 5 stones, across, up and down, or diagonally, wins. In “Free” games 6 or more in a row also wins; in “Exactly 5” games a row of 6 or more does not count. Black has an advantage, so playing White against a strong computer is a real challenge. Tip: a line of 4 with both ends open cannot be stopped, so block threes early. On a phone, tap once to aim and tap the same spot again to place (you can switch this off in the settings). Keys: Z undo, H hint, N new game.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 Five in a row (Gomoku) is a classic game. The rules engine, computer player (alpha-beta search over scored 5-cell windows), drawings and code are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Shared shell for the two-player board games (Chapters 22 to 24).
+   A chapter gives it a rules ENGINE (a function, so it can also run inside a Web Worker) and a few settings.
+   The shell does everything that is the same in every game: setup buttons, computer opponent, undo, hint, save/resume, records.
+   The engine object E must provide:
+     E.newGame(opts)        -> state { turn:0|1, over:bool, winner:0|1|-1(draw)|null, moves:[...] ... }
+     E.play(state, move)    -> changes state
+     E.legal(state)         -> array of moves
+     E.job({moves,opts,level,hint}) -> the move the computer chooses (the same call runs in the worker) */
+function Shell(cfg) {
+  const { $, store, ui, sfx } = KIT;
+  const S = store(cfg.key, Object.assign({ dark: true, sound: true, mode: 'ai', side: 'first', level: 'medium', opts: Object.assign({}, cfg.opts || {}), rec: {}, game: null }, cfg.defaults || {})), st = S.st;
+  ui.theme($('themeBtn'), st, S.save);
+  const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+  const E = cfg.ENGINE(false);
+  const LEVELS = [['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['expert', 'Expert']];
+  const sh = { st, S, A, O, E, state: null, moves: [], human: 0, busy: false, hintMove: null, token: 0, lastInfo: null, hintsUsed: 0 };
+
+  /* ---- the computer runs in a Web Worker so the page never freezes; if workers are not allowed it runs in the page ---- */
+  let worker = null;
+  try { worker = new Worker(URL.createObjectURL(new Blob(['(' + cfg.ENGINE.toString() + ')(true)'], { type: 'text/javascript' }))); } catch (e) { worker = null; }
+  let pending = null;
+  if (worker) { worker.onmessage = ev => { if (pending) { const p = pending; pending = null; p(ev.data); } }; worker.onerror = () => { worker = null; if (pending) { const p = pending; pending = null; p(null); } }; }
+  function ask(job) {
+    return new Promise(res => {
+      if (worker) { pending = res; worker.postMessage(job); }
+      else setTimeout(() => res(E.job(job)), 30);
+    }).then(r => r == null ? E.job(job) : r);
+  }
+
+  const rank = () => (st.mode === 'ai' ? st.level : 'two');
+  const rec = () => { const k = rank(); return st.rec[k] || (st.rec[k] = { w: 0, l: 0, d: 0 }); };
+  const isAI = p => st.mode === 'ai' && p !== sh.human;
+
+  function rebuild() { sh.state = E.newGame(st.opts); sh.moves.forEach(m => E.play(sh.state, m)); }
+  function saveGame() { st.game = sh.state.over ? null : { moves: sh.moves.slice(), opts: Object.assign({}, st.opts), human: sh.human, mode: st.mode, level: st.level, hints: sh.hintsUsed }; S.save(); }
+
+  sh.newGame = function () {
+    sh.token++; sh.busy = false; sh.moves = []; sh.hintMove = null; sh.hintsUsed = 0; O.hideAll();
+    sh.human = st.side === 'second' ? 1 : st.side === 'random' ? (Math.random() < .5 ? 0 : 1) : 0;
+    rebuild(); sh.lastInfo = { fresh: true }; st.game = null; S.save(); cfg.onState(sh, sh.lastInfo); after();
+  };
+  sh.resume = function () {
+    const g = st.game; if (!g) return false;
+    try { st.opts = Object.assign({}, g.opts); st.mode = g.mode; st.level = g.level; sh.human = g.human; sh.moves = g.moves.slice(); sh.hintsUsed = g.hints || 0; rebuild();
+      const ok = E.newGame(st.opts); for (const m of sh.moves) { if (!E.legal(ok).includes(m)) throw 0; E.play(ok, m); }
+      if (sh.state.over) throw 0; sh.lastInfo = { fresh: true }; cfg.onState(sh, sh.lastInfo); after(); return true; } catch (e) { st.game = null; S.save(); return false; }
+  };
+
+  sh.humanMove = function (m) {
+    const s = sh.state; if (!s || s.over || sh.busy || isAI(s.turn)) return false;
+    if (!E.legal(s).some(x => x === m)) return false; doMove(m, true); return true;
+  };
+  function doMove(m, byHuman) {
+    sh.hintMove = null; sh.moves.push(m); const who = sh.state.turn; E.play(sh.state, m); sh.lastInfo = { move: m, who, human: byHuman }; saveGame();
+    A.beep(byHuman ? 520 : 400, .05, 'triangle', .07); cfg.onState(sh, sh.lastInfo); after();
+  }
+  function after() {
+    const s = sh.state; updateStats();
+    if (s.over) { finish(); return; }
+    if (isAI(s.turn)) think();
+    else { KIT.setText($('msg'), cfg.status(sh, s)); }
+  }
+  function think() {
+    const s = sh.state, tk = ++sh.token; sh.busy = true; KIT.setText($('msg'), '🤔 Computer is thinking…'); const t0 = performance.now();
+    ask({ moves: sh.moves.slice(), opts: Object.assign({}, st.opts), level: st.level }).then(mv => {
+      if (tk !== sh.token) return; const wait = Math.max(0, 380 - (performance.now() - t0));
+      setTimeout(() => { if (tk !== sh.token) return; sh.busy = false; doMove(mv, false); }, wait);
+    });
+  }
+  function finish() {
+    const s = sh.state; sh.busy = false; st.game = null; let h, p;
+    if (st.mode === 'ai') { const r = rec(); if (s.winner === -1) { r.d++; h = 'Draw'; p = cfg.drawText || 'Nobody won.'; } else if (s.winner === sh.human) { r.w++; h = 'You win! 🎉'; p = cfg.winText ? cfg.winText(sh, s) : ''; A.beep(660, .12, 'triangle', .1); A.beep(880, .15, 'triangle', .1, .12); A.beep(1100, .2, 'triangle', .1, .26); } else { r.l++; h = 'Computer wins'; p = cfg.winText ? cfg.winText(sh, s) : ''; A.slide(400, 90, .5, 'sawtooth', .1); } }
+    else { h = s.winner === -1 ? 'Draw' : cfg.names[s.winner] + ' wins!'; p = cfg.winText ? cfg.winText(sh, s) : ''; if (s.winner !== -1) { A.beep(660, .12, 'triangle', .1); A.beep(990, .2, 'triangle', .1, .12); } }
+    S.save(); updateStats(); KIT.setText($('msg'), h);
+    setTimeout(() => { KIT.setText($('endH'), h); KIT.setText($('endP'), p); O.show('ovEnd'); }, cfg.endDelay || 700);
+  }
+  function updateStats() {
+    const v = cfg.stats(sh, sh.state), r = rec(); for (let i = 0; i < v.length; i++) { const el = $('s' + (i + 1)); if (el) KIT.setText(el, v[i]); }
+    const rr = $('recLine'); if (rr) KIT.setText(rr, st.mode === 'ai' ? 'Your record on ' + st.level + ': ' + r.w + ' won · ' + r.l + ' lost · ' + r.d + ' drawn' : 'Two players on one device');
+    $('bUndo').disabled = !sh.moves.length || (st.mode === 'ai' && sh.moves.length <= (sh.human === 1 ? 1 : 0) && false);
+  }
+  sh.undo = function () {
+    if (!sh.moves.length) return; const wasOver = sh.state.over; sh.token++; sh.busy = false; sh.hintMove = null; O.hideAll();
+    if (st.mode === 'ai') { sh.moves.pop(); rebuild(); while (sh.moves.length && sh.state.turn !== sh.human) { sh.moves.pop(); rebuild(); } } else { sh.moves.pop(); rebuild(); }
+    if (wasOver) { /* a finished game was already counted; undo after the end does not take the result back */ }
+    sh.lastInfo = { undo: true }; saveGame(); cfg.onState(sh, sh.lastInfo); after();
+  };
+  sh.hint = function () {
+    const s = sh.state; if (!s || s.over || sh.busy || isAI(s.turn)) return; const tk = ++sh.token; sh.busy = true; KIT.setText($('msg'), '💡 Thinking of a hint…'); sh.hintsUsed++;
+    ask({ moves: sh.moves.slice(), opts: Object.assign({}, st.opts), level: 'hard', hint: true }).then(mv => { if (tk !== sh.token) return; sh.busy = false; sh.hintMove = mv; cfg.onState(sh, { hint: mv }); KIT.setText($('msg'), cfg.status(sh, sh.state) + '  💡 Try the marked spot.'); });
+  };
+
+  /* ---- setup buttons ---- */
+  function renderSetup() {
+    const grp = (id, label, opts, cur) => '<div class="grp"><span class="kl">' + label + '</span>' + opts.map(([v, t]) => '<button class="btn sm' + (String(cur) === String(v) ? ' on' : '') + '" data-act="set" data-k="' + id + '" data-v="' + v + '" type="button">' + t + '</button>').join(' ') + '</div>';
+    let h = grp('mode', 'Play', [['ai', '🤖 vs Computer'], ['two', '👥 2 players']], st.mode);
+    if (st.mode === 'ai') h += grp('level', 'Level', LEVELS, st.level) + grp('side', 'You play', [['first', cfg.names[0] + ' (first)'], ['second', cfg.names[1]], ['random', '🎲 Random']], st.side);
+    for (const d of cfg.optionDefs || []) h += grp('opt:' + d.id, d.label, d.options, st.opts[d.id]);
+    $('setup').innerHTML = h;
+  }
+  sh.renderSetup = renderSetup;
+  ui.actions(document.body, {
+    set: b => { const k = b.dataset.k, v = b.dataset.v;
+      if (k.startsWith('opt:')) { const id = k.slice(4), o = (cfg.optionDefs.find(d => d.id === id).options.find(x => String(x[0]) === v)); st.opts[id] = typeof o[0] === 'number' ? +v : v; S.save(); renderSetup(); sh.newGame(); }
+      else if (k === 'mode') { st.mode = v; S.save(); renderSetup(); sh.newGame(); }
+      else if (k === 'level') { st.level = v; S.save(); renderSetup(); updateStats(); }
+      else { st[k] = v; S.save(); renderSetup(); sh.newGame(); } },
+    undo: () => sh.undo(), hint: () => sh.hint(), again: () => sh.newGame(), close: () => O.hide('ovEnd')
+  });
+  $('bNew').onclick = () => sh.newGame();
+  sh.start = function () { renderSetup(); if (!sh.resume()) sh.newGame(); };
+  return sh;
+}
+
+/* Connect 5 (five in a row, also called Gomoku) rules + computer player. One function so the same code runs in the page and in a Web Worker.
+   Cells are numbered row by row from the top-left: index = row * N + col. A move is a cell index. */
+function ENGINE(isWorker) {
+  const DIRS = [[1, 0], [0, 1], [1, 1], [1, -1]], WIN = 1000000;
+  const sizeOf = o => [13, 15, 19].includes(o && o.size) ? o.size : 15, ruleOf = o => (o && o.rule === 'exact' ? 'exact' : 'free');
+
+  function newGame(opts) { const N = sizeOf(opts); return { N, rule: ruleOf(opts), board: new Int8Array(N * N), turn: 0, over: false, winner: null, moves: [], last: -1, line: [] }; }
+  const legal = s => { const r = []; if (s.over) return r; for (let i = 0; i < s.board.length; i++) if (!s.board[i]) r.push(i); return r; };
+  /* the run of colour p through cell i (a stone of p must already be there): returns cells of the winning run or null */
+  function runAt(board, N, i, p, rule) {
+    const r0 = (i / N) | 0, c0 = i % N;
+    for (const [dc, dr] of DIRS) {
+      const cells = [i];
+      for (let k = 1; ; k++) { const c = c0 + dc * k, r = r0 + dr * k; if (c < 0 || c >= N || r < 0 || r >= N || board[r * N + c] !== p) break; cells.push(r * N + c); }
+      for (let k = 1; ; k++) { const c = c0 - dc * k, r = r0 - dr * k; if (c < 0 || c >= N || r < 0 || r >= N || board[r * N + c] !== p) break; cells.push(r * N + c); }
+      if (rule === 'exact' ? cells.length === 5 : cells.length >= 5) return cells;
+    }
+    return null;
+  }
+  function play(s, i) {
+    if (s.board[i]) throw new Error('taken'); const p = s.turn + 1; s.board[i] = p; s.moves.push(i); s.last = i;
+    const ln = runAt(s.board, s.N, i, p, s.rule);
+    if (ln) { s.over = true; s.winner = s.turn; s.line = ln; } else if (s.moves.length === s.N * s.N) { s.over = true; s.winner = -1; }
+    s.turn = 1 - s.turn; return s;
+  }
+
+  /* ---------- search: every window of 5 cells keeps a count of black and white stones, so the score updates in a few steps ---------- */
+  const TAB = [0, 1, 12, 150, 2500, 300000], cache = {};
+  function windows(N) {
+    if (cache[N]) return cache[N]; const cells = [], cover = Array.from({ length: N * N }, () => []);
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) for (const [dc, dr] of DIRS) { const ec = c + 4 * dc, er = r + 4 * dr; if (ec < 0 || ec >= N || er < 0 || er >= N) continue; const id = cells.length, cs = []; for (let k = 0; k < 5; k++) { const i = (r + dr * k) * N + c + dc * k; cs.push(i); cover[i].push(id); } cells.push(cs); }
+    return cache[N] = { cells, cover };
+  }
+  let nodes = 0, deadline = 0, aborted = false;
+  function Pos(s) {
+    const N = s.N, { cells, cover } = windows(N), board = new Int8Array(N * N), c1 = new Uint8Array(cells.length), c2 = new Uint8Array(cells.length), near = new Uint8Array(N * N);
+    let total = 0;     // black's score minus white's score
+    const wsc = (a, b) => (b === 0 ? TAB[a] : a === 0 ? -TAB[b] : 0);
+    const P = { N, board, cells, cover, c1, c2, near, rule: s.rule, count: 0,
+      put(i, p) { board[i] = p; P.count++; for (const w of cover[i]) { total -= wsc(c1[w], c2[w]); if (p === 1) c1[w]++; else c2[w]++; total += wsc(c1[w], c2[w]); }
+        const r0 = (i / N) | 0, c0 = i % N; for (let r = Math.max(0, r0 - 2); r <= Math.min(N - 1, r0 + 2); r++) for (let c = Math.max(0, c0 - 2); c <= Math.min(N - 1, c0 + 2); c++) near[r * N + c]++; },
+      take(i, p) { board[i] = 0; P.count--; for (const w of cover[i]) { total -= wsc(c1[w], c2[w]); if (p === 1) c1[w]--; else c2[w]--; total += wsc(c1[w], c2[w]); }
+        const r0 = (i / N) | 0, c0 = i % N; for (let r = Math.max(0, r0 - 2); r <= Math.min(N - 1, r0 + 2); r++) for (let c = Math.max(0, c0 - 2); c <= Math.min(N - 1, c0 + 2); c++) near[r * N + c]--; },
+      score: me => (me === 1 ? total : -total),
+      /* how much this move is worth to me (attack) plus how much it takes away from the other side (defence) */
+      heur(i, me) { let a = 0, d = 0, win = false, lose = false; for (const w of cover[i]) { const m = me === 1 ? c1[w] : c2[w], o = me === 1 ? c2[w] : c1[w]; if (o === 0) { a += TAB[m + 1] - TAB[m]; if (m === 4) win = true; } if (m === 0) { d += TAB[o + 1] - TAB[o]; if (o === 4) lose = true; } } return { h: a + d * .95, win, lose }; } };
+    s.moves.forEach((m, k) => P.put(m, (k & 1) + 1)); return P;
+  }
+  function cands(P, me) {
+    const out = []; for (let i = 0; i < P.board.length; i++) if (!P.board[i] && P.near[i]) { const x = P.heur(i, me); out.push({ i, h: x.h, win: x.win, lose: x.lose }); }
+    out.sort((a, b) => b.h - a.h); return out;
+  }
+  const wins = (P, i, me) => { P.board[i] = me; const r = !!runAt(P.board, P.N, i, me, P.rule); P.board[i] = 0; return r; };
+  function negamax(P, me, depth, alpha, beta, ply, K) {
+    if ((++nodes & 1023) === 0 && Date.now() > deadline) aborted = true; if (aborted) return 0;
+    if (P.count === P.N * P.N) return 0;
+    const cs = cands(P, me); if (!cs.length) return 0;
+    for (const c of cs) if (c.win && wins(P, c.i, me)) return WIN - ply;
+    const block = cs.filter(c => c.lose && wins(P, c.i, 3 - me));
+    if (block.length > 1) { /* two squares the other side wins on: I can only block one */ return -(WIN - ply - 1); }
+    if (depth <= 0) return P.score(me);
+    const list = block.length ? block : cs.slice(0, K(ply));
+    let best = -1e9, bi = list[0].i;
+    for (const c of list) { P.put(c.i, me); const v = -negamax(P, 3 - me, depth - 1, -beta, -alpha, ply + 1, K); P.take(c.i, me); if (aborted) return 0; if (v > best) { best = v; bi = c.i; } if (v > alpha) alpha = v; if (alpha >= beta) break; }
+    return best;
+  }
+  const LEVEL = { medium: { depth: 2, ms: 400, K: () => 8 }, hard: { depth: 5, ms: 900, K: p => (p < 2 ? 12 : 8) }, expert: { depth: 9, ms: 2200, K: p => (p < 2 ? 14 : p < 4 ? 10 : 7) } };
+  function choose(s, level, hint) {
+    const N = s.N, me = s.turn + 1, mid = (N >> 1) * N + (N >> 1);
+    if (!s.moves.length) return mid;
+    const P = Pos(s), cs = cands(P, me); if (!cs.length) return mid;
+    if (s.moves.length === 1) { const first = s.moves[0], near = cs.filter(c => Math.abs(((c.i / N) | 0) - ((first / N) | 0)) <= 1 && Math.abs(c.i % N - first % N) <= 1); return near[(Math.random() * near.length) | 0].i; }
+    const win = cs.find(c => c.win && wins(P, c.i, me)); if (win) return win.i;
+    const block = cs.filter(c => c.lose && wins(P, c.i, 3 - me));
+    if (level === 'easy' && !hint) {      // easy: sees direct wins, usually blocks, otherwise picks a decent square with a lot of luck
+      if (block.length && Math.random() < .75) return block[0].i;
+      const top = cs.slice(0, 10); let best = top[0].i, bv = -1e9; for (const c of top) { const v = Math.log(1 + c.h) + Math.random() * 3.2; if (v > bv) { bv = v; best = c.i; } } return best;
+    }
+    if (block.length === 1) { /* forced: but still look for the best block if it also threatens */ return block[0].i; }
+    const L = LEVEL[hint ? 'hard' : level] || LEVEL.medium; deadline = Date.now() + L.ms; aborted = false; nodes = 0;
+    let order = cs.slice(0, L.K(0)).map(c => c.i), best = order[0];
+    for (let d = 1; d <= L.depth; d++) {
+      aborted = false; let bv = -1e9, bi = -1, alpha = -1e9; const sc = [];
+      for (const i of order) { P.put(i, me); const v = -negamax(P, 3 - me, d - 1, -1e9, -alpha, 1, L.K); P.take(i, me); if (aborted) break; sc.push([i, v]); if (v > bv) { bv = v; bi = i; alpha = Math.max(alpha, v); } }
+      if (aborted || bi < 0) break; best = bi; order = sc.sort((a, b) => b[1] - a[1]).map(x => x[0]);
+      if (level === 'medium' && !hint && d === L.depth && sc.length > 1 && Math.random() < .2 && sc[1][1] > sc[0][1] - 80) best = sc[1][0];
+      if (bv > WIN - 100) break;
+    }
+    return best;
+  }
+  function job(j) { const s = newGame(j.opts); for (const m of j.moves) play(s, m); return choose(s, j.level, !!j.hint); }
+  const E = { newGame, play, legal, job, choose, runAt };
+  if (isWorker) self.onmessage = ev => self.postMessage(job(ev.data));
+  return E;
+}
+if (typeof module !== 'undefined') module.exports = ENGINE;
+
+/* Connect 5 (five in a row) on the shared shell. Rules and computer player are in engine.js; this file draws the board. */
+(() => {
+const { $, settings } = KIT;
+const BOARDS = { wood: ['#d9a95b', '#7a4f1d', '#4a2f10'], bamboo: ['#e9d9a2', '#8a7a3c', '#5a4d1c'], slate: ['#566074', '#1f2633', '#10141c'], green: ['#4f9d6b', '#14402a', '#0b2517'] };
+const STONES = { classic: [['#666', '#111', '#000'], ['#fff', '#e2e2e2', '#a8a8a8']], ruby: [['#ff8a8a', '#d02a2a', '#7a1010'], ['#9ccaff', '#2f78d8', '#163f80']], coin: [['#ffe28a', '#e0a82e', '#8a5f0a'], ['#f4f6fa', '#b9c2d0', '#6d7888']], panda: [['#ffffff', '#f1f1f1', '#999'], ['#ffd27a', '#ff9d2e', '#a65b00']] };
+const EMO = { panda: ['🐼', '🐯'] };
+const NAMES = { classic: ['Black', 'White'], ruby: ['Red', 'Blue'], coin: ['Gold', 'Silver'], panda: ['Panda', 'Tiger'] };
+const DOT = { classic: ['⚫', '⚪'], ruby: ['🔴', '🔵'], coin: ['🟡', '⚪'], panda: ['🐼', '🐯'] };
+const nm = st => NAMES[st.disc] || NAMES.classic, dt = st => DOT[st.disc] || DOT.classic;
+const touch = typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches;
+const sh = Shell({
+  key: 'kevinhyhau.ch24.v1', ENGINE, names: ['Black', 'White'], opts: { size: 15, rule: 'free' }, defaults: { disc: 'classic', board: 'wood', last: true, confirm: touch, coords: true },
+  optionDefs: [{ id: 'size', label: 'Board', options: [[13, '13×13'], [15, '15×15'], [19, '19×19']] }, { id: 'rule', label: 'Rule', options: [['free', 'Free: 5 or more'], ['exact', 'Exactly 5']] }],
+  status(sh, s) { const n = nm(sh.st), d = dt(sh.st); return sh.st.mode === 'ai' ? 'Your move (' + d[sh.human] + ' ' + n[sh.human] + ')' + (sh.st.confirm ? ' · tap twice to place' : '') : d[s.turn] + ' ' + n[s.turn] + ' to move'; },
+  stats(sh, s) { const d = dt(sh.st); return [s.over ? 'End' : (sh.st.mode === 'ai' ? (s.turn === sh.human ? 'You' : 'Computer') : d[s.turn]), sh.st.mode === 'ai' ? d[sh.human] : '2 players', s.moves.length, s.N + '×' + s.N]; },
+  winText(sh, s) { return s.winner >= 0 ? nm(sh.st)[s.winner] + ' made ' + s.line.length + ' in a row after ' + s.moves.length + ' moves.' : 'The board is full.'; },
+  onState(sh, info) { pending = -1; onState(info); }
+});
+const st = sh.st;
+settings([
+  { id: 'disc', label: 'Stones', type: 'select', options: [['classic', '⚫⚪ Black and white'], ['ruby', '🔴🔵 Red and blue'], ['coin', '🪙 Gold and silver'], ['panda', '🐼🐯 Panda and tiger']], def: 'classic' },
+  { id: 'board', label: 'Board', type: 'select', options: [['wood', '🟫 Wood'], ['bamboo', '🎋 Bamboo'], ['slate', '⬛ Slate'], ['green', '🟩 Green']], def: 'wood' },
+  { id: 'confirm', label: 'Tap twice to place (aim first, then confirm)', type: 'check', def: touch },
+  { id: 'last', label: 'Mark the last stone', type: 'check', def: true },
+  { id: 'coords', label: 'Show letters and numbers', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { sh.S.save(); sh.renderSetup(); });
+
+const W = 480, cv = $('cv'); cv.style.aspectRatio = '1/1'; const C = KIT.canvas(cv, W, W), ctx = C.ctx;
+let N = 15, CS = 30, M = 30, pending = -1, hoverI = -1, pop = null;
+const px = i => M + (i % N) * CS, py = i => M + ((i / N) | 0) * CS;
+function fit(s) { N = s.N; CS = W / (N + 1); M = CS; }
+function onState(info) { const s = sh.state; fit(s); if (info.move !== undefined && !info.undo) pop = { i: info.move, t0: performance.now() / 1000 }; else if (info.fresh || info.undo) pop = null; }
+function stone(x, y, r, who, a) {
+  const c = (STONES[st.disc] || STONES.classic)[who - 1]; ctx.save(); ctx.globalAlpha = a == null ? 1 : a;
+  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.arc(x + r * .09, y + r * .14, r, 0, 7); ctx.fill();
+  const g = ctx.createRadialGradient(x - r * .35, y - r * .35, r * .1, x, y, r); g.addColorStop(0, c[0]); g.addColorStop(.7, c[1]); g.addColorStop(1, c[2]); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  if (EMO[st.disc]) { ctx.font = Math.round(r * 1.25) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(EMO[st.disc][who - 1], x, y + 1); }
+  ctx.restore();
+}
+function draw() {
+  const s = sh.state; if (!s) return; if (s.N !== N) fit(s); ctx.clearRect(0, 0, W, W); const P = BOARDS[st.board] || BOARDS.wood, now = performance.now() / 1000;
+  ctx.fillStyle = P[0]; ctx.fillRect(0, 0, W, W); ctx.strokeStyle = P[2]; ctx.lineWidth = 3; ctx.strokeRect(2, 2, W - 4, W - 4);
+  ctx.strokeStyle = P[1]; ctx.lineWidth = 1.2; ctx.beginPath(); for (let k = 0; k < N; k++) { ctx.moveTo(M + k * CS, M); ctx.lineTo(M + k * CS, M + (N - 1) * CS); ctx.moveTo(M, M + k * CS); ctx.lineTo(M + (N - 1) * CS, M + k * CS); } ctx.stroke();
+  ctx.fillStyle = P[1]; const q = N === 19 ? [3, 9, 15] : N === 13 ? [3, 6, 9] : [3, 7, 11]; for (const r of q) for (const c of q) { ctx.beginPath(); ctx.arc(M + c * CS, M + r * CS, 3, 0, 7); ctx.fill(); }
+  if (st.coords) { ctx.fillStyle = P[2]; ctx.font = 'bold ' + Math.round(CS * .36) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; for (let k = 0; k < N; k++) { ctx.fillText('ABCDEFGHJKLMNOPQRST'[k], M + k * CS, M * .45); ctx.fillText(String(N - k), M * .42, M + k * CS); } }
+  const R = CS * .44;
+  for (let i = 0; i < N * N; i++) { const v = s.board[i]; if (!v) continue; let r = R; if (pop && pop.i === i) { const t = (now - pop.t0) / .2; if (t < 1) r = R * (1 + .35 * (1 - t) * (1 - t)); else pop = null; } stone(px(i), py(i), r, v); }
+  if (st.last && s.last >= 0) { ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(px(s.last), py(s.last), R * .45, 0, 7); ctx.stroke(); }
+  if (s.over && s.line.length) { const pu = .5 + .5 * Math.sin(now * 6); ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 3 + pu * 2.5; for (const i of s.line) { ctx.beginPath(); ctx.arc(px(i), py(i), R + 1, 0, 7); ctx.stroke(); } }
+  const myTurn = !s.over && !sh.busy && (st.mode === 'two' || s.turn === sh.human);
+  const aim = pending >= 0 ? pending : (!touch && hoverI >= 0 ? hoverI : -1);
+  if (myTurn && aim >= 0 && !s.board[aim]) { ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(M, py(aim)); ctx.lineTo(M + (N - 1) * CS, py(aim)); ctx.moveTo(px(aim), M); ctx.lineTo(px(aim), M + (N - 1) * CS); ctx.stroke(); stone(px(aim), py(aim), R, s.turn + 1, .6); }
+  if (sh.hintMove != null && !s.over) { const pu = 1 + .12 * Math.sin(now * 6); ctx.strokeStyle = '#ffd24a'; ctx.fillStyle = 'rgba(255,210,74,.3)'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(px(sh.hintMove), py(sh.hintMove), R * .85 * pu, 0, 7); ctx.fill(); ctx.stroke(); }
+}
+const cellOf = e => { const p = C.pos(e), c = Math.round((p.x - M) / CS), r = Math.round((p.y - M) / CS); return c < 0 || c >= N || r < 0 || r >= N ? -1 : r * N + c; };
+cv.addEventListener('pointermove', e => { hoverI = cellOf(e); });
+cv.addEventListener('pointerleave', () => { hoverI = -1; });
+cv.addEventListener('pointerdown', e => { e.preventDefault(); const s = sh.state, i = cellOf(e); if (!s || i < 0) return; hoverI = i;
+  const myTurn = !s.over && !sh.busy && (st.mode === 'two' || s.turn === sh.human); if (!myTurn) return; if (s.board[i]) { KIT.setText($('msg'), 'That spot is taken.'); return; }
+  if (st.confirm && pending !== i) { pending = i; return; } pending = -1; sh.humanMove(i); });
+window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey || /^(input|select|textarea)$/i.test(e.target.tagName)) return; const k = e.key.toLowerCase(); if (k === 'z') sh.undo(); else if (k === 'h') sh.hint(); else if (k === 'n') sh.newGame(); });
+sh.start(); fit(sh.state);
+KIT.loop(() => {}, draw).start();
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+KIT.hook({ sh, get state() { return sh.state; } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

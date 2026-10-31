@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script language="javascript" type="text/javascript" src="../p5.min.js"></script>
+  <script language="javascript" type="text/javascript" src="circles.js"></script>
+  <script defer src="kbrm_animation.js"></script>
+
+  <title>Chapter 1 - Kevin Hau's k-Bit Recurrence Model</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    .kb-tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin:.6rem 0}
+    .kb-tabs button,.kb-btns button{font:inherit;font-size:.9rem;color:var(--fg);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:.35rem .8rem;cursor:pointer}
+    .kb-tabs button.on{background:var(--accent);color:#000;border-color:transparent;font-weight:600}
+    .kb-say{color:var(--accent-light);font-size:.95rem;min-height:2.9em;margin:.2rem 0 .4rem}
+    .kb-canvas{width:100%;max-width:700px;margin:0 auto;border:1px solid var(--border);border-radius:10px;background:#0d1117;overflow:hidden;line-height:0}
+    .kb-ctl{display:flex;flex-wrap:wrap;gap:.8rem 1.2rem;align-items:center;margin:.7rem 0 1rem;font-size:.88rem}
+    .kb-ctl label{display:flex;flex-direction:column;gap:.15rem;min-width:140px}
+    .kb-ctl input{accent-color:var(--accent)}
+    .kb-steps{padding-left:1.2rem;margin:.4rem 0}.kb-steps li{margin:.5rem 0}
+    .note{color:#aaa;font-size:.9rem}
+    ul{padding-left:1.2rem}
+    main{width:100%;max-width:700px}
+    canvas{max-width:100%;height:auto!important}
+  </style>
+  <meta name="description" content="Kevin HY Hau's little web" />
+</head>
+<body>
+  <header>
+    <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+    <h1>Chapter 1 - Kevin Hau's k-Bit Recurrence Model</h1>
+    
+  </header>
+
+  <main>
+    <p style="display:none"></p>
+      <h3>Shiny App - <a href="https://kevinhyhau.shinyapps.io/k_Bit_Recurrence_Model" target="_blank" rel="noopener">k-Bit Recurrence Model</a></h3>
+    <br>
+    <p>
+      <h4>Objective:</h4>
+      This algorithm model a stochastic process that combines the forward-branching structure of a binomial tree 
+      with the memory-retaining dynamics of a recurrent neural network (similar to <a href="https://en.wikipedia.org/wiki/Hopfield_network" target="_blank" rel="noopener">Hopfield network</a> when historical step (k) = 3), 
+      while computing expected values at every step under binary (0/1) outcomes.<br>
+      <br>
+      <h4>Applications:</h4>
+      <ul>
+      <li> Monthly payment (utilities / phone / insurance) </li>
+      <li> Repayments of loan / mortgage (beyond the scope of this app as maturity is not considered) </li>
+      </ul>
+      <br>
+      <h4>Instructions:</h4>
+      <ul>
+        <li>Choose the number of historical time steps and the number of future steps you want to forecast.</li>
+        <li>Enter the total population for each event code across the historical period, plus the expected number of events for the next upcoming step.</li>
+        <li>Click <strong>Run</strong> to compute the expected values and visualize the resulting growth or decline curve.</li>
+      </ul>
+      <br>
+      
+  
+    <h4>See it move:</h4>
+    <p>Pick a picture below. Each one shows one idea of the model (use the sliders to change it). <em>The numbers in the animation are illustrative, so you can see the shape of the idea; the app below uses your own data.</em></p>
+    <div class="kb-tabs" id="kb-tabs">
+      <button type="button" class="on" data-s="0">1 · Tree</button>
+      <button type="button" data-s="1">2 · Paths merge →</button>
+      <button type="button" data-s="2">3 · Memory window</button>
+      <button type="button" data-s="3">4 · Expected values</button>
+    </div>
+    <div id="kb-say" class="kb-say"></div>
+    <div id="kbrm-canvas" class="kb-canvas"></div>
+    <div class="kb-ctl">
+      <label>History length k <b id="kb-kv">3</b><input id="kb-k" type="range" min="1" max="4" step="1" value="3"></label>
+      <label>Steps forward <b id="kb-sv">8</b><input id="kb-s" type="range" min="3" max="12" step="1" value="8"></label>
+      <label>Memory strength <b id="kb-mv">0.6</b><input id="kb-m" type="range" min="0" max="1" step="0.1" value="0.6"></label>
+      <span class="kb-btns"><button type="button" id="kb-play">⏸ Pause</button><button type="button" id="kb-re">↻ Restart</button></span>
+    </div>
+    <h4>In five steps:</h4>
+    <ol class="kb-steps">
+      <li><b>Each step is a 0 or a 1.</b> Paid or not paid, event or no event. Every step splits into two branches, like a binomial tree.</li>
+      <li><b>Remember the last k steps.</b> The last k bits form a small pattern, which is the state (k = 3 gives 8 states). A normal tree only remembers the last step; this model remembers k.</li>
+      <li><b>The state sets the odds.</b> The pattern picks the chance that the next bit is a 1. Memory strength 0 means no memory (a plain tree); higher means the past matters more.</li>
+      <li><b>Add up the paths.</b> Different 0/1 paths that end with the same number of payments after the same number of steps are combined into one chance (tab 2).</li>
+      <li><b>Push expected values forward.</b> Instead of simulating thousands of random paths, it moves the expected number of people through the states, one step at a time, so the forecast is exact and fast.</li>
+    </ol>
+    <br>
+    <h4>Details:</h4>
+      
+      In a binomial tree, each node’s probability depends only on the immediately previous state. 
+      Here, the transition probability at step k is derived from a grouped summary of multiple earlier steps—effectively treating the history as a compact state vector whose influence decays or aggregates in a controlled manner.<br><br>
+      This is similar to the recurrent connections in a Hopfield network, where the network’s energy landscape stores and retrieves patterns from past activations. 
+      However, unlike Hopfield neural network (which typically performs deterministic or probabilistic retrieval), the algorithm injects a forward-looking expected-value layer. <br><br>
+      This expectation is propagated forward, turning the process into a hybrid recurrent stochastic process that remembers past configurations while maintaining an analytically tractable martingale-like property.<br><br>
+      <br>
+    </p>
+
+    <h4>Try it</h4>
+    <p class="note">The app is hosted on shinyapps.io. If the box below stays blank, use the button: it opens the same app in its own tab.</p>
+    <p style="text-align:center"><a class="btn" href="https://kevinhyhau.shinyapps.io/k_Bit_Recurrence_Model" target="_blank" rel="noopener">Open the app in a new tab ↗</a></p>
+    <iframe id="MyApp" src="https://kevinhyhau.shinyapps.io/k_Bit_Recurrence_Model" title="k-Bit Recurrence Model (Shiny app)"
+      style="border:0; width:100%; height:720px; margin-top:1rem; border-radius:8px; background:#fff"
+      loading="lazy" referrerpolicy="no-referrer-when-downgrade" allow="fullscreen"></iframe>
+
+    <br>
+    <h4>TO DO (based on funding): </h4>
+    <ul>
+      <li>Different option of input methods</li>
+      <li>Extend length of steps forward</li>
+      <li>Extend length of historical steps</li>
+      <li>Include the option of different set of parameters for each step up to the cycle of 12 steps</li>
+      <li>Include length of terms for loans</li>
+      <li>Include breakdown of number of events by each step</li>
+    </ul><br><br>
+
+
+  </main>
+
+    <footer>
+      <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+      <br><b><a href="https://www.paypal.me/KevHauR">∫ KevHau d(coffee) = formula </a></b><br>
+      <p>
+        <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+        <br>
+        
+      </p>
+      <br>
+          <!-- hitwebcounter Code START -->
+      <b>View</b><br>
+      <!-- hitwebcounter Code START -->
+      <a href="https://www.hitwebcounter.com/" target="_blank">
+      <img src="https://hitwebcounter.com/counter/counter.php?page=21480109&style=0024&nbdigits=6&type=page&initCount=1" title="Free Tools" Alt="Free Tools"   border="0" /></a>                                  
+
+
+    </footer>
+
+</body>
+
+<script>
+  document.addEventListener("contextmenu", (e) =>{
+    e.preventDefault()
+    return false
+  })
+  document.addEventListener("keydown", (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    return false
+  })
+</script>
+
+<script>
+  /* wiring for the animation controls (the sketch itself is in kbrm_animation.js) */
+  (function () {
+    var say = [
+      "<b>Tree.</b> Each step has two branches: 0 or 1. Here the odds on each branch depend on the last k steps, so the tree remembers.",
+      "<b>Paths merge.</b> Read left to right: steps across, payments so far up. Many different 0/1 paths land on the same spot, and their chances are added. This is how the answer for \"j payments after n steps\" is built.",
+      "<b>Memory window.</b> The last k bits form a state. The state sets the chance that the next bit is a 1, then the window slides on.",
+      "<b>Expected values.</b> No random paths: the expected number of people is moved through the states, step by step, and the events at each step add up."
+    ];
+    function $(i) { return document.getElementById(i); }
+    function set(o) { if (window.KBRM) window.KBRM.set(o); }
+    var tabs = [].slice.call(document.querySelectorAll('#kb-tabs button'));
+    tabs.forEach(function (b) { b.addEventListener('click', function () {
+      tabs.forEach(function (x) { x.classList.toggle('on', x === b); });
+      $('kb-say').innerHTML = say[+b.dataset.s]; set({ scene: +b.dataset.s }); }); });
+    $('kb-say').innerHTML = say[0];
+    $('kb-k').addEventListener('input', function () { $('kb-kv').textContent = this.value; set({ k: +this.value }); });
+    $('kb-s').addEventListener('input', function () { $('kb-sv').textContent = this.value; set({ steps: +this.value }); });
+    $('kb-m').addEventListener('input', function () { $('kb-mv').textContent = this.value; set({ stick: +this.value }); });
+    $('kb-play').addEventListener('click', function () { if (!window.KBRM) return; var S = window.KBRM.S; S.playing = !S.playing; this.textContent = S.playing ? '⏸ Pause' : '▶ Play'; });
+    $('kb-re').addEventListener('click', function () { if (window.KBRM) window.KBRM.restart(); });
+  })();
+</script>
+</html>

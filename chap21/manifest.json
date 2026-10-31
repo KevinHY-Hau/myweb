@@ -1,0 +1,31 @@
+{
+  "name": "Hex Bastion",
+  "short_name": "Hex Bastion",
+  "description": "Defend the gate on a hex map: famous scenes from \u4e09\u570b\u6f14\u7fa9, generals with their legendary weapons, and strategists with futuristic ones",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

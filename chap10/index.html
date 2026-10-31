@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 10 · Lights Out 24</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --text:var(--fg); --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+  --good:#22c55e; --bad:#ef4444;
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+  --shadow:0 4px 20px rgba(20,40,80,.12); --good:#15803d; --bad:#dc2626;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:1320px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.5rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1320px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+footer details.lic{max-width:720px;margin:.3rem auto;text-align:left;border:0}
+footer details.lic summary{justify-content:center;font-weight:400;font-size:.8rem;color:var(--muted)}
+footer details.lic pre{white-space:pre-wrap;font:11px/1.4 ui-monospace,monospace;color:var(--muted);padding:6px 10px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+@media(max-width:1020px){.layout{grid-template-columns:1fr}}
+.game{min-width:0}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.6rem 1.1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s;text-decoration:none}
+.btn:hover{background:var(--panel);color:var(--fg);transform:translateY(-2px)}
+.btn:active{transform:none}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.primary:hover{background:var(--accent-light);color:#000}
+.btn.sm{padding:.35rem .7rem;font-size:14px}
+
+
+/* ---- board ---- */
+.stats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 auto 10px}
+.stats div{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 12px;font-size:12px;color:var(--muted);text-align:center;min-width:76px}
+.stats b{display:block;color:var(--fg);font-size:18px;line-height:1.2;font-variant-numeric:tabular-nums}
+.stats .over b{color:var(--bad)}
+.boardwrap{margin:0 auto;width:calc(min(100%,72vh,600px)*var(--sz,1));position:relative;container-type:inline-size;user-select:none;-webkit-user-select:none}
+.board{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:calc(100cqw/var(--n)*.07);padding:calc(100cqw/var(--n)*.09);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);aspect-ratio:1}
+.board.wrap{border-style:dashed;border-color:var(--accent)}
+.c{position:relative;appearance:none;border:0;border-radius:var(--cr,50%);aspect-ratio:1;background:var(--off);box-shadow:inset 0 0 0 2px var(--offline);cursor:pointer;transition:background .18s,box-shadow .18s,transform .12s;color:rgba(0,0,0,.55);font:800 calc(100cqw/var(--n)*.2)/1 var(--font);display:grid;place-items:center;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-width:0}
+.c:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.c:active{transform:scale(.93)}
+.c.s1{background:var(--on);box-shadow:0 0 calc(100cqw/var(--n)*.28) var(--glow),inset 0 0 0 2px rgba(255,255,255,.4)}
+.c.s2{background:var(--dim);box-shadow:inset 0 0 0 2px var(--on);color:var(--on)}
+.c .pp{letter-spacing:.08em;pointer-events:none}
+.c .tl{position:absolute;right:6%;top:4%;font-size:.8em;min-width:1.3em;height:1.3em;line-height:1.3em;border-radius:999px;background:var(--bg);color:var(--fg);box-shadow:0 0 0 1px var(--line);pointer-events:none}
+.c .tl:empty,.c .an:empty{display:none}
+.c .an{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);font-size:.85em;min-width:1.5em;height:1.4em;line-height:1.4em;border-radius:6px;background:var(--accent);color:#000;pointer-events:none}
+.c.wall{cursor:not-allowed;background-image:repeating-linear-gradient(45deg,rgba(128,128,128,.28) 0 6px,transparent 6px 12px)}
+.c.wall::after{content:"🔒";position:absolute;left:6%;top:3%;font-size:.8em;pointer-events:none;filter:grayscale(.3)}
+.c.pv{box-shadow:inset 0 0 0 3px var(--accent)}
+.c.s1.pv{box-shadow:0 0 calc(100cqw/var(--n)*.28) var(--glow),inset 0 0 0 3px var(--accent)}
+.c.hint{animation:hint 1s ease-in-out infinite}
+@keyframes hint{50%{transform:scale(1.1);box-shadow:0 0 0 4px var(--accent),0 0 22px var(--accent)}}
+.c.pop{animation:pop .28s}
+@keyframes pop{40%{transform:scale(.8)}}
+.noanim .c,.noanim .c.pop,.noanim .c.hint{transition:none;animation:none}
+.banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(10,14,24,.9);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:16px 22px;text-align:center;z-index:4;max-width:92%;width:max-content;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.banner b{display:block;font-size:1.5rem;color:#ffd84d;margin-bottom:2px}
+.banner .st{font-size:2rem;letter-spacing:.15em;color:#ffd84d;line-height:1.2}
+.banner .st i{font-style:normal;opacity:.25}
+.banner small{display:block;color:#c9d1d9;margin-top:4px}
+.banner .bb{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.banner.hide{display:none}
+.msg{margin:10px auto 0;width:calc(min(100%,72vh,600px)*var(--sz,1));min-height:44px;padding:8px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:14px}
+.msg.good{border-color:var(--good)} .msg.bad{border-color:var(--bad)}
+.ctrls{margin:10px auto 0;width:calc(min(100%,72vh,600px)*var(--sz,1));display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.how{font-size:13px;color:var(--muted);line-height:1.55}
+.how b{color:var(--fg)}
+.sample{display:inline-block;width:1.1em;height:1.1em;border-radius:50%;vertical-align:-2px;box-shadow:inset 0 0 0 2px var(--offline);background:var(--off)}
+.sample.s1{background:var(--on)} .sample.s2{background:var(--dim);box-shadow:inset 0 0 0 2px var(--on)}
+.wk{margin:6px 0 2px;font-size:12px;color:var(--muted);font-weight:700}
+.lv{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.lv button{border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:13px;padding:4px 0 2px;border-radius:8px;cursor:pointer;line-height:1.25}
+.lv button small{display:block;font-size:10px;color:var(--accent-light);height:12px}
+.lv button.on{outline:2px solid var(--accent)}
+.lv button.done{border-color:var(--good)}
+/* ---- side panels ---- */
+.side{display:flex;flex-direction:column;gap:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.panel h2{margin:0 0 10px;font-size:1.1rem;color:var(--accent)}
+.tabs{display:flex;background:var(--panel2);border-radius:10px;padding:3px;gap:3px;margin-bottom:10px}
+.tabs button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-weight:700;padding:7px 4px;border-radius:8px;cursor:pointer}
+.tabs button.on{background:var(--accent);color:#000}
+.cat{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.cat button{border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:13px;padding:4px 9px;border-radius:999px;cursor:pointer}
+.cat button.on{background:var(--accent);color:#000;border-color:transparent}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:5px;max-height:190px;overflow:auto;padding:2px}
+.grid button{border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:13px;padding:5px 0;border-radius:7px;cursor:pointer;position:relative}
+.grid button.on{outline:2px solid var(--accent)}
+.grid button.done{background:rgba(34,197,94,.22);border-color:var(--good)}
+.grid button.done::after{content:"✓";position:absolute;right:2px;top:-1px;font-size:10px;color:var(--good)}
+.list{display:flex;flex-direction:column;gap:5px;max-height:230px;overflow:auto}
+.list button{display:flex;justify-content:space-between;gap:8px;text-align:left;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;cursor:pointer}
+.list button.on{outline:2px solid var(--accent)} .list button.done{border-color:var(--good)}
+.list small{color:var(--muted);white-space:nowrap}
+.info{font-size:13px;color:var(--muted);margin:6px 2px}
+.stat{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.stat div{background:var(--panel2);border-radius:8px;padding:3px 10px;font-size:12px;color:var(--muted)} .stat b{color:var(--fg);font-size:14px}
+.moves{max-height:150px;overflow:auto;font-size:14px;line-height:1.7;padding:6px 8px;border-radius:8px;background:var(--panel2);margin-top:8px}
+.moves span.n{color:var(--muted);margin-right:3px} .moves span.m{margin-right:10px;white-space:nowrap}
+.moves .cur{color:var(--accent-light);font-weight:700}
+details{border-top:1px solid var(--line);padding:2px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:700;padding:10px 2px;list-style:none;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"▾";color:var(--muted)}
+details[open] summary::after{content:"▴"}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px}
+.row.stack{flex-direction:column;align-items:stretch;gap:4px}
+.row .lab{display:flex;flex-direction:column;min-width:0}
+.row .lab small{color:var(--muted);font-size:12px}
+.row .head{display:flex;justify-content:space-between;gap:8px}
+.row output{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
+.sw{appearance:none;width:44px;height:26px;border-radius:999px;border:0;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.sw[aria-checked="true"]{background:var(--accent)}
+.sw[aria-checked="true"]::after{transform:translateX(18px);background:#fff}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;max-width:190px}
+.foot{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.note{color:var(--muted);font-size:13px;padding:4px 2px 8px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Lights Out 24</h2>
+  <p>Chapter 10 · Lights Out with three light levels: turn every light off</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+  <div class="layout">
+    <section class="game">
+      <div class="stats" id="stats"></div>
+      <div class="boardwrap" id="bw"><div class="board" id="board"></div><div class="banner hide" id="banner"></div></div>
+      <div class="msg" id="msg"></div>
+      <div class="ctrls" id="ctrls"></div>
+    </section>
+    <aside class="side">
+      <div class="panel" id="play"></div>
+      <div class="panel" id="panel"><h2>Customise</h2></div>
+    </aside>
+  </div>
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+const TG=(()=>{const e={plus:[[0,0],[1,0],[-1,0],[0,1],[0,-1]],x:[[0,0],[1,1],[-1,-1],[1,-1],[-1,1]],sq:[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]},t=new Map;function s(r,u,c){const h=r+u+c;if(t.has(h))return t.get(h);const d=r*r,b=[];for(let y=0;y<d;y++)b.push(new Array(d).fill(0));for(let y=0;y<r;y++)for(let x=0;x<r;x++){const P=y*r+x;for(const[C,v]of e[u]){let w=y+C,g=x+v;if(c)w=(w+r)%r,g=(g+r)%r;else if(w<0||g<0||w>=r||g>=r)continue;b[w*r+g][P]=(b[w*r+g][P]+1)%3}}return t.set(h,b),b}function l(r,u){const c=r.length,h=u.length,d=r.map((v,w)=>{const g=u.map(m=>v[m]);for(let m=0;m<c;m++)g.push(m===w?1:0);return g});let b=0;const y=[];for(let v=0;v<h&&b<c;v++){let w=-1;for(let m=b;m<c;m++)if(d[m][v]){w=m;break}if(w<0)continue;[d[b],d[w]]=[d[w],d[b]];const g=d[b][v];for(let m=0;m<h+c;m++)d[b][m]=d[b][m]*g%3;for(let m=0;m<c;m++)if(m!==b&&d[m][v]){const A=d[m][v];for(let f=0;f<h+c;f++)d[m][f]=((d[m][f]-A*d[b][f])%3+3)%3}y.push(v),b++}const x=new Set(y),P=[];for(let v=0;v<h;v++)x.has(v)||P.push(v);const C=P.map(v=>{const w=new Array(h).fill(0);w[v]=1;for(let g=0;g<y.length;g++)w[y[g]]=(3-d[g][v])%3;return w});return{N:c,m:h,cols:u,M:d,piv:y,rank:b,basis:C}}const o=9;function n(r,u){const{N:c,m:h,M:d,piv:b,rank:y,basis:x}=r,P=new Array(c).fill(0);for(let f=0;f<c;f++){let T=0;for(let k=0;k<c;k++)T+=d[f][h+k]*u[k];P[f]=T%3}for(let f=y;f<c;f++)if(P[f])return null;const C=new Array(h).fill(0);for(let f=0;f<y;f++)C[b[f]]=P[f];const v=x.length,w=f=>{let T=0;for(let k=0;k<h;k++)T+=f[k];return T};if(v<=o){let f=null,T=1e9;const k=Math.pow(3,v);for(let M=0;M<k;M++){let L=M;const E=C.slice();for(let N=0;N<v;N++){const z=L%3;if(L=(L-z)/3,z){const B=x[N];for(let O=0;O<h;O++)E[O]=(E[O]+z*B[O])%3}}const H=w(E);H<T&&(T=H,f=E)}return{x:f,w:T,approx:!1}}let g=C,m=w(g),A=!0;for(;A;){A=!1;for(let f=0;f<v;f++)for(let T=1;T<=2;T++){const k=g.slice();for(let L=0;L<h;L++)k[L]=(k[L]+T*x[f][L])%3;const M=w(k);M<m&&(g=k,m=M,A=!0)}}return{x:g,w:m,approx:!0}}function a(r,u,c){const h=r.length,d=new Array(h).fill(0);return u.forEach((b,y)=>{if(c[y])for(let x=0;x<h;x++)r[x][b]&&(d[x]+=r[x][b]*c[y])}),d.map(b=>b%3)}function p(r){let u=r>>>0;return()=>{u=u+1831565813>>>0;let c=u;return c=Math.imul(c^c>>>15,c|1),c^=c+Math.imul(c^c>>>7,c|61),((c^c>>>14)>>>0)/4294967296}}function i(r,u,c,h,d,b){b=b||{};const y=u.length,x=b.iters||300,P=b.restarts||40,C=b.ms||0,v=Date.now();let w=null,g=1e9;for(let m=0;m<P;m++){const A=new Array(y).fill(0);let f=0,T=0;for(;T<h&&f<y*8;){const N=d()*y|0;A[N]<2&&(A[N]++,T++),f++}let k=A,M=a(r,u,k),L=n(c,M),E=L?L.w:0;for(let N=0;N<x&&E!==h&&!(C&&Date.now()-v>C);N++){const z=k.slice(),B=1+(d()*2|0);for(let I=0;I<B;I++){const R=d()*y|0;z[R]=(z[R]+1+(d()*2|0))%3}const O=a(r,u,z),D=n(c,O);D&&Math.abs(D.w-h)<=Math.abs(E-h)&&(k=z,M=O,E=D.w,L=D)}const H=Math.abs(E-h);if(E>0&&H<g&&(g=H,w={s:M,w:E,approx:L.approx}),g===0||C&&Date.now()-v>C)break}return w}return{matrix:s,prep:l,solve:n,stateOf:a,generate:i,rngOf:p,OFFS:e}})(),$=e=>document.getElementById(e),clamp=(e,t,s)=>Math.max(t,Math.min(s,e)),pick=e=>e[Math.random()*e.length|0],LS_SET="kevinhyhau.ch10.set.v1",LS_PROG="kevinhyhau.ch10.prog.v1",DEF={dark:!0,pal:"gold",cellShape:"round",size:100,pips:!0,tally:!1,preview:!0,anim:!0,sound:!1,hints:!0,showPar:!0,left:!1,undo:!0,timer:!0,limit:!1,extra:6,n:5,shape:"plus",wrap:!1,walls:0,target:24,tab:"free"};let S={...DEF};try{Object.assign(S,JSON.parse(localStorage.getItem(LS_SET)||"{}"))}catch{}const save=()=>{try{localStorage.setItem(LS_SET,JSON.stringify(S))}catch{}};let prog={lv:{},daily:{},free:{solved:0,perfect:0}};try{Object.assign(prog,JSON.parse(localStorage.getItem(LS_PROG)||"{}"))}catch{}const saveProg=()=>{try{localStorage.setItem(LS_PROG,JSON.stringify(prog))}catch{}},PALS={neon:["Neon cyan","#22d3ee"],ruby:["Ruby red (the original)","#ef4444"],gold:["Gold","#f59e0b"],candy:["Candy pink","#f472b6"],lime:["Lime","#84cc16"],violet:["Violet","#a78bfa"],ocean:["Ocean blue","#3b82f6"]},SHAPES={round:["Round","50%"],soft:["Soft square","22%"],square:["Square","4px"]},SHAPE_NAME={plus:"Plus \u271A",x:"Cross \u2715",sq:"Big square \u25A6"},WORLDS=[{name:"Plus",icon:"\u271A",shape:"plus",wrap:!1,walls:0,t:[4,8,12,16,20,24],tip:"The classic shape: a light and its four neighbours."},{name:"Cross",icon:"\u2715",shape:"x",wrap:!1,walls:0,t:[6,10,14,18,22,26],tip:"Presses hit the four diagonal neighbours instead."},{name:"Round the world",icon:"\u{1F310}",shape:"plus",wrap:!0,walls:0,t:[3,5,7,9,11,13],tip:"The edges wrap round: the left column touches the right column."},{name:"Stones",icon:"\u{1F512}",shape:"plus",wrap:!1,walls:3,t:[6,10,14,18,22,26],tip:"Locked cells cannot be pressed, but they still change."}],lvId=(e,t)=>`${e}-${t}`,dayKey=()=>{const e=new Date;return`${e.getFullYear()}-${String(e.getMonth()+1).padStart(2,"0")}-${String(e.getDate()).padStart(2,"0")}`};function dailySpec(){const e=dayKey(),[t,s,l]=e.split("-").map(Number);return{n:5,shape:"plus",wrap:!1,walls:0,target:16+(t*372+s*31+l)%9,seed:t*1e4+s*100+l,id:e,label:`Daily ${e}`}}let G=null,genToken=0,hintTimer=null,tickTimer=null,banner=null;function build(e,t){const{n:s,shape:l,wrap:o}=e,n=s*s,a=TG.matrix(s,l,o),p=t?TG.rngOf(e.seed):(()=>Math.random()),i=new Set,r=Math.min(e.walls|0,Math.floor(n/3));for(;i.size<r;)i.add(p()*n|0);const u=[];for(let d=0;d<n;d++)i.has(d)||u.push(d);const c=TG.prep(a,u),h=TG.generate(a,u,c,e.target,p,t?{ms:2500}:{ms:1500});return{spec:e,n:s,N:n,A:a,cols:u,P:c,walls:i,init:Int8Array.from(h.s),s:Int8Array.from(h.s),par:h.w,approx:h.approx}}function newGame(e,t,s){const l=++genToken;closeBanner(),setMsg("Making a puzzle\u2026"),setTimeout(()=>{if(l!==genToken)return;const o=build(e,t);G=Object.assign(o,{mode:s,hist:[],tally:new Int8Array(o.N),moves:0,t0:0,elapsed:0,over:!1,locked:!1,assisted:!1,hints:0,reveal:!1,hintCell:-1,key:e.id||""}),stopTick(),buildBoard(),render();const n=limitOf();setMsg(`Tap a light: it and its neighbours step <b>bright \u2192 off \u2192 dim \u2192 bright</b>. Turn every light off${S.showPar?` in <b>${G.par}</b> presses${G.approx?" (about)":""}`:""}${n?`, with at most ${n} presses`:""}.`),renderPlay()},15)}const limitOf=()=>S.limit&&G?G.par+S.extra:0;function startFree(){newGame({n:S.n,shape:S.shape,wrap:S.wrap,walls:S.walls,target:S.target},!1,"free")}function startLevel(e,t){const s=WORLDS[e];newGame({n:5,shape:s.shape,wrap:s.wrap,walls:s.walls,target:s.t[t],seed:7e3+e*100+t,id:lvId(e,t),label:`${s.name} ${t+1}`},!0,"level")}function startDaily(){newGame(dailySpec(),!0,"daily")}function restart(){G&&(closeBanner(),G.s=Int8Array.from(G.init),G.hist=[],G.tally.fill(0),G.moves=0,G.t0=0,G.elapsed=0,G.over=!1,G.locked=!1,G.reveal=!1,G.hintCell=-1,stopTick(),render(),setMsg("Back to the start. Same puzzle, fresh go."))}const delta=e=>{const t=[];for(let s=0;s<G.N;s++)G.A[s][e]&&t.push(s);return t};function press(e,t){if(!G||G.over||G.locked||G.walls.has(e))return;const s=G.A,l=G.N,o=delta(e);for(const a of o)G.s[a]=((G.s[a]-s[a][e])%3+3)%3;if(G.hist.push(e),G.moves++,G.tally[e]=(G.tally[e]+1)%3,G.hintCell=-1,G.t0||(G.t0=Date.now()-G.elapsed,startTick()),S.anim&&popCells(o),render(),t!==!1&&beep(G.s[e]===0?660:G.s[e]===1?520:400,.07,"triangle"),G.s.every(a=>a===0))return win();const n=limitOf();n&&G.moves>=n&&(G.locked=!0,showBanner(`<b>Out of presses</b><small>You used all ${n}. Undo some, or start again.</small><div class="bb">${S.undo?'<button class="btn sm" data-a="undo">\u21B6 Undo</button>':""}<button class="btn primary sm" data-a="restart">\u27F2 Restart</button></div>`),beep(200,.25,"sawtooth"))}function undo(){if(!G||!G.hist.length||!S.undo||G.over)return;const e=G.hist.pop(),t=G.A;for(const s of delta(e))G.s[s]=(G.s[s]+t[s][e])%3;G.moves--,G.tally[e]=(G.tally[e]+2)%3,G.hintCell=-1,G.locked&&(G.locked=!1,closeBanner()),render(),beep(330,.05,"triangle")}function optimal(){return G?TG.solve(G.P,G.s):null}function hint(){if(!G||G.over||G.locked||!S.hints)return;const e=optimal();if(!e||!e.w)return;const t=[];e.x.forEach((l,o)=>{l&&t.push(o)});const s=G.cols[pick(t)];G.hints++,G.hintCell=s,render(),clearTimeout(hintTimer),hintTimer=setTimeout(()=>{G&&(G.hintCell=-1,render())},3500),setMsg(`\u{1F4A1} Press the glowing light${e.x[G.cols.indexOf(s)]===2?" (it needs 2 presses)":""}. Best finish from here: <b>${e.w}</b> more press${e.w===1?"":"es"}${e.approx?" (about)":""}.`)}function reveal(){!G||G.over||(G.reveal=!G.reveal,G.reveal&&(G.assisted=!0),render(),setMsg(G.reveal?"\u{1F441} Orange numbers show how many times to press each light, in any order. This run will not earn stars.":"Answer hidden."))}function win(){G.over=!0,G.elapsed=Date.now()-G.t0,stopTick(),render();const e=G.par,t=G.moves,s=G.assisted?0:t<=e?3:t<=e+Math.max(2,Math.round(e*.2))?2:1;if(G.mode==="level"){const n=G.key,a=prog.lv[n];!G.assisted&&(!a||s>a.stars||s===a.stars&&t<a.moves)&&(prog.lv[n]={stars:s,moves:t})}else if(G.mode==="daily"){const n=prog.daily[G.key];!G.assisted&&(!n||s>n.stars||s===n.stars&&t<n.moves)&&(prog.daily[G.key]={stars:s,moves:t,par:e})}else prog.free.solved++,t<=e&&!G.assisted&&prog.free.perfect++;saveProg();const l=G.assisted?"<small>Answer was shown, so no stars this time</small>":`<div class="st">${"\u2605".repeat(s)}<i>${"\u2605".repeat(3-s)}</i></div>`,o=G.mode==="level"?'<button class="btn primary sm" data-a="next">Next level \u25B6</button>':G.mode==="daily"?'<button class="btn sm" data-a="share">\u{1F4CB} Copy result</button>':'<button class="btn primary sm" data-a="new">\u{1F3B2} New puzzle</button>';showBanner(`<b>${t<=e&&!G.assisted?"Perfect! All lights out \u2728":"All lights out! \u{1F389}"}</b>${l}<small>${t} presses${S.showPar?` \xB7 best possible ${e}`:""}${G.hints?` \xB7 ${G.hints} hint${G.hints>1?"s":""}`:""}${S.timer?` \xB7 ${fmt(G.elapsed)}`:""}</small><div class="bb">${o}<button class="btn sm" data-a="restart">\u27F2 Try again</button></div>`),setMsg(t<=e?"You matched the best possible. Nobody can do it in fewer presses.":`Solved in ${t}. Can you get it in ${e}?`,"good"),[523,659,784,1046].forEach((n,a)=>setTimeout(()=>beep(n,.16,"triangle",.06),a*110)),renderPlay()}function share(){const e=prog.daily[G.key],t=`Lights Out 24 ${G.key}: ${"\u2B50".repeat(e?e.stars:0)||"\u2714"} ${G.moves}/${G.par} presses${S.timer?" \xB7 "+fmt(G.elapsed):""} \u{1F4A1} https://kevinhyhau.co.uk/`,s=l=>setMsg(l?"\u{1F4CB} Copied. Paste it anywhere to show off.":`Copy this: ${t}`,l?"good":"");try{navigator.clipboard.writeText(t).then(()=>s(!0),()=>s(!1))}catch{s(!1)}}function nextLevel(){if(!G||G.mode!=="level")return;const[e,t]=G.key.split("-").map(Number);t<5?startLevel(e,t+1):e<WORLDS.length-1?startLevel(e+1,0):(closeBanner(),setMsg("That was the last level. Try the daily puzzle, or free play with your own settings.","good"))}const fmt=e=>{const t=Math.floor(e/1e3);return`${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`};function setMsg(e,t){const s=$("msg");s.innerHTML=e,s.className="msg"+(t?" "+t:"")}function showBanner(e){const t=$("banner");t.innerHTML=e,t.classList.remove("hide")}function closeBanner(){$("banner").classList.add("hide")}function startTick(){stopTick(),tickTimer=setInterval(()=>{if(G&&G.t0&&!G.over){G.elapsed=Date.now()-G.t0;const e=$("stTime");e&&(e.textContent=fmt(G.elapsed))}},500)}function stopTick(){clearInterval(tickTimer),tickTimer=null}function popCells(e){e.forEach(t=>{const s=cells[t];s&&(s.classList.remove("pop"),s.offsetWidth,s.classList.add("pop"),setTimeout(()=>s.classList.remove("pop"),300))})}let cells=[];function buildBoard(){const e=$("board");e.innerHTML="",e.style.setProperty("--n",G.n),e.classList.toggle("wrap",!!G.spec.wrap),cells=[];for(let t=0;t<G.N;t++){const s=document.createElement("button");s.type="button",s.className="c",s.dataset.i=t,s.innerHTML='<span class="pp"></span><span class="tl"></span><span class="an"></span>',e.appendChild(s),cells.push(s)}}function render(){if(!G)return;const e=G.reveal?optimal():null,t={};e&&e.x&&e.x.forEach((a,p)=>{a&&(t[G.cols[p]]=a)});for(let a=0;a<G.N;a++){const p=cells[a],i=G.s[a],r=G.walls.has(a);p.className="c s"+i+(r?" wall":"")+(G.hintCell===a?" hint":""),p.children[0].textContent=S.pips?i===1?"\u25CF":i===2?"\u25CF\u25CF":"":"",p.children[1].textContent=S.tally&&G.tally[a]?G.tally[a]:"",p.children[2].textContent=t[a]||"",p.setAttribute("aria-label",`Row ${Math.floor(a/G.n)+1}, column ${a%G.n+1}: ${["off","bright","dim"][i]}${r?", locked":""}`)}const s=limitOf(),l=S.left&&!G.over?optimal():null,o=[`<div class="${s&&G.moves>=s?"over":""}">Presses<b>${G.moves}${s?" / "+s:""}</b></div>`];S.showPar&&o.push(`<div>Best possible<b>${G.approx?"\u2248":""}${G.par}</b></div>`),l&&o.push(`<div>Best from here<b>${l.approx?"\u2248":""}${l.w}</b></div>`),S.timer&&o.push(`<div>Time<b id="stTime">${fmt(G.over||!G.t0?G.elapsed:Date.now()-G.t0)}</b></div>`),$("stats").innerHTML=o.join("");const n=[];S.undo&&n.push(`<button class="btn sm" data-a="undo" ${G.hist.length?"":"disabled"}>\u21B6 Undo</button>`),n.push('<button class="btn sm" data-a="restart">\u27F2 Restart</button>'),S.hints&&n.push('<button class="btn sm" data-a="hint">\u{1F4A1} Hint</button>',`<button class="btn sm" data-a="reveal">${G.reveal?"\u{1F648} Hide answer":"\u{1F441} Show answer"}</button>`),n.push('<button class="btn primary sm" data-a="new">\u{1F3B2} New</button>'),$("ctrls").innerHTML=n.join("")}function applyLook(){const e=document.documentElement;e.dataset.theme=S.dark?"dark":"light",$("themeBtn").textContent=S.dark?"\u{1F319} Dark":"\u2600\uFE0F Light";const t=(PALS[S.pal]||PALS.neon)[1],s=parseInt(t.slice(1),16),l=s>>16,o=s>>8&255,n=s&255;e.style.setProperty("--on",t),e.style.setProperty("--dim",`rgba(${l},${o},${n},${S.dark?.38:.42})`),e.style.setProperty("--glow",`rgba(${l},${o},${n},.55)`),e.style.setProperty("--off",S.dark?"#171d26":"#dde3ea"),e.style.setProperty("--offline",S.dark?"rgba(255,255,255,.08)":"rgba(0,0,0,.12)"),e.style.setProperty("--cr",(SHAPES[S.cellShape]||SHAPES.round)[1]),e.style.setProperty("--sz",S.size/100),document.body.classList.toggle("noanim",!S.anim)}function stars(e){return e?"\u2605".repeat(e):""}function renderPlay(){const e=$("play"),t=S.tab;let s=`<div class="tabs"><button data-tab="free" class="${t==="free"?"on":""}">\u{1F3B2} Free play</button><button data-tab="levels" class="${t==="levels"?"on":""}">\u{1F3C6} Levels</button><button data-tab="daily" class="${t==="daily"?"on":""}">\u{1F4C5} Daily</button></div>`;if(t==="free")s+=`<div class="info">${S.n}\xD7${S.n} \xB7 ${SHAPE_NAME[S.shape]}${S.wrap?" \xB7 wrap-around":""}${S.walls?` \xB7 ${S.walls} locked`:""} \xB7 aim for <b>${S.target}</b> presses.</div>
+      <div class="stat"><div>Solved <b>${prog.free.solved}</b></div><div>Perfect <b>${prog.free.perfect}</b></div></div>
+      <div class="foot"><button class="btn primary sm" data-a="new">\u{1F3B2} New puzzle</button></div>
+      <div class="note">Change size, shape, wrap-around, locked cells or the target in <b>Customise \u2192 Puzzle</b>. A 5\xD75 Plus puzzle can't need more than 24 presses; the Cross shape goes higher.</div>`;else if(t==="levels"){let l=0;WORLDS.forEach((o,n)=>o.t.forEach((a,p)=>{const i=prog.lv[lvId(n,p)];i&&(l+=i.stars)})),s+=`<div class="stat"><div>Stars <b>${l} / ${WORLDS.length*18}</b></div></div>`,WORLDS.forEach((o,n)=>{s+=`<div class="wk">${o.icon} ${o.name}</div><div class="lv">`,o.t.forEach((a,p)=>{const i=prog.lv[lvId(n,p)],r=G&&G.mode==="level"&&G.key===lvId(n,p);s+=`<button data-lv="${n},${p}" class="${r?"on":""}${i?" done":""}" title="${o.tip}">${a}<small>${i?stars(i.stars):""}</small></button>`}),s+="</div>"}),s+='<div class="note">The number is how many presses the best solution needs. Everything is unlocked, so jump in anywhere.</div>'}else{const l=dailySpec(),o=prog.daily[l.id],n=Object.keys(prog.daily).length;s+=`<div class="info"><b>${l.id}</b>: the same puzzle for everyone today, ${l.target} presses at best.</div>
+      <div class="stat"><div>Today <b>${o?stars(o.stars)+" "+o.moves:"not done"}</b></div><div>Days solved <b>${n}</b></div></div>
+      <div class="foot"><button class="btn primary sm" data-a="daily">${o?"\u25B6 Play again":"\u25B6 Play today's"}</button></div>`}s+=`<details><summary>How to play</summary><div class="how">\u2022 Tap a light: <b>it and its neighbours</b> each step one level: <span class="sample s1"></span> bright \u2192 <span class="sample"></span> off \u2192 <span class="sample s2"></span> dim \u2192 bright again.<br>\u2022 Goal: every light <b>off</b>.<br>\u2022 The <b>order doesn't matter</b>, only how many times each light gets pressed (3 presses = nothing). Turn on <i>Press counter</i> to plan.<br>\u2022 Dots show how many presses a light still needs on its own (1 = bright, 2 = dim).<br>\u2022 Keys: arrows move, Space presses, <b>Z</b> undo, <b>H</b> hint, <b>R</b> restart.</div></details>`,e.innerHTML=s}const SCHEMA=[{group:"\u{1F3A8} Look",items:[{k:"pal",t:"sel",label:"Light colour",opts:Object.entries(PALS).map(([e,t])=>[e,t[0]])},{k:"cellShape",t:"sel",label:"Light shape",opts:Object.entries(SHAPES).map(([e,t])=>[e,t[0]])},{k:"size",t:"rng",label:"Board size (%)",min:50,max:100,step:5,sub:"Make the whole board smaller if it is too big for your screen"},{k:"pips",t:"tog",label:"Dots on lights",sub:"One dot = bright, two dots = dim. Helps if the shades look alike"},{k:"tally",t:"tog",label:"Press counter",sub:"A small badge counts how often you pressed each light. Great for planning"},{k:"preview",t:"tog",label:"Preview on hover",sub:"Outline the lights a press will change (mouse only)"},{k:"anim",t:"tog",label:"Animations"}]},{group:"\u{1F9E9} Puzzle (free play)",items:[{k:"n",t:"sel",label:"Grid size",opts:[["3","3\xD73"],["4","4\xD74"],["5","5\xD75"],["6","6\xD76"],["7","7\xD77"]],num:!0},{k:"shape",t:"sel",label:"Press shape",opts:[["plus","Plus \u271A (classic)"],["x","Cross \u2715 (diagonals)"],["sq","Big square \u25A6 (3\xD73)"]]},{k:"target",t:"rng",label:"Presses needed (best solution)",min:1,max:60,step:1,sub:"24 is the hardest a 5\xD75 Plus can be. If a number is not possible, you get the closest"},{k:"wrap",t:"tog",label:"Wrap-around edges",sub:"Left touches right, top touches bottom"},{k:"walls",t:"rng",label:"Locked lights",min:0,max:6,step:1,sub:"These cannot be pressed, but still change when a neighbour is pressed"}]},{group:"\u{1F6DF} Help",items:[{k:"hints",t:"tog",label:"Hint and answer buttons"},{k:"showPar",t:"tog",label:"Show the best possible presses"},{k:"left",t:"tog",label:"Show best presses left",sub:"Live count of the fewest presses still needed"},{k:"undo",t:"tog",label:"Undo button"},{k:"timer",t:"tog",label:"Timer"}]},{group:"\u{1F525} Challenge",items:[{k:"limit",t:"tog",label:"Press limit",sub:"Run out of presses and you must undo or restart"},{k:"extra",t:"rng",label:"Spare presses over the best",min:0,max:12,step:1}]},{group:"\u{1F50A} Sound",items:[{k:"sound",t:"tog",label:"Sound effects"}]}],PUZZLE_KEYS=["n","shape","target","wrap","walls"];let regen=null;function onSetting(e){if(save(),PUZZLE_KEYS.includes(e)){renderPlay(),clearTimeout(regen),S.tab==="free"&&(regen=setTimeout(startFree,500));return}applyLook(),(e==="limit"||e==="extra")&&G&&G.locked&&!limitOf()&&(G.locked=!1,closeBanner()),G&&render()}function buildPanel(){const e=$("panel");e.innerHTML="<h2>Customise</h2>";const t=document.createElement("div");t.className="foot",t.innerHTML='<button class="btn sm" id="rndLook" type="button">\u{1F3B2} Randomise look</button>',e.appendChild(t),SCHEMA.forEach((l,o)=>{const n=document.createElement("details");o<1&&(n.open=!0),n.innerHTML=`<summary>${l.group}</summary>`,l.items.forEach(a=>{const p=document.createElement("div");if(a.t==="sel"){p.className="row",p.innerHTML=`<div class="lab">${a.label}${a.sub?`<small>${a.sub}</small>`:""}</div>`;const i=document.createElement("select");a.opts.forEach(r=>{const u=document.createElement("option");u.value=r[0],u.textContent=r[1],String(S[a.k])===r[0]&&(u.selected=!0),i.appendChild(u)}),i.onchange=()=>{S[a.k]=a.num?+i.value:i.value,onSetting(a.k)},p.appendChild(i)}else if(a.t==="tog"){p.className="row",p.innerHTML=`<div class="lab">${a.label}${a.sub?`<small>${a.sub}</small>`:""}</div>`;const i=document.createElement("button");i.type="button",i.className="sw",i.setAttribute("role","switch"),i.setAttribute("aria-checked",S[a.k]?"true":"false"),i.setAttribute("aria-label",a.label),i.onclick=()=>{S[a.k]=!S[a.k],i.setAttribute("aria-checked",S[a.k]?"true":"false"),onSetting(a.k)},p.appendChild(i)}else{p.className="row stack",p.innerHTML=`<div class="head"><span>${a.label}</span></div>`;const i=document.createElement("output");if(i.textContent=S[a.k],p.firstChild.appendChild(i),a.sub){const u=document.createElement("small");u.style.color="var(--muted)",u.textContent=a.sub,p.appendChild(u)}const r=document.createElement("input");r.type="range",r.min=a.min,r.max=a.max,r.step=a.step,r.value=S[a.k],r.setAttribute("aria-label",a.label),r.oninput=()=>{S[a.k]=+r.value,i.textContent=r.value,onSetting(a.k)},p.appendChild(r)}n.appendChild(p)}),e.appendChild(n)});const s=document.createElement("div");s.className="foot",s.innerHTML='<button class="btn sm" id="rstSet" type="button">\u21BA Reset settings</button><button class="btn sm" id="rstProg" type="button">\u{1F5D1} Clear progress</button>',e.appendChild(s),$("rndLook").onclick=()=>{S.pal=pick(Object.keys(PALS)),S.cellShape=pick(Object.keys(SHAPES)),save(),buildPanel(),applyLook(),G&&render()},$("rstSet").onclick=()=>{const l=S.tab,o=S.dark;S={...DEF,tab:l,dark:o},save(),applyLook(),buildPanel(),renderPlay(),S.tab==="free"?startFree():G&&render()},$("rstProg").onclick=()=>{prog={lv:{},daily:{},free:{solved:0,perfect:0}},saveProg(),renderPlay()}}let ac=null;function beep(e,t,s,l){if(S.sound)try{ac=ac||new(window.AudioContext||window.webkitAudioContext);const o=ac.createOscillator(),n=ac.createGain(),a=ac.currentTime;l=l||.05,o.type=s||"sine",o.frequency.value=e,o.connect(n),n.connect(ac.destination),n.gain.setValueAtTime(l,a),n.gain.exponentialRampToValueAtTime(1e-4,a+(t||.08)),o.start(a),o.stop(a+(t||.08))}catch{}}function act(e){e==="undo"?undo():e==="restart"?restart():e==="hint"?hint():e==="reveal"?reveal():e==="new"?S.tab==="free"||!G||G.mode==="free"?startFree():G.mode==="level"?nextLevel():startDaily():e==="next"?nextLevel():e==="share"?share():e==="daily"&&startDaily()}document.addEventListener("click",e=>{const t=e.target.closest("[data-a]");if(t){act(t.dataset.a);return}const s=e.target.closest("[data-tab]");if(s){S.tab=s.dataset.tab,save(),renderPlay(),S.tab==="free"&&(!G||G.mode!=="free")?startFree():S.tab==="daily"&&(!G||G.mode!=="daily")?startDaily():S.tab==="levels"&&(!G||G.mode!=="level")&&startLevel(0,0);return}const l=e.target.closest("[data-lv]");if(l){const[n,a]=l.dataset.lv.split(",").map(Number);startLevel(n,a);return}const o=e.target.closest(".c");o&&o.parentNode.id==="board"&&press(+o.dataset.i)}),$("board").addEventListener("pointerover",e=>{if(!S.preview||!G||e.pointerType!=="mouse")return;const t=e.target.closest(".c");clearPv(),!(!t||G.walls.has(+t.dataset.i)||G.over)&&delta(+t.dataset.i).forEach(s=>cells[s].classList.add("pv"))}),$("board").addEventListener("pointerleave",clearPv);function clearPv(){cells.forEach(e=>e.classList.remove("pv"))}$("themeBtn").onclick=()=>{S.dark=!S.dark,save(),applyLook()},document.addEventListener("keydown",e=>{const t=e.target.tagName;if(!(t==="SELECT"||t==="INPUT"||e.ctrlKey||e.metaKey||e.altKey)){if(e.key==="z")undo();else if(e.key==="h")hint();else if(e.key==="r")restart();else if(e.target.classList&&e.target.classList.contains("c")&&G){const s=+e.target.dataset.i,l=G.n,o=Math.floor(s/l),n=s%l;let a=-1;e.key==="ArrowRight"?a=o*l+(n+1)%l:e.key==="ArrowLeft"?a=o*l+(n+l-1)%l:e.key==="ArrowDown"?a=(o+1)%l*l+n:e.key==="ArrowUp"&&(a=(o+l-1)%l*l+n),a>=0&&(e.preventDefault(),cells[a].focus())}}}),applyLook(),buildPanel(),renderPlay(),S.tab==="daily"?startDaily():S.tab==="levels"?startLevel(0,0):startFree(),window.__tg={get G(){return G},get S(){return S},TG,press,hint,optimal,startFree,startLevel,startDaily,build,WORLDS,dailySpec,undo,restart,get prog(){return prog}};
+
+</script>
+</body>
+<script src="../nav.js"></script>
+</html>

@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 40 · 3D Rubik's Cube</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1d3557">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="3D Cube">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:560px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.mvgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;max-width:420px;width:100%;margin:0 auto}
+.mvgrid .btn{padding-left:0;padding-right:0;font-weight:700;font-family:ui-monospace,monospace}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.3em;word-break:break-word}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul,.rules ol{margin:4px 0;padding-left:20px}.rules li{margin:4px 0}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">3D Rubik's Cube</h2>
+  <p>Chapter 40 · A cube you can spin and twist in 3D. Drag a sticker to turn a layer, drag the background to look around. 2x2, 3x3 and 4x4</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TIME</small><b id="s1">0:00.0</b></div>
+    <div class="tstat"><small>MOVES</small><b id="s2">0</b></div>
+    <div class="tstat"><small>BEST TIME</small><b id="s3">–</b></div>
+    <div class="tstat"><small>FACES DONE</small><b id="s4">6/6</b></div>
+  </div>
+  <div class="tmsg" id="msg">Drag a sticker to turn a layer</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="3D cube"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">Solved!</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="scramble" type="button">Scramble again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm primary" data-act="scramble" type="button">🔀 Scramble</button>
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="solve" type="button">✨ Solve</button>
+    <button class="btn sm" data-act="reset" type="button">🧊 Reset</button>
+  </div>
+  <div class="tbar"><span class="kl">Size:</span><span id="sizeBar"></span></div>
+  <div class="tbar"><span class="kl">Look:</span>
+    <button class="btn sm" data-act="vl" type="button" aria-label="Look left">◀</button><button class="btn sm" data-act="vr" type="button" aria-label="Look right">▶</button><button class="btn sm" data-act="vu" type="button" aria-label="Look from above">▲</button><button class="btn sm" data-act="vd" type="button" aria-label="Look from below">▼</button><button class="btn sm" data-act="vflip" type="button">Back</button><button class="btn sm" data-act="vreset" type="button">Reset view</button>
+  </div>
+  <div class="mvgrid" aria-label="Face turns">
+    <button class="btn sm" data-act="mv" data-m="U" type="button">U</button><button class="btn sm" data-act="mv" data-m="D" type="button">D</button><button class="btn sm" data-act="mv" data-m="L" type="button">L</button><button class="btn sm" data-act="mv" data-m="R" type="button">R</button><button class="btn sm" data-act="mv" data-m="F" type="button">F</button><button class="btn sm" data-act="mv" data-m="B" type="button">B</button>
+    <button class="btn sm" data-act="mv" data-m="U'" type="button">U'</button><button class="btn sm" data-act="mv" data-m="D'" type="button">D'</button><button class="btn sm" data-act="mv" data-m="L'" type="button">L'</button><button class="btn sm" data-act="mv" data-m="R'" type="button">R'</button><button class="btn sm" data-act="mv" data-m="F'" type="button">F'</button><button class="btn sm" data-act="mv" data-m="B'" type="button">B'</button>
+  </div>
+  <div class="rec" id="logLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to use it, and how to solve it</h2>
+    <h3>Using the cube</h3>
+    <ul>
+      <li><b>Turn a layer:</b> press on a coloured sticker and drag along the cube in the direction you want that row to move. The layer that slides is the one your finger is on.</li>
+      <li><b>Look around:</b> press on the dark background (or the black gaps) and drag to spin the whole view. The ◀ ▶ ▲ ▼ buttons do the same, and <b>Back</b> shows the other side.</li>
+      <li><b>Scramble</b> mixes it with random turns (14 on the 2×2, 24 on the 3×3, 40 on the 4×4). The timer starts with your first turn and stops when every face is one colour. Your best time for each size is kept on this device.</li>
+      <li><b>Undo</b> takes back your last turn. <b>Solve</b> is not a clever solver: it replays every turn so far backwards, newest first, so it only works from a cube you scrambled here, and it does not count as a record. <b>Reset</b> gives you a fresh solved cube.</li>
+      <li>Keys on a computer: <b>u d l r f b</b> turn a face clockwise, <b>Shift</b> + a letter turns it anticlockwise, arrow keys turn the view, <b>z</b> is undo and <b>n</b> is scramble.</li>
+      <li>The moves counter counts every quarter turn as one move.</li>
+    </ul>
+    <h3>The letters (notation)</h3>
+    <p>Hold the cube so you see its <b>F</b>ront, <b>U</b>p (top) and <b>R</b>ight faces. <b>U D L R F B</b> mean “turn that face a quarter turn <b>clockwise as you look straight at it</b>”. A tick, like <b>R'</b>, means anticlockwise, and <b>2</b>, like <b>R2</b>, means two quarter turns. On a 3×3 the middle slices are <b>M</b> (between L and R, turns like L), <b>E</b> (between U and D, turns like D) and <b>S</b> (between F and B, turns like F). On a 4×4 the buttons turn outer faces; use drag for the inner slices.</p>
+    <h3>The goal</h3>
+    <p>Every face one colour. On the 3×3 the six centre stickers never move, so <b>they tell you which colour belongs on which face</b>. (The 2×2 has no centres, so its colours can end up in any arrangement of the same six, which is why the game checks only that each face is one colour.) Standard colours: white up, yellow down, green front, blue back, red right, orange left.</p>
+    <h3>A beginner method for the 3×3 (layer by layer)</h3>
+    <p>Do these steps in order, always holding the cube so the face you are working on is as the step says. Every move below was checked in the game's own cube code to leave the finished layers alone.</p>
+    <ol>
+      <li><b>White cross.</b> Make a white “+” on top. Each white edge must also match the colour of the side centre next to it. You can work this out by looking.</li>
+      <li><b>White corners.</b> Finish the top layer one corner at a time: put the white corner just below where it belongs (bottom layer, directly under its slot). Repeat <b>R' D' R D</b> until it drops in, white on top (1 to 5 times).</li>
+      <li><b>Middle layer.</b> Turn the cube upside down (yellow up). Find an edge on top with <b>no yellow</b>. Turn U until its front colour matches the front centre. If it must go <b>right</b>: <b>U R U' R' U' F' U F</b>. If it must go <b>left</b>: <b>U' L' U L U F U' F'</b>.</li>
+      <li><b>Yellow cross.</b> Use <b>F R U R' U' F'</b>. With a yellow dot only, do it once, then again as a hook; with an L-shape put the L in the back-left; with a line, hold it left to right. Repeat until there is a yellow +.</li>
+      <li><b>Line up the yellow edges.</b> Turn U until at least two yellow edges match their side centres. If two match next to each other, hold them at the back and right; if opposite, hold either way. Then do <b>R U R' U R U2 R' U</b> and look again. Repeat until all four match.</li>
+      <li><b>Place the yellow corners.</b> Find a corner that is already in the right place (its three colours match the three centres around it). Put it at front-right-top and do <b>U R U' L' U R' U' L</b>. Repeat until all four corners are in the right spots (they may still be twisted).</li>
+      <li><b>Twist the corners.</b> Hold an unsolved yellow corner at front-right-top. Do <b>R' D' R D</b> two or four times until its yellow faces up. <b>Do not turn the whole cube</b>; just turn U to bring the next unsolved corner into place and repeat. At the end the bottom two layers may look broken, but one last U turn fixes it.</li>
+    </ol>
+    <p>The 2×2 is the same method without the middle layer and the edges. The 4×4 needs extra steps (join the centres and the edges first, then solve it like a 3×3), which are not covered here.</p>
+    <h3>Not included</h3>
+    <ul>
+      <li>A real solver. “Solve” only goes back through your own moves.</li>
+      <li>Sizes above 4×4, and the exact scramble rules of competitions.</li>
+      <li>This is a fan-made virtual puzzle. It is not connected with the makers of the Rubik's Cube.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🧊 A virtual twisty cube in the style of the Rubik's Cube. Not made by or connected with Rubik's Brand Ltd. The 3D drawing, moves, sounds and code are my own, with no libraries.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* The cube itself, with no drawing. A cube of n x n x n small cubes ("cubies").
+   Each cubie has: p = position as whole numbers (2*index-(n-1), so the middle of a 3-cube is 0 and the outside is +-2),
+   a = where its three own axes now point (three little vectors), and c = the colour on each of its 6 own faces (-1 = no sticker).
+   A turn is {ax, ly, an}: axis 0/1/2 (x, y, z), the layer coordinate, and an = +1 / -1 quarter turn (right-hand rule about +axis). */
+const CB_COL = ['R', 'L', 'U', 'D', 'F', 'B'];            // colour index = own face index: +x, -x, +y, -y, +z, -z
+const CB_FACE = { R: [0, 1, -1], L: [0, -1, 1], U: [1, 1, -1], D: [1, -1, 1], F: [2, 1, -1], B: [2, -1, 1] };   // axis, side, quarter-turn sign for a clockwise turn seen from outside
+function cbRot(v, ax, an) {   // turn a vector a quarter about an axis (an = +1 or -1)
+  const [x, y, z] = v;
+  if (ax === 0) return an > 0 ? [x, -z, y] : [x, z, -y];
+  if (ax === 1) return an > 0 ? [z, y, -x] : [-z, y, x];
+  return an > 0 ? [-y, x, z] : [y, -x, z];
+}
+function cbNew(n) {
+  const cu = [], hi = n - 1;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) for (let k = 0; k < n; k++) {
+    const p = [2 * i - hi, 2 * j - hi, 2 * k - hi], c = [-1, -1, -1, -1, -1, -1];
+    for (let ax = 0; ax < 3; ax++) { if (p[ax] === hi) c[ax * 2] = ax * 2; if (p[ax] === -hi) c[ax * 2 + 1] = ax * 2 + 1; }
+    cu.push({ p, a: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], c });
+  }
+  return { n, cu };
+}
+function cbClone(S) { return { n: S.n, cu: S.cu.map(q => ({ p: q.p.slice(), a: q.a.map(v => v.slice()), c: q.c.slice() })) }; }
+function cbTurn(S, t) {   // apply one quarter turn
+  for (const q of S.cu) if (q.p[t.ax] === t.ly) { q.p = cbRot(q.p, t.ax, t.an); q.a = q.a.map(v => cbRot(v, t.ax, t.an)); }
+}
+const cbInv = t => ({ ax: t.ax, ly: t.ly, an: -t.an });
+function cbNormal(q, f) { const v = q.a[f >> 1], s = (f & 1) ? -1 : 1; return [v[0] * s, v[1] * s, v[2] * s]; }   // world direction a face of a cubie looks
+function cbSolved(S) {
+  const seen = {};
+  for (const q of S.cu) for (let f = 0; f < 6; f++) if (q.c[f] >= 0) { const nv = cbNormal(q, f), key = nv.join(','); if (seen[key] === undefined) seen[key] = q.c[f]; else if (seen[key] !== q.c[f]) return false; }
+  return true;
+}
+function cbFaceTurn(S, name, prime) {   // a clockwise (or anticlockwise) turn of one outer face
+  const [ax, side, an] = CB_FACE[name]; return { ax, ly: side * (S.n - 1), an: prime ? -an : an };
+}
+function cbName(S, t) {   // a turn written as notation: U, U', R, R' ... ; inner slices: M E S for a 3-cube, else 2R and so on
+  const hi = S.n - 1, side = t.ly === hi ? 1 : t.ly === -hi ? -1 : 0;
+  if (side) for (const k in CB_FACE) { const [ax, sd, an] = CB_FACE[k]; if (ax === t.ax && sd === side) return k + (t.an === an ? '' : "'"); }
+  if (S.n === 3) { const m = { 0: ['M', 1], 1: ['E', 1], 2: ['S', -1] }[t.ax]; return m[0] + (t.an === m[1] ? '' : "'"); }
+  const near = t.ly < 0 ? -1 : 1, depth = Math.round((hi - Math.abs(t.ly)) / 2) + 1;
+  for (const k in CB_FACE) { const [ax, sd, an] = CB_FACE[k]; if (ax === t.ax && sd === near) return depth + k + ((t.an === an) ? '' : "'"); }
+}
+function cbScramble(S, rnd, len) {   // a list of outer-face turns, never twice in a row on the same axis
+  const out = []; let lastAx = -1;
+  for (let i = 0; i < len; i++) {
+    let name; do { name = 'RLUDFB'[Math.floor(rnd() * 6)]; } while (CB_FACE[name][0] === lastAx);
+    lastAx = CB_FACE[name][0]; out.push(cbFaceTurn(S, name, rnd() < .5));
+  }
+  return out;
+}
+
+/* 3D cube. cube.js has the cube and its turns (checked on its own); this file draws it in 3D on a plain canvas, reads drags, animates the turns and runs the timer.
+   Drawing: every face of every small cube is a flat 4-corner shape. We turn the cube by the view angles, add a little perspective, hide faces that look away, and paint the rest from far to near. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.cube.v1', { sound: true, size: 3, speed: 'normal', letters: false, best: {} }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+settings([
+  { id: 'speed', label: 'Turn speed', type: 'select', options: [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']], def: 'normal' },
+  { id: 'letters', label: 'Show a letter on every sticker (helps with colour blindness)', type: 'check', def: false },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => S0.save());
+
+const W = 560, cv = $('cv'), C = KIT.canvas(cv, W, W, 2), ctx = C.ctx, CX = W / 2, CY = W / 2 + 6;
+const COLOURS = ['#d62828', '#fb8500', '#f4f4f4', '#ffd60a', '#1faa3f', '#1565e8'], LETTERS = 'ROWYGB';   // R L U D F B  ->  red orange white yellow green blue
+const DUR = { slow: .36, normal: .2, fast: .1 };
+let S = cbNew(3), n = 3, view = { yaw: -.62, pitch: .5 }, queue = [], anim = null, hist = [], phase = 'free', moves = 0, clock = 0, tClock = 0, quads = [], drag = null, lastHud = '', log = [], autoSolved = false, hintT = 0;
+
+/* ---------- the view ---------- */
+const Dz = () => 2.8 * n + 2, unit = () => W * .45 / n;
+function viewRot(p) {   // turn a point by the view angles
+  const cy = Math.cos(view.yaw), sy = Math.sin(view.yaw), cp = Math.cos(view.pitch), sp = Math.sin(view.pitch);
+  const x = p[0] * cy + p[2] * sy, z = -p[0] * sy + p[2] * cy;
+  return [x, p[1] * cp - z * sp, p[1] * sp + z * cp];
+}
+function proj(c) { const k = Dz() / (Dz() - c[2]), u = unit(); return [CX + c[0] * u * k, CY - c[1] * u * k]; }
+function animRot(p, ax, th) {
+  const c = Math.cos(th), s = Math.sin(th), [x, y, z] = p;
+  if (ax === 0) return [x, y * c - z * s, y * s + z * c];
+  if (ax === 1) return [x * c + z * s, y, -x * s + z * c];
+  return [x * c - y * s, x * s + y * c, z];
+}
+const CORN = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+function build() {   // all visible faces, far to near
+  quads = []; const th = anim ? anim.t.an * Math.PI / 2 * anim.e : 0, cam = [0, 0, Dz()];
+  S.cu.forEach((q, qi) => {
+    const moving = anim && q.p[anim.t.ax] === anim.t.ly;
+    for (let f = 0; f < 6; f++) {
+      const nv = cbNormal(q, f), ax = f >> 1, ua = (ax + 1) % 3, wa = (ax + 2) % 3;
+      const base = [q.p[0] / 2 + nv[0] * .5, q.p[1] / 2 + nv[1] * .5, q.p[2] / 2 + nv[2] * .5];
+      // the face's own tangents are the other two world axes (any right/left choice works for a square)
+      const nax = nv[0] ? 0 : nv[1] ? 1 : 2, a1 = (nax + 1) % 3, a2 = (nax + 2) % 3;
+      let pts3 = CORN.map(([su, sw]) => { const p = base.slice(); p[a1] += su * .5; p[a2] += sw * .5; return p; }), ctr = base.slice(), nrm = nv.slice();
+      if (moving) { pts3 = pts3.map(p => animRot(p, anim.t.ax, th)); ctr = animRot(ctr, anim.t.ax, th); nrm = animRot(nrm, anim.t.ax, th); }
+      const vc = viewRot(ctr), vn = viewRot(nrm); if (vn[0] * (cam[0] - vc[0]) + vn[1] * (cam[1] - vc[1]) + vn[2] * (cam[2] - vc[2]) <= 0) continue;
+      const vp = pts3.map(viewRot);
+      quads.push({ z: vc[2], pts: vp.map(proj), vp, ctr: vc, qi, f, col: q.c[f], moving: !!moving });
+    }
+  });
+  quads.sort((a, b) => a.z - b.z);
+}
+function poly(g, pts, fill, stroke, lw) { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw || 1; g.lineJoin = 'round'; g.stroke(); } }
+function shrink(pts, k) { const cx = (pts[0][0] + pts[2][0]) / 2, cy = (pts[0][1] + pts[2][1]) / 2; return pts.map(p => [cx + (p[0] - cx) * k, cy + (p[1] - cy) * k]); }
+const mid = pts => [(pts[0][0] + pts[2][0]) / 2, (pts[0][1] + pts[2][1]) / 2];
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / W, 0, 0);
+  const bg = g.createRadialGradient(CX, CY - 40, 40, CX, CY, W * .75); bg.addColorStop(0, '#2c4a7a'); bg.addColorStop(1, '#0d1626'); g.fillStyle = bg; g.beginPath(); g.roundRect ? g.roundRect(0, 0, W, W, 16) : g.rect(0, 0, W, W); g.fill();
+  g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(CX, CY + n * unit() * .78, n * unit() * .9, n * unit() * .16, 0, 0, 7); g.fill();
+  build();
+  for (const q of quads) {
+    poly(g, q.pts, '#101215', '#000', 1.2);
+    if (q.col >= 0) {
+      const s = shrink(q.pts, .86); poly(g, s, COLOURS[q.col], 'rgba(0,0,0,.35)', 1);
+      if (st.letters) { const m = mid(q.pts), h = Math.hypot(q.pts[1][0] - q.pts[0][0], q.pts[1][1] - q.pts[0][1]); g.font = 'bold ' + Math.round(h * .5) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = q.col === 2 || q.col === 3 ? '#222' : '#fff'; g.fillText(LETTERS[q.col], m[0], m[1] + 1); }
+    }
+  }
+  if (drag && drag.sticker && !drag.done) { const m = mid(drag.sticker.pts); g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 3; poly(g, shrink(drag.sticker.pts, .86), null, 'rgba(255,255,255,.85)', 3); }
+}
+
+/* ---------- turns ---------- */
+function enqueue(t, kind) { queue.push({ t, kind }); }
+function startNext() {
+  const it = queue.shift(); if (!it) return; anim = { t: it.t, kind: it.kind, p: 0, e: 0, dur: it.kind === 'scr' || it.kind === 'solve' ? .075 : (DUR[st.speed] || .2) * (queue.length > 3 ? .45 : 1) };
+}
+function finishTurn() {
+  const a = anim; cbTurn(S, a.t); anim = null;
+  if (a.kind === 'user' || a.kind === 'btn') {
+    const top = hist[hist.length - 1]; if (top && !top.scr && top.t.ax === a.t.ax && top.t.ly === a.t.ly && top.t.an === -a.t.an) hist.pop(); else hist.push({ t: a.t, scr: false });
+    moves++; log.push(cbName(S, a.t)); if (log.length > 40) log.shift();
+    if (phase === 'scrambled') { phase = 'playing'; clock = 0; }
+  } else if (a.kind === 'scr') hist.push({ t: a.t, scr: true });
+  else if (a.kind === 'undo') { if (moves > 0) moves--; log.push('undo'); }
+  else if (a.kind === 'solve') hist.pop();
+  A.beep(260 + Math.random() * 60, .035, 'square', .05);
+  if (!queue.length) afterQueue();
+}
+function afterQueue() {
+  if (phase === 'scrambling') { if (cbSolved(S)) { scramble(); return; } phase = 'scrambled'; moves = 0; log = []; setMsg('Scrambled. Your timer starts with your first turn.'); }
+  else if (phase === 'solving') { phase = 'free'; autoSolved = true; hist = []; setMsg('Solved by replaying the moves backwards.'); }
+  else if (phase === 'playing' && cbSolved(S)) won();
+  else if (phase === 'free' && cbSolved(S) && hist.length === 0) { }
+}
+function won() {
+  phase = 'solved'; const t = clock, key = n; const b = st.best[key] || {}; let rec = [];
+  if (!b.t || t < b.t) { b.t = t; rec.push('best time'); } if (!b.m || moves < b.m) { b.m = moves; rec.push('fewest moves'); } st.best[key] = b; S0.save();
+  $('endH').textContent = 'Solved! 🎉'; $('endP').textContent = 'Time ' + fmt(t) + ' in ' + moves + ' moves.' + (rec.length ? ' New ' + rec.join(' and ') + ' for the ' + n + '×' + n + '!' : '');
+  setMsg('Solved in ' + fmt(t) + '!'); A.beep(660, .1, 'triangle', .12); A.beep(880, .1, 'triangle', .12, .1); A.beep(1320, .25, 'triangle', .12, .2); setTimeout(() => { if (phase === 'solved') O.show('ovEnd'); }, 900);
+}
+function userTurn(t, kind) {
+  if (phase === 'scrambling' || phase === 'solving') return; if (queue.length > 12) return;
+  if (phase === 'solved') { phase = 'free'; O.hideAll(); }
+  enqueue(t, kind || 'btn');
+}
+function newCube(size) {
+  n = size || n; S = cbNew(n); queue = []; anim = null; hist = []; phase = 'free'; moves = 0; clock = 0; log = []; autoSolved = false; O.hideAll(); bars();
+  setMsg('Drag a sticker to turn a layer. Drag the dark background to look around.');
+}
+function scramble() {
+  if (phase === 'scrambling' || phase === 'solving') return; O.hideAll();
+  if (!cbSolved(S) || hist.length) { S = cbNew(n); } queue = []; anim = null; hist = []; moves = 0; clock = 0; log = []; autoSolved = false; phase = 'scrambling'; setMsg('Scrambling…');
+  const len = n === 2 ? 14 : n === 3 ? 24 : 40; for (const t of cbScramble(S, Math.random, len)) enqueue(t, 'scr');
+}
+function solve() {
+  if (phase === 'scrambling' || phase === 'solving' || (!hist.length && !queue.length)) return; O.hideAll();
+  if (queue.length) { queue = []; }   // finish what is turning, then undo everything
+  phase = 'solving'; setMsg('Solving by undoing every move, newest first…'); const h = hist.slice();
+  for (let i = h.length - 1; i >= 0; i--) enqueue(cbInv(h[i].t), 'solve');
+  if (!anim) startNext();
+}
+function undo() {
+  if (phase === 'scrambling' || phase === 'solving' || phase === 'solved') return; const top = hist[hist.length - 1]; if (!top || top.scr || queue.length) return;
+  hist.pop(); enqueue(cbInv(top.t), 'undo');
+}
+function update(dt) {
+  tClock += dt; if (phase === 'playing') clock += dt;
+  if (anim) { anim.p += dt / anim.dur; const p = Math.min(1, anim.p); anim.e = p * p * (3 - 2 * p); if (anim.p >= 1) finishTurn(); }
+  if (!anim && queue.length) startNext();
+  const h = [fmt(clock), moves, st.best[n] ? fmt(st.best[n].t) : '–', faces()].join('|');
+  if (h !== lastHud) { lastHud = h; $('s1').textContent = fmt(clock); $('s2').textContent = moves; $('s3').textContent = st.best[n] ? fmt(st.best[n].t) : '–'; $('s4').textContent = faces() + '/6'; $('logLine').textContent = log.length ? 'Moves: ' + log.slice(-18).join(' ') : ''; }
+}
+function faces() { const m = {}; for (const q of S.cu) for (let f = 0; f < 6; f++) if (q.c[f] >= 0) { const k = cbNormal(q, f).join(','); (m[k] = m[k] || new Set()).add(q.c[f]); } return Object.values(m).filter(s => s.size === 1).length; }
+const fmt = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
+const setMsg = t => { $('msg').textContent = t; };
+function bars() {
+  $('sizeBar').innerHTML = [2, 3, 4].map(k => '<button class="btn sm' + (n === k ? ' on' : '') + '" data-act="size" data-k="' + k + '" type="button">' + k + '×' + k + '</button>').join('');
+}
+
+/* ---------- reading drags ---------- */
+function hitSticker(p) {
+  for (let i = quads.length - 1; i >= 0; i--) { const q = quads[i]; if (inside(p, q.pts)) return q.col >= 0 && !q.moving ? q : null; }   // the nearest face under the finger, and only if it is a sticker
+  return null;
+}
+function inside(p, pts) { let c = false; for (let i = 0, j = 3; i < 4; j = i++) { const a = pts[i], b = pts[j]; if ((a[1] > p.y) !== (b[1] > p.y) && p.x < (b[0] - a[0]) * (p.y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
+function worldCentre(q) { const c = S.cu[q.qi]; return [c.p[0] / 2, c.p[1] / 2, c.p[2] / 2]; }
+cv.addEventListener('pointerdown', e => {
+  const p = C.pos(e); cv.setPointerCapture && cv.setPointerCapture(e.pointerId); const hq = !anim && !queue.length && phase !== 'scrambling' && phase !== 'solving' ? hitSticker(p) : null;
+  drag = { x: p.x, y: p.y, sticker: hq, done: false, view: !hq, vx: p.x, vy: p.y };
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag) return; const p = C.pos(e);
+  if (drag.view) { view.yaw += (p.x - drag.vx) * .011; view.pitch = Math.max(-1.45, Math.min(1.45, view.pitch + (p.y - drag.vy) * .011)); drag.vx = p.x; drag.vy = p.y; return; }
+  if (drag.done) return; const dx = p.x - drag.x, dy = p.y - drag.y; if (Math.hypot(dx, dy) < 14) return;
+  const q = drag.sticker, cu = S.cu[q.qi], nv = cbNormal(cu, q.f), nax = nv[0] ? 0 : nv[1] ? 1 : 2, ctr = worldCentre(q).map((v, i) => v + nv[i] * .5);
+  const s0 = proj(viewRot(ctr)); let best = null, bd = -1e9;
+  for (const ta of [(nax + 1) % 3, (nax + 2) % 3]) for (const sg of [1, -1]) {
+    const t = [0, 0, 0]; t[ta] = sg; const s1 = proj(viewRot(ctr.map((v, i) => v + t[i] * .5))), d = (dx * (s1[0] - s0[0]) + dy * (s1[1] - s0[1])) / Math.hypot(s1[0] - s0[0], s1[1] - s0[1]);
+    if (d > bd) { bd = d; best = t; }
+  }
+  const a = [nv[1] * best[2] - nv[2] * best[1], nv[2] * best[0] - nv[0] * best[2], nv[0] * best[1] - nv[1] * best[0]], k = a[0] ? 0 : a[1] ? 1 : 2;   // turn axis = normal x drag direction
+  drag.done = true; userTurn({ ax: k, ly: cu.p[k], an: a[k] }, 'user');
+});
+const endDrag = () => { drag = null; }; cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+function nudgeView(dy, dp) { view.yaw += dy; view.pitch = Math.max(-1.45, Math.min(1.45, view.pitch + dp)); }
+window.addEventListener('keydown', e => {
+  if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.ctrlKey || e.metaKey) return; const k = e.key;
+  if ('udlrfbUDLRFB'.includes(k) && k.length === 1) { e.preventDefault(); userTurn(cbFaceTurn(S, k.toUpperCase(), e.shiftKey || k === k.toUpperCase()), 'btn'); }
+  else if (k === 'ArrowLeft') { nudgeView(-.2, 0); e.preventDefault(); } else if (k === 'ArrowRight') { nudgeView(.2, 0); e.preventDefault(); } else if (k === 'ArrowUp') { nudgeView(0, -.2); e.preventDefault(); } else if (k === 'ArrowDown') { nudgeView(0, .2); e.preventDefault(); }
+  else if (k === 'z') undo(); else if (k === 'n') scramble();
+});
+ui.actions(document.body, {
+  mv: b => { const m = b.dataset.m; userTurn(cbFaceTurn(S, m[0], m.endsWith("'")), 'btn'); },
+  scramble, solve, undo, reset: () => newCube(n), closeov: () => O.hide('ovEnd'),
+  size: b => { st.size = +b.dataset.k; S0.save(); newCube(st.size); },
+  vl: () => nudgeView(-.4, 0), vr: () => nudgeView(.4, 0), vu: () => nudgeView(0, -.35), vd: () => nudgeView(0, .35), vreset: () => { view.yaw = -.62; view.pitch = .5; }, vflip: () => { view.yaw += Math.PI; }
+});
+
+/* ---------- start ---------- */
+KIT.loop(update, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newCube(st.size || 3);
+KIT.hook({
+  get S() { return S; }, get n() { return n; }, get phase() { return phase; }, get busy() { return !!anim || queue.length > 0; }, get hist() { return hist; }, get moves() { return moves; }, view, st, newCube, scramble, solve, undo, userTurn,
+  stickerPoint(f, ax, row, col) {   // the screen point of the sticker on outer face f (R L U D F B) at grid position row, col (0..n-1)
+    const [fa, sd] = CB_FACE[f], a1 = (fa + 1) % 3, a2 = (fa + 2) % 3, hi = n - 1, p = [0, 0, 0]; p[fa] = sd * hi; p[a1] = 2 * row - hi; p[a2] = 2 * col - hi;
+    const cu = S.cu.findIndex(q => q.p.join() === p.join()), qd = quads.find(q => q.qi === cu && cbNormal(S.cu[cu], q.f)[fa] === sd && q.col >= 0); if (!qd) return null;
+    const m = mid(qd.pts), r = cv.getBoundingClientRect(); return [r.left + m[0] / W * r.width, r.top + m[1] / W * r.height];
+  },
+  facePoint(f) { return this.stickerPoint(f, 0, (n - 1) >> 1, (n - 1) >> 1); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

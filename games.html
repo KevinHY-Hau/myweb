@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>All the games · Hello World</title>
+<meta name="description" content="Every game in the Hello World series on one page: puzzles, arcade games and board games against the computer.">
+<link rel="stylesheet" href="style.css">
+<style>
+/* Fallback copy of the site variables, so the page looks right even without style.css */
+:root{--bg:#0d1117;--fg:#e6edf3;--accent:#f59e0b;--accent-light:#fbbf24;--border:#242b35;--font:"Inter","Segoe UI",system-ui,sans-serif;--panel:rgba(255,255,255,.05);--panel2:rgba(255,255,255,.09);--muted:#8b98a9;--line:rgba(255,255,255,.1)}
+:root[data-theme="light"]{--bg:#f6f8fa;--fg:#1f2328;--accent-light:#b45309;--border:#d8dee4;--panel:rgba(0,0,0,.035);--panel2:rgba(0,0,0,.07);--muted:#59636e;--line:rgba(0,0,0,.13)}
+*{box-sizing:border-box}
+body.hub{margin:0;min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.5;padding:2rem 1rem 3rem;transition:background .25s,color .25s;display:block}
+.hub .wrap{max-width:1040px;width:100%;margin:0 auto}
+.hub header{text-align:center;margin-bottom:1.2rem}
+.hub h1{font-size:2.2rem;color:var(--accent);margin:0 0 .2rem}
+.hub header p{color:var(--accent-light);font-weight:500;margin:.2rem 0}
+.hub .tools{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-top:.8rem}
+.hub .tools a,.hub .tools button{font:inherit;font-size:.9rem;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:.35rem .8rem;text-decoration:none;cursor:pointer}
+.hub .controls{display:flex;flex-direction:column;gap:.7rem;align-items:center;margin:1.2rem 0 1rem}
+.hub input[type=search]{width:100%;max-width:420px;font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.55rem .8rem}
+.hub .chips{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center}
+.hub .chip{font:inherit;font-size:.88rem;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;cursor:pointer}
+.hub .chip.on{background:var(--accent);color:#000;border-color:transparent;font-weight:600}
+.hub .count{text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:.8rem;min-height:1.2em}
+.hub main.grid{max-width:none;background:none;border:0;padding:0;box-shadow:none}
+.hub .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;justify-content:center;width:100%}
+@media(max-width:900px){.hub .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hub .card{display:flex;gap:.7rem;align-items:flex-start;position:relative;padding:.8rem .9rem;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--fg);text-decoration:none;transition:transform .12s,border-color .12s,background .12s}
+.hub .card:hover,.hub .card:focus-visible{transform:translateY(-2px);border-color:var(--accent);background:var(--panel2);outline:none}
+.hub .card[hidden]{display:none}
+.hub .num{position:absolute;top:.4rem;right:.65rem;font-size:.75rem;color:var(--muted);font-weight:700}
+.hub .em{font-size:2rem;line-height:1.1;flex:none}
+.hub .body{display:flex;flex-direction:column;gap:.15rem;min-width:0}
+.hub .body b{font-size:1.05rem;color:var(--accent-light)}
+.hub .desc{font-size:.92rem}
+.hub .idea{font-size:.78rem;color:var(--muted)}
+.hub .empty{text-align:center;color:var(--muted);padding:2rem 0}
+.hub footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:2rem}
+@media(max-width:600px){body.hub{padding:1rem .8rem 2rem}.hub h1{font-size:1.8rem}.hub .grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.hub .card{transition:none}.hub .card:hover{transform:none}}
+</style>
+</head>
+<body class="hub">
+<div class="wrap">
+  <header>
+    <h1>Kevin HY Hau · Hello World 👋</h1>
+    <p>All the games on one page</p>
+    <p class="sub" style="color:var(--muted);font-weight:400;font-size:.92rem">62 small games, each one a single self-contained page. Tap a card to play.</p>
+    <div class="tools"><a href="index.html">Home</a><button type="button" id="themeBtn">☀️ Light</button></div>
+  </header>
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search games, e.g. sudoku, chess, 3D…" aria-label="Search games">
+    <div class="chips" id="chips"><button type="button" class="chip on" data-cat="all">All</button> <button type="button" class="chip" data-cat="logic">Logic puzzles</button> <button type="button" class="chip" data-cat="action">Action & arcade</button> <button type="button" class="chip" data-cat="board">Board games vs computer</button> <button type="button" class="chip" data-cat="strategy">Strategy</button></div>
+  </div>
+  <div class="count" id="count" aria-live="polite"></div>
+  <main class="grid" id="grid">
+    <a class="card" href="chap1/index.html" data-cat="logic" data-text="minesweeper clear the board without touching a mine, then post your time to the global leaderboard. flat arrays, safe first click, queue-based opening, chording, global leaderboard">
+      <span class="num">1</span><span class="em" aria-hidden="true">💣</span>
+      <span class="body"><b>Minesweeper</b><span class="desc">Clear the board without touching a mine, then post your time to the global leaderboard.</span><span class="idea">Under the hood: Flat arrays, safe first click, queue-based opening, chording, global leaderboard</span></span>
+    </a>
+    <a class="card" href="chap2/index.html" data-cat="action" data-text="snake studio classic snake with food types, enemy snakes and a 3d view. two clocks, direction queue, food table, enemy ai, 3d view">
+      <span class="num">2</span><span class="em" aria-hidden="true">🐍</span>
+      <span class="body"><b>Snake Studio</b><span class="desc">Classic snake with food types, enemy snakes and a 3D view.</span><span class="idea">Under the hood: Two clocks, direction queue, food table, enemy AI, 3D view</span></span>
+    </a>
+    <a class="card" href="chap3/index.html" data-cat="action" data-text="breakout studio bounce the ball, smash the bricks, with generated levels. sub-stepped physics, circle vs polygon, level generator">
+      <span class="num">3</span><span class="em" aria-hidden="true">🧱</span>
+      <span class="body"><b>Breakout Studio</b><span class="desc">Bounce the ball, smash the bricks, with generated levels.</span><span class="idea">Under the hood: Sub-stepped physics, circle vs polygon, level generator</span></span>
+    </a>
+    <a class="card" href="chap4/index.html" data-cat="action" data-text="stairs down drop down an endless shaft: land on platforms, avoid the spikes. sub-steps, moving platforms, jump feel, endless shaft">
+      <span class="num">4</span><span class="em" aria-hidden="true">🪜</span>
+      <span class="body"><b>Stairs Down</b><span class="desc">Drop down an endless shaft: land on platforms, avoid the spikes.</span><span class="idea">Under the hood: Sub-steps, moving platforms, jump feel, endless shaft</span></span>
+    </a>
+    <a class="card" href="chap5/index.html" data-cat="board" data-text="chess puzzles find the winning move against a real chess engine. chess engine, search, web worker">
+      <span class="num">5</span><span class="em" aria-hidden="true">♟️</span>
+      <span class="body"><b>Chess Puzzles</b><span class="desc">Find the winning move against a real chess engine.</span><span class="idea">Under the hood: Chess engine, search, Web Worker</span></span>
+    </a>
+    <a class="card" href="chap6/index.html" data-cat="logic" data-text="box world push the crates onto the goals (sokoban), with undo and auto-walk. grids, undo, bfs auto-walk, dead squares">
+      <span class="num">6</span><span class="em" aria-hidden="true">📦</span>
+      <span class="body"><b>Box World</b><span class="desc">Push the crates onto the goals (Sokoban), with undo and auto-walk.</span><span class="idea">Under the hood: Grids, undo, BFS auto-walk, dead squares</span></span>
+    </a>
+    <a class="card" href="chap7/index.html" data-cat="action" data-text="lucky cat rooftop run a 3d rooftop runner: jump the gaps and keep running. three.js, chunked tracks, jump buffering">
+      <span class="num">7</span><span class="em" aria-hidden="true">🐱</span>
+      <span class="body"><b>Lucky Cat Rooftop Run</b><span class="desc">A 3D rooftop runner: jump the gaps and keep running.</span><span class="idea">Under the hood: Three.js, chunked tracks, jump buffering</span></span>
+    </a>
+    <a class="card" href="chap8/index.html" data-cat="action" data-text="orbit beat a rhythm game that listens to the music and finds the beat. audio clock, fft, beat detection">
+      <span class="num">8</span><span class="em" aria-hidden="true">🎵</span>
+      <span class="body"><b>Orbit Beat</b><span class="desc">A rhythm game that listens to the music and finds the beat.</span><span class="idea">Under the hood: Audio clock, FFT, beat detection</span></span>
+    </a>
+    <a class="card" href="chap9/index.html" data-cat="board" data-text="chinese chess river &amp; palace chinese chess (xiangqi) mate puzzles. move tables, mate search, puzzle generator">
+      <span class="num">9</span><span class="em" aria-hidden="true">🏯</span>
+      <span class="body"><b>Chinese Chess River &amp; Palace</b><span class="desc">Chinese chess (xiangqi) mate puzzles.</span><span class="idea">Under the hood: Move tables, mate search, puzzle generator</span></span>
+    </a>
+    <a class="card" href="chap10/index.html" data-cat="logic" data-text="lights out 24 switch the lights off; every press changes its neighbours, now with three states. linear algebra mod 3, minimum solutions">
+      <span class="num">10</span><span class="em" aria-hidden="true">💡</span>
+      <span class="body"><b>Lights Out 24</b><span class="desc">Switch the lights off; every press changes its neighbours, now with three states.</span><span class="idea">Under the hood: Linear algebra mod 3, minimum solutions</span></span>
+    </a>
+    <a class="card" href="chap11/index.html" data-cat="logic" data-text="sudoku sudoku with graded difficulty, from gentle to fiendish. bitmasks, human-technique solver, grading">
+      <span class="num">11</span><span class="em" aria-hidden="true">🔢</span>
+      <span class="body"><b>Sudoku</b><span class="desc">Sudoku with graded difficulty, from gentle to fiendish.</span><span class="idea">Under the hood: Bitmasks, human-technique solver, grading</span></span>
+    </a>
+    <a class="card" href="chap12/index.html" data-cat="strategy" data-text="three kingdoms battle a turn-based battle map with famous generals and a scoring ai. engine/ui split, seeded maps, ai scoring, phone taps, pwa">
+      <span class="num">12</span><span class="em" aria-hidden="true">⚔️</span>
+      <span class="body"><b>Three Kingdoms Battle</b><span class="desc">A turn-based battle map with famous generals and a scoring AI.</span><span class="idea">Under the hood: Engine/UI split, seeded maps, AI scoring, phone taps, PWA</span></span>
+    </a>
+    <a class="card" href="chap13/index.html" data-cat="action" data-text="alien patrol a light-gun shooter: tap the aliens before they reach you. light-gun shooter, state machines, hit zones, waves">
+      <span class="num">13</span><span class="em" aria-hidden="true">👾</span>
+      <span class="body"><b>Alien Patrol</b><span class="desc">A light-gun shooter: tap the aliens before they reach you.</span><span class="idea">Under the hood: Light-gun shooter, state machines, hit zones, waves</span></span>
+    </a>
+    <a class="card" href="chap14/index.html" data-cat="logic" data-text="2048 slide the tiles, join the numbers, reach 2048. the shared kit, dom animation, undo, save/resume">
+      <span class="num">14</span><span class="em" aria-hidden="true">🔲</span>
+      <span class="body"><b>2048</b><span class="desc">Slide the tiles, join the numbers, reach 2048.</span><span class="idea">Under the hood: The shared kit, DOM animation, undo, save/resume</span></span>
+    </a>
+    <a class="card" href="chap15/index.html" data-cat="action" data-text="chicken cross road hop forward, dodge the traffic, collect the corn. seeded endless world, time-based hazards, rival ai, pwa">
+      <span class="num">15</span><span class="em" aria-hidden="true">🐔</span>
+      <span class="body"><b>Chicken Cross Road</b><span class="desc">Hop forward, dodge the traffic, collect the corn.</span><span class="idea">Under the hood: Seeded endless world, time-based hazards, rival AI, PWA</span></span>
+    </a>
+    <a class="card" href="chap16/index.html" data-cat="logic" data-text="killer sudoku sudoku where the digits in every dotted cage must also add up to the number shown. offline generator with uniqueness proof, cage-sum solver, symmetries, cage helper">
+      <span class="num">16</span><span class="em" aria-hidden="true">🧮</span>
+      <span class="body"><b>Killer Sudoku</b><span class="desc">Sudoku where the digits in every dotted cage must also add up to the number shown.</span><span class="idea">Under the hood: Offline generator with uniqueness proof, cage-sum solver, symmetries, cage helper</span></span>
+    </a>
+    <a class="card" href="chap17/index.html" data-cat="logic" data-text="royal regions place one crown in every row, column and colour region, and never let two crowns touch. unique-solution generator with counterexample repair, 10 icons, colour palettes">
+      <span class="num">17</span><span class="em" aria-hidden="true">👑</span>
+      <span class="body"><b>Royal Regions</b><span class="desc">Place one crown in every row, column and colour region, and never let two crowns touch.</span><span class="idea">Under the hood: Unique-solution generator with counterexample repair, 10 icons, colour palettes</span></span>
+    </a>
+    <a class="card" href="chap18/index.html" data-cat="logic" data-text="sun and moon fill the board with two symbols: no three in a row, equal numbers in every line, and obey the = and × clues. human-style logic solver, greedy clue removal, 8 symbol pairs">
+      <span class="num">18</span><span class="em" aria-hidden="true">☀️</span>
+      <span class="body"><b>Sun and Moon</b><span class="desc">Fill the board with two symbols: no three in a row, equal numbers in every line, and obey the = and × clues.</span><span class="idea">Under the hood: Human-style logic solver, greedy clue removal, 8 symbol pairs</span></span>
+    </a>
+    <a class="card" href="chap19/index.html" data-cat="logic" data-text="trail draw one path through every square: visit 1, 2, 3… in order and never cross yourself. shaped boards (masks), hamiltonian path generator, walls, drag drawing">
+      <span class="num">19</span><span class="em" aria-hidden="true">🧵</span>
+      <span class="body"><b>Trail</b><span class="desc">Draw one path through every square: visit 1, 2, 3… in order and never cross yourself.</span><span class="idea">Under the hood: Shaped boards (masks), Hamiltonian path generator, walls, drag drawing</span></span>
+    </a>
+    <a class="card" href="chap20/index.html" data-cat="logic" data-text="patchwork cut the board into rectangles. every patch holds one number, and the number is its size. shaped boards, exact-cover generator, rectangles by dragging, hints">
+      <span class="num">20</span><span class="em" aria-hidden="true">🧩</span>
+      <span class="body"><b>Patchwork</b><span class="desc">Cut the board into rectangles. Every patch holds one number, and the number is its size.</span><span class="idea">Under the hood: Shaped boards, exact-cover generator, rectangles by dragging, hints</span></span>
+    </a>
+    <a class="card" href="chap21/index.html" data-cat="strategy" data-text="hex bastion defend the gate on a hex map with generals and strategists from 三國演義. hex grid (cube maths), seeded map and waves, generals as towers, bot-tested balance">
+      <span class="num">21</span><span class="em" aria-hidden="true">🏰</span>
+      <span class="body"><b>Hex Bastion</b><span class="desc">Defend the gate on a hex map with generals and strategists from 三國演義.</span><span class="idea">Under the hood: Hex grid (cube maths), seeded map and waves, generals as towers, bot-tested balance</span></span>
+    </a>
+    <a class="card" href="chap22/index.html" data-cat="board" data-text="othello trap the other side&#x27;s discs and flip them. four computer levels, or two players. rules engine checked by move counts, negamax + alpha-beta, endgame solver, web worker ai">
+      <span class="num">22</span><span class="em" aria-hidden="true">⚫</span>
+      <span class="body"><b>Othello</b><span class="desc">Trap the other side&#x27;s discs and flip them. Four computer levels, or two players.</span><span class="idea">Under the hood: Rules engine checked by move counts, negamax + alpha-beta, endgame solver, Web Worker AI</span></span>
+    </a>
+    <a class="card" href="chap23/index.html" data-cat="board" data-text="connect 4 drop discs and line up four. four computer levels, three board sizes. falling discs, forced moves, transposition table with zobrist keys, solver check">
+      <span class="num">23</span><span class="em" aria-hidden="true">🔴</span>
+      <span class="body"><b>Connect 4</b><span class="desc">Drop discs and line up four. Four computer levels, three board sizes.</span><span class="idea">Under the hood: Falling discs, forced moves, transposition table with Zobrist keys, solver check</span></span>
+    </a>
+    <a class="card" href="chap24/index.html" data-cat="board" data-text="connect 5 line up five stones (gomoku). four computer levels, three board sizes. scored 5-cell windows, threat detection, tap-twice on phones">
+      <span class="num">24</span><span class="em" aria-hidden="true">⭕</span>
+      <span class="body"><b>Connect 5</b><span class="desc">Line up five stones (Gomoku). Four computer levels, three board sizes.</span><span class="idea">Under the hood: Scored 5-cell windows, threat detection, tap-twice on phones</span></span>
+    </a>
+    <a class="card" href="chap25/index.html" data-cat="action" data-text="flying pig tap to flap the little wing and keep the pig in the air. dress your pig up. fixed-timestep physics, circle vs rectangle collision, reachable random gaps, daily seeded run">
+      <span class="num">25</span><span class="em" aria-hidden="true">🐷</span>
+      <span class="body"><b>Flying Pig</b><span class="desc">Tap to flap the little wing and keep the pig in the air. Dress your pig up.</span><span class="idea">Under the hood: Fixed-timestep physics, circle vs rectangle collision, reachable random gaps, daily seeded run</span></span>
+    </a>
+    <a class="card" href="chap26/index.html" data-cat="logic" data-text="klotski (華容道) free the big red block from the crowd. the old chinese sliding puzzle, with hints. breadth-first search from the finished board, so every puzzle is solvable and measured">
+      <span class="num">26</span><span class="em" aria-hidden="true">🀄</span>
+      <span class="body"><b>Klotski (華容道)</b><span class="desc">Free the big red block from the crowd. The old Chinese sliding puzzle, with hints.</span><span class="idea">Under the hood: Breadth-first search from the finished board, so every puzzle is solvable and measured</span></span>
+    </a>
+    <a class="card" href="chap27/index.html" data-cat="action" data-text="jet racer race 3 laps in four scenes, and jump over the traffic with your jets. road segments projected to the screen, hill clipping, fixed-timestep physics, jump height vs car height">
+      <span class="num">27</span><span class="em" aria-hidden="true">🏎️</span>
+      <span class="body"><b>Jet Racer</b><span class="desc">Race 3 laps in four scenes, and jump over the traffic with your jets.</span><span class="idea">Under the hood: Road segments projected to the screen, hill clipping, fixed-timestep physics, jump height vs car height</span></span>
+    </a>
+    <a class="card" href="chap28/index.html" data-cat="logic" data-text="word guess guess the hidden 5, 6, 7 or 8 letter word from green, yellow and grey clues. two-pass scoring for repeated letters, state rebuilt from the guess list, daily word from a date seed">
+      <span class="num">28</span><span class="em" aria-hidden="true">🔤</span>
+      <span class="body"><b>Word Guess</b><span class="desc">Guess the hidden 5, 6, 7 or 8 letter word from green, yellow and grey clues.</span><span class="idea">Under the hood: Two-pass scoring for repeated letters, state rebuilt from the guess list, daily word from a date seed</span></span>
+    </a>
+    <a class="card" href="chap29/index.html" data-cat="logic" data-text="word search find the hidden words in the grid. drag across letters in up to 8 directions. words placed at random with overlap when letters match, uniqueness check, drag snapped to 8 directions">
+      <span class="num">29</span><span class="em" aria-hidden="true">🔎</span>
+      <span class="body"><b>Word Search</b><span class="desc">Find the hidden words in the grid. Drag across letters in up to 8 directions.</span><span class="idea">Under the hood: Words placed at random with overlap when letters match, uniqueness check, drag snapped to 8 directions</span></span>
+    </a>
+    <a class="card" href="chap30/index.html" data-cat="logic" data-text="countdown numbers pick 6 numbers, big or small, and reach the target before the clock runs out. brute-force solver over every subset, targets that can always be reached, computer solution">
+      <span class="num">30</span><span class="em" aria-hidden="true">🕐</span>
+      <span class="body"><b>Countdown Numbers</b><span class="desc">Pick 6 numbers, big or small, and reach the target before the clock runs out.</span><span class="idea">Under the hood: Brute-force solver over every subset, targets that can always be reached, computer solution</span></span>
+    </a>
+    <a class="card" href="chap31/index.html" data-cat="action" data-text="sausage dog walk walk your sausage dog round a sunny garden and keep the peace when squirrels and cats appear. dress the dog up. raycasting (a ray per column), sprites with a depth buffer, a garden maker, line of sight">
+      <span class="num">31</span><span class="em" aria-hidden="true">🌭</span>
+      <span class="body"><b>Sausage Dog Walk</b><span class="desc">Walk your sausage dog round a sunny garden and keep the peace when squirrels and cats appear. Dress the dog up.</span><span class="idea">Under the hood: Raycasting (a ray per column), sprites with a depth buffer, a garden maker, line of sight</span></span>
+    </a>
+    <a class="card" href="chap32/index.html" data-cat="action" data-text="space invaders shoot the alien swarm in classic or new style (tiny aliens), and catch tri-laser, bomb, homing missile and rocket drops. a formation moved by one corner, sub-stepped fast shots, homing steering, erodible bunkers">
+      <span class="num">32</span><span class="em" aria-hidden="true">👾</span>
+      <span class="body"><b>Space Invaders</b><span class="desc">Shoot the alien swarm in Classic or New style (tiny aliens), and catch tri-laser, bomb, homing missile and rocket drops.</span><span class="idea">Under the hood: A formation moved by one corner, sub-stepped fast shots, homing steering, erodible bunkers</span></span>
+    </a>
+    <a class="card" href="chap33/index.html" data-cat="logic" data-text="colour match find the one square that matches the colour on show, in a grid of near-identical shades. 60 seconds, +5 for every find. colour families in hsl, a unique match by rgb distance, difficulty from a counter">
+      <span class="num">33</span><span class="em" aria-hidden="true">🎨</span>
+      <span class="body"><b>Colour Match</b><span class="desc">Find the one square that matches the colour on show, in a grid of near-identical shades. 60 seconds, +5 for every find.</span><span class="idea">Under the hood: Colour families in HSL, a unique match by RGB distance, difficulty from a counter</span></span>
+    </a>
+    <a class="card" href="chap34/index.html" data-cat="logic" data-text="train tracks lay one rail line from the entry to the exit using the row and column counts, then watch a train ride your track. a route grown by bumps, a counting solver that proves one answer, an offline puzzle bank, a train moving along a path">
+      <span class="num">34</span><span class="em" aria-hidden="true">🚂</span>
+      <span class="body"><b>Train Tracks</b><span class="desc">Lay one rail line from the entry to the exit using the row and column counts, then watch a train ride your track.</span><span class="idea">Under the hood: A route grown by bumps, a counting solver that proves one answer, an offline puzzle bank, a train moving along a path</span></span>
+    </a>
+    <a class="card" href="chap35/index.html" data-cat="action" data-text="pool play 8-ball against the computer, or solve trick shots: bank shots, kick shots, combinations and double pots. a fixed-step physics engine, a shot recorder that judges the rules, a computer player that tries many shots, trick shots found by search">
+      <span class="num">35</span><span class="em" aria-hidden="true">🎱</span>
+      <span class="body"><b>Pool</b><span class="desc">Play 8-ball against the computer, or solve trick shots: bank shots, kick shots, combinations and double pots.</span><span class="idea">Under the hood: A fixed-step physics engine, a shot recorder that judges the rules, a computer player that tries many shots, trick shots found by search</span></span>
+    </a>
+    <a class="card" href="chap36/index.html" data-cat="board" data-text="draughts play draughts on a 6x6, 8x8, 10x10 or 12x12 board against the computer or a friend, with classic or flying-king rules. moves as paths, compulsory captures, rules checked against published move counts, a look-ahead computer player (alpha-beta search)">
+      <span class="num">36</span><span class="em" aria-hidden="true">♟️</span>
+      <span class="body"><b>Draughts</b><span class="desc">Play draughts on a 6x6, 8x8, 10x10 or 12x12 board against the computer or a friend, with classic or flying-king rules.</span><span class="idea">Under the hood: Moves as paths, compulsory captures, rules checked against published move counts, a look-ahead computer player (alpha-beta search)</span></span>
+    </a>
+    <a class="card" href="chap37/index.html" data-cat="board" data-text="jungle chess 斗獸棋 the classic animal board game: capture by rank, swim with the rat, jump the river with the lion and tiger, and reach the enemy den. one function for every capture rule, river jumps, traps and dens, a look-ahead computer player (alpha-beta search)">
+      <span class="num">37</span><span class="em" aria-hidden="true">🐘</span>
+      <span class="body"><b>Jungle Chess 斗獸棋</b><span class="desc">The classic animal board game: capture by rank, swim with the rat, jump the river with the lion and tiger, and reach the enemy den.</span><span class="idea">Under the hood: One function for every capture rule, river jumps, traps and dens, a look-ahead computer player (alpha-beta search)</span></span>
+    </a>
+    <a class="card" href="chap38/index.html" data-cat="board" data-text="shogi 将棋 japanese chess: promote pieces, capture and drop them back on the board, and checkmate the king. play the computer or a friend. a move packed into one integer, drops from a hand, rules proved with perft counts, a look-ahead computer player (alpha-beta search)">
+      <span class="num">38</span><span class="em" aria-hidden="true">⛩️</span>
+      <span class="body"><b>Shogi 将棋</b><span class="desc">Japanese chess: promote pieces, capture and drop them back on the board, and checkmate the king. Play the computer or a friend.</span><span class="idea">Under the hood: A move packed into one integer, drops from a hand, rules proved with perft counts, a look-ahead computer player (alpha-beta search)</span></span>
+    </a>
+    <a class="card" href="chap39/index.html" data-cat="board" data-text="banqi 暗棋 dark chess: all 32 pieces start face down. flip, capture and out-last your opponent. taiwanese or hong kong rules, computer or friend. hidden information as a second array, a computer that averages over unseen pieces, a cannon that jumps">
+      <span class="num">39</span><span class="em" aria-hidden="true">🀄</span>
+      <span class="body"><b>Banqi 暗棋</b><span class="desc">Dark chess: all 32 pieces start face down. Flip, capture and out-last your opponent. Taiwanese or Hong Kong rules, computer or friend.</span><span class="idea">Under the hood: Hidden information as a second array, a computer that averages over unseen pieces, a cannon that jumps</span></span>
+    </a>
+    <a class="card" href="chap40/index.html" data-cat="logic" data-text="3d rubik&#x27;s cube a cube you can spin and twist in 3d: drag a sticker to turn a layer, scramble, time yourself, 2x2 to 4x4. includes a beginner solving guide. 3d drawn on a plain 2d canvas (rotation, perspective, painter&#x27;s algorithm), turns as layer rotations, proved with the cube&#x27;s known cycle lengths">
+      <span class="num">40</span><span class="em" aria-hidden="true">🧊</span>
+      <span class="body"><b>3D Rubik&#x27;s Cube</b><span class="desc">A cube you can spin and twist in 3D: drag a sticker to turn a layer, scramble, time yourself, 2x2 to 4x4. Includes a beginner solving guide.</span><span class="idea">Under the hood: 3D drawn on a plain 2D canvas (rotation, perspective, painter&#x27;s algorithm), turns as layer rotations, proved with the cube&#x27;s known cycle lengths</span></span>
+    </a>
+    <a class="card" href="chap41/index.html" data-cat="board" data-text="go 圍棋 the classic game of surrounding territory. boards from 5x5 to 19x19, handicap stones, play the computer or a friend. groups and liberties by flood fill, repeated positions caught by hashing, a computer that learns from thousands of random games (monte carlo tree search)">
+      <span class="num">41</span><span class="em" aria-hidden="true">⚫</span>
+      <span class="body"><b>Go 圍棋</b><span class="desc">The classic game of surrounding territory. Boards from 5x5 to 19x19, handicap stones, play the computer or a friend.</span><span class="idea">Under the hood: Groups and liberties by flood fill, repeated positions caught by hashing, a computer that learns from thousands of random games (Monte Carlo tree search)</span></span>
+    </a>
+    <a class="card" href="chap42/index.html" data-cat="logic" data-text="word swirl every letter belongs to a hidden word, and the words wind around the board in any direction. trace them all. short 3 and 4 letter words included. cutting a grid into snakes with backtracking, making every word unique by counting how it can be traced, a repair step that swaps words">
+      <span class="num">42</span><span class="em" aria-hidden="true">🌀</span>
+      <span class="body"><b>Word Swirl</b><span class="desc">Every letter belongs to a hidden word, and the words wind around the board in any direction. Trace them all. Short 3 and 4 letter words included.</span><span class="idea">Under the hood: Cutting a grid into snakes with backtracking, making every word unique by counting how it can be traced, a repair step that swaps words</span></span>
+    </a>
+    <a class="card" href="chap43/index.html" data-cat="board" data-text="chess variants normal chess, or blind chess: hide the pawns, show only pawns, or hide everything. a secret queen disguised as a pawn, chess960 and a board editor. reusing a checked chess engine under a variants layer, hidden information as a note beside the real state, two move lists for one piece, blind display rules">
+      <span class="num">43</span><span class="em" aria-hidden="true">♞</span>
+      <span class="body"><b>Chess Variants</b><span class="desc">Normal chess, or blind chess: hide the pawns, show only pawns, or hide everything. A secret queen disguised as a pawn, Chess960 and a board editor.</span><span class="idea">Under the hood: Reusing a checked chess engine under a variants layer, hidden information as a note beside the real state, two move lists for one piece, blind display rules</span></span>
+    </a>
+    <a class="card" href="chap44/index.html" data-cat="board" data-text="aeroplane chess 飛行棋 the classic dice race. throw a six to take off, jump along your own colour, fly across the shortcut and send rivals back to the hangar. 2 to 4 players. one number per plane, resolving a move into jump and fly stops, a dice turn state machine, a computer from a score table with a danger term">
+      <span class="num">44</span><span class="em" aria-hidden="true">✈️</span>
+      <span class="body"><b>Aeroplane Chess 飛行棋</b><span class="desc">The classic dice race. Throw a six to take off, jump along your own colour, fly across the shortcut and send rivals back to the hangar. 2 to 4 players.</span><span class="idea">Under the hood: One number per plane, resolving a move into jump and fly stops, a dice turn state machine, a computer from a score table with a danger term</span></span>
+    </a>
+    <a class="card" href="chap45/index.html" data-cat="board" data-text="波子棋 chinese checkers hop your marbles across the star to the opposite corner. long hops over any piece, chain hops, 2 to 6 players. hexagonal grids with cube coordinates, long hops, chained hops by breadth-first search, a greedy computer">
+      <span class="num">45</span><span class="em" aria-hidden="true">🔮</span>
+      <span class="body"><b>波子棋 Chinese Checkers</b><span class="desc">Hop your marbles across the star to the opposite corner. Long hops over any piece, chain hops, 2 to 6 players.</span><span class="idea">Under the hood: Hexagonal grids with cube coordinates, long hops, chained hops by breadth-first search, a greedy computer</span></span>
+    </a>
+    <a class="card" href="chap46/index.html" data-cat="board" data-text="backgammon (tawla) the national game of the middle east: race 15 checkers home, hit the lone ones, try the doubling cube. also plakoto (pin game) and fevga (blocking game). moves as single dice steps, the use-both-dice rule by search, three rule sets from one engine, a hit-risk evaluation for the computer">
+      <span class="num">46</span><span class="em" aria-hidden="true">🎲</span>
+      <span class="body"><b>Backgammon (Tawla)</b><span class="desc">The national game of the Middle East: race 15 checkers home, hit the lone ones, try the doubling cube. Also Plakoto (pin game) and Fevga (blocking game).</span><span class="idea">Under the hood: Moves as single dice steps, the use-both-dice rule by search, three rule sets from one engine, a hit-risk evaluation for the computer</span></span>
+    </a>
+    <a class="card" href="chap47/index.html" data-cat="board" data-text="mancala (kalah, oware, mangala) sow the seeds round and capture them. three games from ghana to turkey: kalah, oware and mangala. play the computer or a friend. one ring of 14 numbers for three rule sets, the last seed deciding captures, a sowing trace replayed on screen, alpha-beta with extra turns">
+      <span class="num">47</span><span class="em" aria-hidden="true">🌰</span>
+      <span class="body"><b>Mancala (Kalah, Oware, Mangala)</b><span class="desc">Sow the seeds round and capture them. Three games from Ghana to Turkey: Kalah, Oware and Mangala. Play the computer or a friend.</span><span class="idea">Under the hood: One ring of 14 numbers for three rule sets, the last seed deciding captures, a sowing trace replayed on screen, alpha-beta with extra turns</span></span>
+    </a>
+    <a class="card" href="chap48/index.html" data-cat="board" data-text="royal game of ur a 4,500-year-old race game from mesopotamia: four two-sided dice, seven pieces, rosettes for extra throws, capture on the shared lane. one number per piece on crossing paths, dice as a probability table, expectimax with a transposition table">
+      <span class="num">48</span><span class="em" aria-hidden="true">🏺</span>
+      <span class="body"><b>Royal Game of Ur</b><span class="desc">A 4,500-year-old race game from Mesopotamia: four two-sided dice, seven pieces, rosettes for extra throws, capture on the shared lane.</span><span class="idea">Under the hood: One number per piece on crossing paths, dice as a probability table, expectimax with a transposition table</span></span>
+    </a>
+    <a class="card" href="chap49/index.html" data-cat="board" data-text="shatranj chess as played a thousand years ago: a slow ferz, a leaping alfil, no castling, and a bare king rule. board as signed numbers, move tables, alpha-beta search, end rules as a state machine">
+      <span class="num">49</span><span class="em" aria-hidden="true">🐘</span>
+      <span class="body"><b>Shatranj</b><span class="desc">Chess as played a thousand years ago: a slow Ferz, a leaping Alfil, no castling, and a bare king rule.</span><span class="idea">Under the hood: Board as signed numbers, move tables, alpha-beta search, end rules as a state machine</span></span>
+    </a>
+    <a class="card" href="chap50/index.html" data-cat="board" data-text="dama turkish and arab draughts: no diagonals, flying kings, and you must always take the biggest capture. a move as a whole turn, depth-first capture chains, the majority rule as a filter, searching through forced captures">
+      <span class="num">50</span><span class="em" aria-hidden="true">⚪</span>
+      <span class="body"><b>Dama</b><span class="desc">Turkish and Arab draughts: no diagonals, flying kings, and you must always take the biggest capture.</span><span class="idea">Under the hood: A move as a whole turn, depth-first capture chains, the majority rule as a filter, searching through forced captures</span></span>
+    </a>
+    <a class="card" href="chap51/index.html" data-cat="board" data-text="senet the ancient egyptian game of passing: four throwing sticks, swaps, and the house of water. a piece as a number on an s-shaped track, a throw as a probability table, swaps, expectimax">
+      <span class="num">51</span><span class="em" aria-hidden="true">🐍</span>
+      <span class="body"><b>Senet</b><span class="desc">The ancient Egyptian game of passing: four throwing sticks, swaps, and the House of Water.</span><span class="idea">Under the hood: A piece as a number on an S-shaped track, a throw as a probability table, swaps, expectimax</span></span>
+    </a>
+    <a class="card" href="chap52/index.html" data-cat="board" data-text="conquest conquer europe in 1914: dice battles, power blocs for bonus armies, up to six players, drawn soldiers and cannons. coastline bitmap, nearest-seed territories, exact dice odds, a map painted in layers, a computer player made of a few scores">
+      <span class="num">52</span><span class="em" aria-hidden="true">🗺️</span>
+      <span class="body"><b>Conquest</b><span class="desc">Conquer Europe in 1914: dice battles, power blocs for bonus armies, up to six players, drawn soldiers and cannons.</span><span class="idea">Under the hood: Coastline bitmap, nearest-seed territories, exact dice odds, a map painted in layers, a computer player made of a few scores</span></span>
+    </a>
+    <a class="card" href="chap53/index.html" data-cat="board" data-text="food court empire buy food shops on tidehaven high street, collect rent, add shops and bankrupt your rivals. 2 to 5 players, people or computers. food-business board as data, drawn icons, rent tables, debt and bankruptcy state machine, computer players made of a few rules">
+      <span class="num">53</span><span class="em" aria-hidden="true">🏙️</span>
+      <span class="body"><b>Food Court Empire</b><span class="desc">Buy food shops on Tidehaven High Street, collect rent, add shops and bankrupt your rivals. 2 to 5 players, people or computers.</span><span class="idea">Under the hood: Food-business board as data, drawn icons, rent tables, debt and bankruptcy state machine, computer players made of a few rules</span></span>
+    </a>
+    <a class="card" href="chap54/index.html" data-cat="action" data-text="outbreak survive three zombie cities: shoot the swarm, loot houses, rescue survivors, beat the bosses and uncover who started it. city as tile arrays, a distance map the swarm follows, rules separate from drawing, a story told by events">
+      <span class="num">54</span><span class="em" aria-hidden="true">🧟</span>
+      <span class="body"><b>Outbreak</b><span class="desc">Survive three zombie cities: shoot the swarm, loot houses, rescue survivors, beat the bosses and uncover who started it.</span><span class="idea">Under the hood: City as tile arrays, a distance map the swarm follows, rules separate from drawing, a story told by events</span></span>
+    </a>
+    <a class="card" href="chap55/index.html" data-cat="board" data-text="mahjong hong kong or taiwan rules against three cute, dramatic animal friends: 上 / 碰 / 槓 / 糊 with bubbles, shouts and tears. game flow as a state machine, win detection by set splitting, shanten for the computer players, scoring tables as data">
+      <span class="num">55</span><span class="em" aria-hidden="true">🀄</span>
+      <span class="body"><b>Mahjong</b><span class="desc">Hong Kong or Taiwan rules against three cute, dramatic animal friends: 上 / 碰 / 槓 / 糊 with bubbles, shouts and tears.</span><span class="idea">Under the hood: Game flow as a state machine, win detection by set splitting, shanten for the computer players, scoring tables as data</span></span>
+    </a>
+    <a class="card" href="chap56/index.html" data-cat="logic" data-text="solitaire klondike patience: tap or drag, draw one or three, undo, hints, a daily deal, and deals checked so they can be won. card game state as plain arrays, move generator, depth-first solver with a seen-set, animation by position maps">
+      <span class="num">56</span><span class="em" aria-hidden="true">🃏</span>
+      <span class="body"><b>Solitaire</b><span class="desc">Klondike patience: tap or drag, draw one or three, undo, hints, a daily deal, and deals checked so they can be won.</span><span class="idea">Under the hood: Card game state as plain arrays, move generator, depth-first solver with a seen-set, animation by position maps</span></span>
+    </a>
+    <a class="card" href="chap57/index.html" data-cat="logic" data-text="mahjong puzzles which tiles win, which tile to throw, how many faan or tai, and which winning tile scores most, in hong kong or taiwan style. building a winning hand then spoiling it, answers computed from the real scoring rules, counting unseen tiles, make-test-retry puzzle generation">
+      <span class="num">57</span><span class="em" aria-hidden="true">🧩</span>
+      <span class="body"><b>Mahjong Puzzles</b><span class="desc">Which tiles win, which tile to throw, how many faan or tai, and which winning tile scores most, in Hong Kong or Taiwan style.</span><span class="idea">Under the hood: Building a winning hand then spoiling it, answers computed from the real scoring rules, counting unseen tiles, make-test-retry puzzle generation</span></span>
+    </a>
+    <a class="card" href="chap58/index.html" data-cat="action" data-text="jet strike fly a 3d jet into an asteroid field: shoot rocks that break into pieces, dodge drones, boost, bomb and beat the dreadnought boss. perspective projection by hand, flat-shaded triangles, fractal rock meshes, swept collision (no bullet tunnelling), a rules/drawing split tested by bots">
+      <span class="num">58</span><span class="em" aria-hidden="true">✈️</span>
+      <span class="body"><b>Jet Strike</b><span class="desc">Fly a 3D jet into an asteroid field: shoot rocks that break into pieces, dodge drones, boost, bomb and beat the Dreadnought boss.</span><span class="idea">Under the hood: Perspective projection by hand, flat-shaded triangles, fractal rock meshes, swept collision (no bullet tunnelling), a rules/drawing split tested by bots</span></span>
+    </a>
+    <a class="card" href="chap59/index.html" data-cat="board" data-text="flock a new two-player board game i invented: stones move as far as their flock is big, and you capture by sandwiching. three rules, four computer levels, or two players. inventing a game: three rules, rules tuned by computer self-play, alpha-beta search with undo, and a summary of what the older board games taught">
+      <span class="num">59</span><span class="em" aria-hidden="true">🕊️</span>
+      <span class="body"><b>Flock</b><span class="desc">A new two-player board game I invented: stones move as far as their flock is big, and you capture by sandwiching. Three rules, four computer levels, or two players.</span><span class="idea">Under the hood: Inventing a game: three rules, rules tuned by computer self-play, alpha-beta search with undo, and a summary of what the older board games taught</span></span>
+    </a>
+    <a class="card" href="chap60/index.html" data-cat="board" data-text="runes a new dice-and-magic board game i invented: roll two dice, pick one, and its number casts a spell from chess, shogi, othello, xiangqi, senet or ur. capture the enemy mage or hold the throne. inventing a game with dice: choosing between two rolls, chance nodes in the search, spells as moves, tuned by self-play">
+      <span class="num">60</span><span class="em" aria-hidden="true">🎲</span>
+      <span class="body"><b>Runes</b><span class="desc">A new dice-and-magic board game I invented: roll two dice, pick one, and its number casts a spell from chess, shogi, Othello, xiangqi, Senet or Ur. Capture the enemy Mage or hold the Throne.</span><span class="idea">Under the hood: Inventing a game with dice: choosing between two rolls, chance nodes in the search, spells as moves, tuned by self-play</span></span>
+    </a>
+    <a class="card" href="chap61/index.html" data-cat="board" data-text="morris nine men&#x27;s morris, the old mill game: place nine stones, slide them, fly when you are down to three, and take a stone for every three in a row. four computer levels or two players. a javascript rules engine checked against a python one on 121,831 positions, alpha-beta search with iterative deepening, repeat avoidance">
+      <span class="num">61</span><span class="em" aria-hidden="true">⚪</span>
+      <span class="body"><b>Morris</b><span class="desc">Nine Men&#x27;s Morris, the old mill game: place nine stones, slide them, fly when you are down to three, and take a stone for every three in a row. Four computer levels or two players.</span><span class="idea">Under the hood: A JavaScript rules engine checked against a Python one on 121,831 positions, alpha-beta search with iterative deepening, repeat avoidance</span></span>
+    </a>
+    <a class="card" href="chap62/index.html" data-cat="action" data-text="haunted maze a first-person horror game in a huge random louis xvi mansion: open doors, spot the paranormal by clicking, 20 ghosts that hit you from behind, ghosts coming out of walls, paintings and mirrors, sweets for lives. rules engine tested by a bot over 4 whole stages; same raycaster method as chapter 31">
+      <span class="num">62</span><span class="em" aria-hidden="true">👻</span>
+      <span class="body"><b>Haunted Maze</b><span class="desc">A first-person horror game in a huge random Louis XVI mansion: open doors, spot the paranormal by clicking, 20 ghosts that hit you from behind, ghosts coming out of walls, paintings and mirrors, sweets for lives.</span><span class="idea">Under the hood: Rules engine tested by a bot over 4 whole stages; same raycaster method as Chapter 31</span></span>
+    </a>
+  </main>
+  <div class="empty" id="empty" hidden>No game matches. Try another word.</div>
+    <footer>
+      <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+      <br><b><a href="https://www.paypal.me/KevHauR">∫ KevHau d(coffee) = formula </a></b><br>
+      <p>
+        <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+        <br>
+        
+      </p>
+      <br>
+          <!-- hitwebcounter Code START -->
+      <b>View</b><br>
+      <!-- hitwebcounter Code START -->
+      <a href="https://www.hitwebcounter.com/" target="_blank">
+      <img src="https://hitwebcounter.com/counter/counter.php?page=21480109&style=0024&nbdigits=6&type=page&initCount=1" title="Free Tools" Alt="Free Tools"   border="0" /></a>                                  
+
+
+    </footer>
+</div>
+<script>
+(function(){
+  var cards=[].slice.call(document.querySelectorAll('.card')),chips=[].slice.call(document.querySelectorAll('.chip')),q=document.getElementById('q'),cat='all';
+  function apply(){var t=q.value.trim().toLowerCase(),n=0;cards.forEach(function(c){var ok=(cat==='all'||c.dataset.cat===cat)&&(!t||c.dataset.text.indexOf(t)>-1);c.hidden=!ok;if(ok)n++});
+    document.getElementById('count').textContent=n===cards.length?'Showing all '+n+' games':'Showing '+n+' of '+cards.length;document.getElementById('empty').hidden=n>0}
+  chips.forEach(function(b){b.addEventListener('click',function(){cat=b.dataset.cat;chips.forEach(function(x){x.classList.toggle('on',x===b)});apply()})});
+  q.addEventListener('input',apply);apply();
+  var root=document.documentElement,btn=document.getElementById('themeBtn');
+  function setTheme(t){root.setAttribute('data-theme',t);btn.textContent=t==='dark'?'☀️ Light':'🌙 Dark'}
+  var saved=null;try{saved=localStorage.getItem('hub-theme')}catch(e){}
+  if(!saved&&window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)saved='light';
+  setTheme(saved||'dark');
+  btn.addEventListener('click',function(){var t=root.getAttribute('data-theme')==='dark'?'light':'dark';setTheme(t);try{localStorage.setItem('hub-theme',t)}catch(e){}});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "Banqi",
+  "short_name": "Banqi",
+  "description": "Dark chess: 32 xiangqi pieces start face down. Flip, move, capture and the cannon jumps. Play the computer or a friend",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#7a2323",
+  "theme_color": "#7a2323",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 6 · Box World</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --text:var(--fg); --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --overlay:rgba(13,17,23,.72); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+  --overlay:rgba(255,255,255,.74); --shadow:0 4px 20px rgba(20,40,80,.12);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:1320px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.5rem;box-shadow:var(--shadow);text-align:left}
+footer{width:100%;max-width:1320px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:20px;align-items:start}
+@media(max-width:1020px){.layout{grid-template-columns:1fr}}
+.game{min-width:0}
+.hud{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 12px;display:flex;flex-direction:column;min-width:74px}
+.chip span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.chip b{font-size:20px;font-variant-numeric:tabular-nums;color:var(--accent-light)}
+.fxbar{min-height:30px;display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.fx{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px}
+.fx.bad{border-color:#ef4444}.fx.good{border-color:#22c55e}
+.stage{position:relative;width:fit-content;max-width:100%;margin:0 auto;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line)}
+
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;background:var(--overlay);backdrop-filter:blur(3px);padding:20px}
+.overlay.hide{display:none}
+.overlay h2{margin:0;font-size:2rem;color:var(--accent)}
+.overlay p{margin:0;color:var(--muted);max-width:360px}
+.overlay .big{color:var(--fg);font-weight:600}
+.ovbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.6rem 1.1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s;text-decoration:none}
+.btn:hover{background:var(--panel);color:var(--fg);transform:translateY(-2px);text-decoration:none}
+.btn:active{transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.primary:hover{background:var(--accent-light);color:#000}
+.btn:disabled{opacity:.5;cursor:default;transform:none}
+.actions{display:flex;justify-content:center;gap:10px;margin:14px 0 6px;flex-wrap:wrap}
+.hint{text-align:center;color:var(--muted);font-size:13px}
+.dpad{display:none;grid-template-columns:repeat(4,1fr);gap:8px;max-width:420px;margin:12px auto 0}
+.dpad button{font-size:22px;padding:.7rem 0}
+@media(hover:none),(pointer:coarse){.dpad{display:grid}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;max-height:none}
+.panel h2{margin:0 0 10px;font-size:1.1rem;color:var(--accent)}
+details{border-top:1px solid var(--line);padding:2px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:700;padding:10px 2px;list-style:none;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"▾";color:var(--muted)}
+details[open] summary::after{content:"▴"}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 2px}
+.row.stack{flex-direction:column;align-items:stretch;gap:6px}
+.row .lab{display:flex;flex-direction:column;min-width:0}
+.row .lab small{color:var(--muted);font-size:12px}
+.row .head{display:flex;justify-content:space-between;gap:8px}
+.row output{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px}
+.row.dim{opacity:.4}
+.note{color:var(--muted);font-size:13px;padding:4px 2px 8px}
+.note.warn{color:var(--accent-light)}
+.sw{appearance:none;width:44px;height:26px;border-radius:999px;border:0;background:var(--panel2);box-shadow:inset 0 0 0 1px var(--line);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
+.sw[aria-checked="true"]{background:var(--accent)}
+.sw[aria-checked="true"]::after{transform:translateX(18px);background:#fff}
+.sw:disabled{cursor:default}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;max-width:190px}
+input[type=color]{width:40px;height:30px;border:1px solid var(--line);border-radius:8px;background:none;padding:0;cursor:pointer}
+.seg{display:flex;background:var(--panel2);border-radius:8px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-weight:600;padding:6px 8px;border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#000}
+.foot{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+
+.status{min-height:30px;margin:2px 0 10px;font-weight:700;color:var(--accent-light)}
+.status.good{color:#22c55e}.status.bad{color:#ef4444}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal.hide{display:none}
+.mbox{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:380px;width:100%;box-shadow:var(--shadow);animation:bn .3s}
+.mbox h3{margin:0 0 6px;color:var(--accent)}
+.mbox p{margin:0 0 10px}
+.mbox input{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:1.05rem}
+.mbox .err{color:#ef4444;min-height:20px;font-size:13px;margin-top:4px}
+.mbox .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+.muted{color:var(--muted)}
+.actions{display:flex;justify-content:center;gap:10px;margin:6px 0;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--panel2);border:1px solid var(--line);padding:8px 16px;border-radius:999px;opacity:0;transition:.25s;pointer-events:none;z-index:70;backdrop-filter:blur(6px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+/* ---- Box World window ---- */
+.desktop{--desk:#008080;background:var(--desk);padding:18px;border-radius:12px;display:flex;justify-content:center;border:1px solid var(--line);transition:background .25s}
+.desktop.site{background:var(--panel2)}
+.winwrap{width:100%;display:flex;justify-content:center}
+.win{--wbg:#c0c0c0;--wfg:#000;position:relative;width:max-content;max-width:100%;background:var(--wbg);color:var(--wfg);font:12px/1.25 Tahoma,"MS Sans Serif","Segoe UI",sans-serif;user-select:none;-webkit-user-select:none}
+.win .tb{display:flex;align-items:center;gap:4px;height:20px;padding:2px 3px;margin:2px;color:#fff;font-weight:700;background:linear-gradient(90deg,#000080,#1084d0)}
+.win .tb .ti{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.win .tb .ic{width:14px;height:14px;image-rendering:pixelated;flex:none}
+.win .tbb{display:flex;gap:2px}
+.win .tbb i{font-style:normal;width:16px;height:14px;display:grid;place-items:center;background:#c0c0c0;color:#000;border:1px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080;font-size:10px;line-height:1;font-weight:900}
+.win .mb{display:flex;gap:0;padding:1px 2px;position:relative}
+.win .mi{padding:2px 8px;cursor:default;background:none;border:0;font:inherit;color:inherit}
+.win .mi:hover,.win .mi.open{background:#000080;color:#fff}
+.win .menu{position:absolute;top:100%;left:2px;z-index:20;min-width:190px;background:#c0c0c0;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,2px 2px 0 rgba(0,0,0,.35);padding:2px}
+.win .menu.hide{display:none}
+.win .menu button{display:flex;justify-content:space-between;gap:20px;width:100%;text-align:left;padding:3px 18px 3px 22px;border:0;background:none;font:inherit;color:inherit;cursor:default}
+.win .menu button:hover:not(:disabled){background:#000080;color:#fff}
+.win .menu button:disabled{color:#808080;text-shadow:1px 1px #fff}
+.win .menu button kbd{font:inherit;color:inherit;opacity:.75}
+.win .menu hr{border:0;border-top:1px solid #808080;border-bottom:1px solid #fff;margin:3px 2px}
+.win .cvw{margin:2px;border:2px solid;border-color:#808080 #fff #fff #808080;line-height:0;position:relative;background:#808000}
+.win canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;cursor:pointer;max-width:100%}
+.win .sb{display:flex;gap:2px;margin:2px;padding:0}
+.win .sb span{flex:1;padding:2px 6px;border:1px solid;border-color:#808080 #fff #fff #808080;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.win .sb span.w{flex:.8}
+.win{border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,inset 1px 1px #dfdfdf,6px 6px 0 rgba(0,0,0,.35)}
+.win .dlgback{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.18);padding:6px}
+.win .dlgback.hide{display:none}
+.win .dlg{background:#c0c0c0;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080,4px 4px 0 rgba(0,0,0,.4);max-width:100%;width:min(100%,360px)}
+.win .dlg .tb{margin:2px;height:18px}
+.win .dlg .bd{padding:10px 12px;line-height:1.35}
+.win .dlg .bd p{margin:0 0 8px}
+.win .dlg .bt{display:flex;gap:8px;justify-content:center;padding:0 12px 12px;flex-wrap:wrap}
+.win .wb{min-width:76px;padding:4px 12px;font:inherit;color:inherit;background:#c0c0c0;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #808080;cursor:pointer}
+.win .wb:active{border-color:#404040 #fff #fff #404040;box-shadow:inset 1px 1px #808080}
+.win .wb:focus-visible{outline:1px dotted #000;outline-offset:-5px}
+.win .wb.def{outline:1px solid #000;outline-offset:1px}
+.win input.wi{font:inherit;width:70px;padding:3px 4px;border:2px solid;border-color:#808080 #fff #fff #808080;background:#fff;color:#000}
+.win .gotogrid{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;margin:6px 0}
+.win .gotogrid button{padding:3px 0;font:inherit;font-size:11px;background:#c0c0c0;color:#000;border:1px solid;border-color:#fff #404040 #404040 #fff;cursor:pointer;position:relative}
+.win .gotogrid button.cur{background:#000080;color:#fff}
+.win .gotogrid button.done{font-weight:700;color:#006400}
+.win .gotogrid button.done.cur{color:#9f9}
+.win .gotogrid button:disabled{color:#808080;cursor:default;text-shadow:1px 1px #fff}
+.win .rules{display:flex;align-items:center;gap:4px;margin:4px 0;line-height:0}
+.win .rules img,.win .dlg img.pix{image-rendering:pixelated;width:30px;height:30px}
+.win .rules span{font-size:11px;line-height:1.2;margin-left:6px}
+/* Windows 3.1 */
+.win[data-ws="31"]{--wbg:#c0c0c0;border:3px solid #000;box-shadow:inset 1px 1px #fff,inset -1px -1px #808080,5px 5px 0 rgba(0,0,0,.35);font-family:Arial,"MS Sans Serif",sans-serif}
+.win[data-ws="31"] .tb{background:#000080;justify-content:center;margin:0;height:22px;border-bottom:2px solid #000;padding:2px 3px}
+.win[data-ws="31"] .tb .ic{display:none}
+.win[data-ws="31"] .tb .ti{text-align:center;flex:1;font-weight:700}
+.win[data-ws="31"] .tb::before{content:"–";order:-1;width:18px;height:16px;display:grid;place-items:center;background:#c0c0c0;color:#000;border:1px solid #000;font-weight:900}
+.win[data-ws="31"] .tbb i{border:1px solid #000;box-shadow:inset 1px 1px #fff,inset -1px -1px #808080;width:18px;height:16px}
+.win[data-ws="31"] .mb{background:#fff;border-bottom:1px solid #000;padding:0 2px}
+.win[data-ws="31"] .win .mi,.win[data-ws="31"] .mi{padding:2px 10px}
+.win[data-ws="31"] .menu{background:#fff;border:1px solid #000;box-shadow:3px 3px 0 rgba(0,0,0,.45);padding:0}
+.win[data-ws="31"] .cvw{border:2px solid #000;margin:6px}
+.win[data-ws="31"] .sb{margin:0 6px 6px}
+.win[data-ws="31"] .sb span{border:1px solid #808080;box-shadow:inset 1px 1px #fff}
+.win[data-ws="31"] .dlg{border:3px solid #000;box-shadow:inset 1px 1px #fff,inset -1px -1px #808080,4px 4px 0 rgba(0,0,0,.4)}
+.win[data-ws="31"] .dlg .tb{margin:0}
+.win[data-ws="31"] .wb{border:1px solid #000;box-shadow:inset 1px 1px #fff,inset -2px -2px #808080;border-radius:2px}
+/* flat / modern */
+.win[data-ws="flat"]{--wbg:var(--bg);--wfg:var(--fg);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);font-family:var(--font);font-size:13px;overflow:hidden}
+.win[data-ws="flat"] .tb{background:var(--panel2);color:var(--fg);margin:0;height:34px;padding:4px 12px;border-bottom:1px solid var(--line)}
+.win[data-ws="flat"] .tbb{display:none}
+.win[data-ws="flat"] .mb{padding:4px 8px;border-bottom:1px solid var(--line)}
+.win[data-ws="flat"] .mi{border-radius:6px}
+.win[data-ws="flat"] .mi:hover,.win[data-ws="flat"] .mi.open{background:var(--accent);color:#000}
+.win[data-ws="flat"] .menu{background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:4px}
+.win[data-ws="flat"] .menu button{border-radius:6px}
+.win[data-ws="flat"] .menu button:hover:not(:disabled){background:var(--accent);color:#000}
+.win[data-ws="flat"] .menu hr{border-color:var(--line)}
+.win[data-ws="flat"] .cvw{border:0;margin:8px;border-radius:8px;overflow:hidden}
+.win[data-ws="flat"] .sb{margin:0 8px 8px;gap:6px}
+.win[data-ws="flat"] .sb span{border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.win[data-ws="flat"] .dlgback{background:var(--overlay)}
+.win[data-ws="flat"] .dlg{background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.win[data-ws="flat"] .wb{border:1px solid var(--line);border-radius:8px;background:var(--panel2);box-shadow:none;font-weight:700}
+.win[data-ws="flat"] .wb.def{background:var(--accent);color:#000;outline:0}
+.win[data-ws="flat"] input.wi{border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--fg)}
+.win[data-ws="flat"] .gotogrid button{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:6px}
+.win[data-ws="flat"] .gotogrid button.cur{background:var(--accent);color:#000}
+.win[data-ws="flat"] .gotogrid button.done{color:#22c55e}
+.win[data-ws="flat"] .gotogrid button:disabled{color:var(--muted);text-shadow:none;opacity:.5}
+.win.shake{animation:wshake .28s}
+@keyframes wshake{25%{transform:translateX(-4px)}60%{transform:translateX(4px)}}
+.dp{display:none;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,54px);gap:6px;justify-content:center;margin:14px auto 0}
+.dp.on{display:grid}
+.dp button{font-size:22px;padding:0}
+.dp .u{grid-column:2;grid-row:1}.dp .l{grid-column:1;grid-row:2}.dp .d{grid-column:2;grid-row:2}.dp .r{grid-column:3;grid-row:2}.dp .z{grid-column:3;grid-row:1;font-size:14px}.dp .y{grid-column:1;grid-row:1;font-size:14px}
+
+@media(max-width:640px){
+  body{padding:.6rem}main{padding:.6rem}.desktop{padding:6px}
+  .win .sb{flex-wrap:wrap}.win .sb span,.win .sb span.w{flex:1 1 30%;white-space:normal}
+  .win .menu{min-width:170px}
+}
+
+</style>
+</head>
+<body>
+<header>
+  
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h1>Box World</h1>
+  <p>Chapter 6 · push every crate onto a spot — a tribute to the old Windows game</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+  <div class="layout">
+    <section class="game">
+      <div class="desktop" id="desktop"><div class="winwrap" id="winwrap">
+        <div class="win" id="win" data-ws="95">
+          <div class="tb"><img class="ic" id="tbIcon" alt=""><span class="ti">Box World</span><span class="tbb"><i>_</i><i>□</i><i>×</i></span></div>
+          <div class="mb">
+            <button class="mi" id="miGame" type="button" aria-haspopup="true">Game</button>
+            <div class="menu hide" id="menu" role="menu">
+              <button type="button" data-a="undo">Undo <kbd>Z</kbd></button>
+              <button type="button" data-a="retry">Retry <kbd>R</kbd></button>
+              <button type="button" data-a="beep" id="miBeep">Beep off <kbd>B</kbd></button>
+              <hr>
+              <button type="button" data-a="prev">Previous world <kbd>P</kbd></button>
+              <button type="button" data-a="next">Next world <kbd>N</kbd></button>
+              <button type="button" data-a="goto">Go to world… <kbd>G</kbd></button>
+              <button type="button" data-a="random">Random world</button>
+              <hr>
+              <button type="button" data-a="about">About…</button>
+            </div>
+          </div>
+          <div class="cvw" id="cvw"><canvas id="cv" width="480" height="420" tabindex="0" aria-label="Box World playfield"></canvas></div>
+          <div class="sb"><span class="w" id="sbWorld">World 1</span><span id="sbMoves">Your moves: 0</span><span id="sbBest">Best moves: N/A</span></div>
+          <div class="dlgback hide" id="dlgBack"><div class="dlg" id="dlg" role="dialog" aria-modal="true"><div class="tb"><span class="ti" id="dlgTitle">Box World</span></div><div class="bd" id="dlgBody"></div><div class="bt" id="dlgBtns"></div></div></div>
+        </div>
+      </div></div>
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="actions">
+        <button class="btn" id="btnUndo" type="button" title="Z">↶ Undo</button>
+        <button class="btn" id="btnRetry" type="button" title="R">↻ Retry</button>
+        <button class="btn" id="btnPrev" type="button" title="P">◀ Prev</button>
+        <button class="btn primary" id="btnNext" type="button" title="N">Next ▶</button>
+        <button class="btn" id="btnGoto" type="button" title="G">🔢 Go to world…</button>
+      </div>
+      <div class="dp" id="dp"><button class="btn y" data-k="undo" type="button">↶</button><button class="btn u" data-k="up" type="button">▲</button><button class="btn z" data-k="retry" type="button">↻</button><button class="btn l" data-k="left" type="button">◀</button><button class="btn d" data-k="down" type="button">▼</button><button class="btn r" data-k="right" type="button">▶</button></div>
+      <div class="hint">Arrow keys / WASD move &amp; push · Z undo · R retry · N / P next / previous world · click a square to walk there · swipe on touch screens</div>
+    </section>
+    <aside class="panel" id="panel"><h2>Customise</h2></aside>
+  </div>
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<div class="toast" id="toast"></div>
+<script>
+(() => {
+'use strict';
+const LEVELS = [["00111000","00131000","00121111","11142431","13246111","11114100","00013100","00011100"],["111110000","162210000","124410111","124210131","111211131","011222231","012221221","012221111","011111000"],["0111111100","0122222111","1141112221","1262422421","1233124211","1133122210","0111111110"],["011110","112210","164210","114211","112421","134221","133531","111111"],["01111100","01621110","01242210","11121211","13121221","13422121","13222421","11111111"],["0001111111000","1111222221000","1222311121000","1212122221100","1212424132100","1212252212100","1231424212100","1122221212111","0121113222261","0122222112221","0111111111111"],["0001111111","0011221261","0012221221","0014242421","0012411221","1112421211","1333332210","1111111110"],["0001111110","0111222210","1132411211","1334242261","1332424211","1111112210","0000011110"],["01111111110","01221122210","01222422210","01421112410","01213331210","11213331211","12422422421","12222212621","11111111111"],["00111111","00122221","11144421","16243321","12433311","11112210","00011110"],["011110011111","112210012221","124211114221","122433332421","112222126211","011111111110"],["00111110","11122610","12243211","12234321","11125421","00122211","00111110"],["00111100","00133100","01123110","01224310","11242211","12214421","12262221","11111111"],["11111111","12212221","12433421","16435211","12433421","12212221","11111111"],["01111111","11222210","12424421","13333331","12442421","11126111","00111100"],["0011111100","0012222111","0012422221","1112421121","1333242221","1333414211","1111212421","0001226221","0001111111"],["111111000","122221000","124441100","122133111","112233421","012622221","011111111"],["0011111111","0012221321","0112243331","0122421531","1121141211","1222422421","1222122221","1111111621","0000001111"],["0111111100","0133332100","1113334111","1224142421","1244221421","1222212221","1111262111","0001111100"],["1111111","1334331","1331331","1244421","1224221","1244421","1221621","1111111"],["00011111100","00012333100","11113333100","12211142111","12424224421","16242422221","12221112221","11111011111"],["111111110","122222210","121442210","123331210","113334211","012112421","014224221","012212261","011111111"],["0011111000","1112221111","1222424221","1242224261","1114411111","0012233100","0013333100","0011111100"],["11111100011111","12222111012231","12242421013331","12122421112231","12244422242631","11122422412231","00122414213331","00112222212231","00011111111111"],["00000111111","01111132221","01221331121","01224332221","01221231211","11121141221","12422224421","12141221221","16221111111","11111000000"],["0111111111000","0122211221111","0124222222221","0114111211221","0122112521211","0124333333210","1121112321210","1222224111410","1222122224610","1111141211110","0000122210000","0000111110000"],["000000111111111","000000122222221","000000121212121","000000122424121","111111122242221","133122112424121","133222112424221","133122112111111","133121242421000","133222224221000","122111262111000","111101111100000"],["0000111100000000","1111122100000000","1224242101111111","1222422101535351","1124242111353531","0142422122535351","0164242222353511","0142422122535351","1124242111353531","1222422101535351","1224242101111111","1111122100000000","0000111100000000"],["111111110","133333310","122421211","124212421","114242421","012262221","011111111"],["001111111111","111222322221","122211411221","126432323411","112411411210","012222322210","011111111110"],["000111111","111132261","122444221","131131131","122242221","122431211","111122210","000111110"],["01111110","01323310","01324310","11122411","12422421","12141121","12226221","11111111"],["00001111110000","00111222211100","00122214222111","00122242224421","00124421422221","00112224222421","11111121411111","13362142210000","13133224110000","13333412100000","13333222100000","11111111100000"],["111111111111111","122222212222221","124214212411421","121224212222221","122211414114421","121212333212221","124223212342121","124164333121221","122223212322421","121134111432121","121243333321121","122222222222221","111111111111111"],["1111111110","1222112210","1212424210","1225312210","1121363110","1141115111","1222222221","1222112121","1111112221","0000011111"],["111111110000000","122222210000000","124422211100000","122424442111110","112112333222211","012161333111421","012124333222221","112124333421211","122111112111210","122222242224210","111111111112210","000000000011110"],["000111110","000126210","000144410","111122210","122231411","124343231","122131311","111111110"],["111111111111","133321222221","133221211221","133222221221","133221241121","133321424221","111111224421","011224244221","016244422121","011242112221","001222222221","001111111111"],["11111111100","12222222100","12242424100","11214112100","01233233110","01133233210","00121141211","00142424221","00122222261","00111111111"],["111110000001111","162211111111221","112422222224221","012121221111221","012242221111411","014211212424210","112422412222210","122212222221210","122211111411110","111112221222100","000013332242100","000013333122100","000013333111100","000011111100000"],["0000011111","0111112221","0123324121","0121352221","1125314211","1242242210","1222112610","1111111110"],["1111101111111","1222111221221","1242222242621","1121411311221","0122333532421","0124121312121","0112222422221","0012211111111","0011110000000"],["000000000111000","000011111161100","000013333142110","000013333124210","000013333242210","000012333122210","111111211111211","124242224221221","122224422242421","111242424221111","001122242421000","000122111111000","000111100000000"],["00011111000","01112221110","11226424210","12211211211","12431342221","12131512221","12433322111","11141211100","00122210000","00111110000"],["000000111100000","000000122111111","000000122221221","000000124422221","111111141221221","122132332111411","122131534222221","122131351212221","124433331211111","126421211210000","124441222210000","122221111110000","111111000000000"],["111100000000000","122111000000000","124221110000000","124242211100000","124242422111000","124242422221000","124242212221100","124221124442100","162111122222110","112121344444310","012111333333311","012223555555531","011113333333331","000011111111111"],["11111110000","12612211111","12442242221","12213114121","11413332221","11233311411","12211311221","12242242221","12212221221","11111111111"],["00011111000","00012621000","00012421000","00014341000","01113431100","11234343111","12243434221","12222322221","11111111111"],["1111111111111","1224242435331","1242424253331","1224242435331","1242424253331","1224242435331","1242424253331","1224242435331","1242424253331","1224242435331","1642424253331","1111111111111"],["000000000000010","000000000000110","000000000001110","000000000012221","000111111112121","001242424242221","011213131316410","111333333322211","011212121214110","001242424242221","000111111112121","000000000012221","000000000001110","000000000000110"],["111111100","122342111","123434221","154343621","123434211","122342210","111111110"],["0000000001111100","0000000001222100","1111111111252111","1222222222232221","1244445555433361","1222222222232221","1111111111252111","0000000001222100","0000000001111100"],["0000011110000","1111112211111","1642222422421","1411124212121","1221221242221","1241222212111","1224214122210","1333333333210","1111111122210","0000000111110"],["0111111111000","0122211221111","0124222222221","0114111211221","0122112521211","0124333333210","1121112321210","1222224111410","1222122224610","1111141211110","0000122210000","0000111110000"],["11111111111","12222122221","12464444421","12222222221","11111211111","00013221000","00013221000","00013331000","00013221000","00011111000"],["001111100","001262100","001242100","111232111","122252221","125555521","122252221","111454111","001232100","001252100","001232100","001111100"],["11111111111111","13222222222221","13424242424221","13111111111221","13135242334511","13124242534610","13132242334410","13111111111310","13222222222210","13141414141410","13222222222210","11111111111110"],["11111111111100","13322122222111","13322124224221","13322141111221","13322226211221","13322121224211","11111121142421","00124224242421","00122221222221","00111111111111"],["00000001111000","11111111221111","12221133333221","12242211333121","11224221112121","01212422122221","01221242212221","01222124221221","01222212421211","01111221242210","00001122124210","00000116122210","00000011111110"],["11110000001111","13311111111331","15353333353531","12424242424241","14242464242421","12424242424241","14242424242421","13535333335351","13311111111331","11110000001111"],["000011111000","000112221111","000123352421","111121312221","122223531611","121211411210","122222424210","112212221110","011111111000"],["111111000","122221000","124221111","124533521","125335421","111122421","000126221","000111111"],["000111110","111132211","124343221","164121421","124323221","111141421","001323221","001111111"],["111111111111","122223332421","124445552461","122223332421","111111111111"],["1111111111","1122222221","1222141421","1244223431","1261113331","1111111111"],["0111100000","0122111110","1142112210","1224642210","1222114210","1113112111","0133342421","0113322221","0011111111"],["1111101111000000","1333101221111000","1333111224221000","1333311242241110","1133331122242210","1113332112424210","1211222212242210","1221121211121111","1242121422422221","1224262422224221","1222124244242111","1221111112211100","1211000011110000","1110000000000000"],["1111111","1323231","1244421","1346431","1244421","1323231","1111111"],["00000011110","11111112210","12222242210","12224116410","11413331210","01243332210","01213231211","01222121421","01422422221","01221111111","01111000000"],["000111111111","000122212221","000122222221","111115111211","122233322210","121215111411","124222242221","111116212221","000011111111"],["1111100000000000","1333101111100000","1333111222100000","1333322244111110","1333322122122211","1331411112141221","1124221222224421","1224126242441221","1242424212224211","1222122421122210","1111112221111110","0000011111000000"],["111111111111111","111312222221111","113312422421221","133312112421221","133333221442221","113333422221421","111121111111221","122242222222211","122421224124211","124111242124421","122261221122221","111111111111111"],["000000011111111","000000012212221","011111112443331","012222222213331","012111111413331","112122222213331","122121424211111","121242424210000","126224212210000","111114244210000","000012222210000","000011111110000"],["000000011111","001111112221","111222232421","124221431411","122122631221","112111132221","012422151111","012112132210","012222231210","011142222210","000122111110","000111100000"],["000011110000","111112211111","122224222421","122414112221","111213532111","001233326100","001121411100","000122210000","000111110000"],["00011111111","11112222321","12242424321","12231111311","12434242610","12232211110","11111110000"],["00111110000","00122210000","11143411111","12223242221","12114112621","12223211111","11123210000","00122210000","00111110000"],["01111100000","01262111111","01213352221","01233312221","11411242421","12221411111","12224222100","11111212100","00001222100","00001111100"],["00000111111000","00011122221100","00012221122100","01114112212100","11222223312100","12241415312100","12446213512111","12244213312221","11222213342221","01114113212111","00012211122100","00011222221100","00001111111000"],["0000011111110","0000012212210","0000012244210","1111112412210","1333111212211","1322122421221","1322224242421","1322122421221","1333111212211","1111112422210","0000016212210","0000011111110"],["0000000000111111","0000000000122221","1111100011121121","1332111112422121","1332222242224121","1332211211222121","1332112421424121","1332122222422121","1332122421114221","1332124242242111","1112112124222210","0012222161124210","0011111111122110","0000000000111100"],["000000010000000","000001111100000","000111262111000","000122424221000","000125353521000","001123424321100","011125353521110","111122424221111","000111111221000","000011000110000"],["0111111111111110","0126252525212211","0141225252212221","0121252525222221","0121225252211211","0121252525211210","0121225252211210","0121252525211210","0121225252211210","0121252325211211","1121111111111221","1222222222222221","1222111111111221","1111100000001111"],["011111111111110","012222122112210","014442124422411","012422122333321","012242214311321","012212412333311","114242214311321","124224264333321","122211122111111","111110111100000"],["00000111111111","00000122222221","00000122414121","01111112212421","01222124224221","11242222211121","12221411112221","12222421112111","11111332612110","00013334244210","00013331222210","00013331111110","00011111000000"],["1111000001111000","1221111111331110","1242424221333310","1242224421555310","1242424221335310","1224242421535310","1124242423535311","1224242423535361","1224242421535311","1242424221335310","1242224421555310","1242424221333310","1221111111331110","1111000001111000"],["0000001111100000","1111111222100000","1222113222100000","1224133221110000","1122333144211111","0124313422222221","0124111411212421","0122212222244121","0114412114142221","0133324624222111","0133314122211100","0133322111110000","0111111100000000"],["0111100111111","0122111122221","1152225255221","1242522225121","1232221112221","1111112221611","1252325225521","1222122212221","1152225214121","0122111112221","0111100011111"],["01111111110","01222122210","01244444210","11242424210","12422622210","12421111211","12213333321","11223333321","01111111111"],["000111111100000","000122222100000","000124242110000","000111113311111","111111335322421","122464333314421","122242141112221","111112222222111","000011122111100","000000122100000","000000111100000"],["1111100000","1222111111","1242332421","1142334461","0122332421","0111111111"],["001111100000","001222111111","111413222221","124233312421","162431542221","111122221111","000111111000"],["000011111000000","111112221000000","122242621000000","122421311111000","114211311221111","012233333241221","012411311221421","012221311222221","011124211111211","000121422222421","000122221112221","000111111011111"],["1111111","1225221","1263421","1243221","1535551","1225221","1245421","1223221","1111111"],["0011111111100000","0012222122100000","1112142242111100","1224221133122111","1212242133424221","1244224133221221","1122122333142221","0142621333124221","0122221333422211","0121142111222110","0122242222211100","0122111111110000","0111100000000000"],["00011111111110","11113333332210","12223333312210","12213333332110","11211114114100","16422424222111","12442222112221","12122441122121","12224221244221","12242242221421","11112221242421","00012221222221","00011111111111"],["000000111111111","000000122222221","000000142444221","000000122212421","000000122246421","000011142421211","000012224141210","111112122122210","133322124121110","133333222121000","133333124121000","111111112221000","000000011111000"],["01111101111110","01222111222210","11242421421410","12242624224211","12122112133331","12211242131131","11224222233331","01244214133331","01222122214211","01111124222210","00000111122110","00000000111100"],["111100000000000","122100000000000","122111111111100","122221122222100","133122224412100","133221122242111","133122114124221","133222126424221","133122124242221","123222124242111","122122122211100","122122221110000","111111111000000"],["0000000001111100","0000000012222210","0000000122411221","0000001221222421","1001001212212121","0101001242422421","0011111112141221","0012242422222210","0016334255311100","0001333333111110","0000111111111111"]];
+const SPR = {"boxin": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAAAyklEQVR42t2WwRLDIAhEwfHD+XN6SqdGWNZUDy3HjDzNsogix0JFxM9w2/xJH4HmrPaTgsgn+ss9bpwOVqiIQZaNi2/RwXkd0i3Kcr6MnqCNUK+lFcjpM1dJtEF6yA3/rGc66ojwaz+Si7QOzy40tyhjSFfamoVDMnrJZe+QUpmHp/ZRB+z3Ba09UpmkN1np4yV6J7nvuoV+N+a+Zvoia3THA4zpN+M800rbGef3FB3OTdwXlqQoGDy7BtiGsauJTTe8Q/zv3iGH4gUk7kS6QLqqkgAAAABJRU5ErkJggg==", "boxout": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAAA1ElEQVR42t2WyRLEIAhEG8oP58+ZS2rGhS2Lh4xHSl+g06DAtkUAVDdwCbyGiK6A1lP8SkHQo29+Y+K0YAcRICFMxs3jakG+qiFdjFN9hPMapcrNHTKVZtAXrulXNjOK6CbXqqx5OhINiEN3VLmh1mbuqHKz32jRv5HUmlmjO/Tc8sUZkipzMWvVQYfE73Wt+7Fwls4V7oluqvja86/tdynM61JfOI0+cTgYqq5/peQZzm0nJb+7aPPeTPpC7CNDcNMF9sC1O3nmyXfIb6r8yztk0/oADR12vD/H2iUAAAAASUVORK5CYII=", "dest": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAAA3UlEQVR42u1W0Q7DIAg8mv738MtvDza6Kgo26/ZSQhrSyHHiSSsgETSRpcU7AAgWLLx4w232QP8OOnTeJATgWYcBaFOqVcIHBgfJE7HvU94mbi3Jwl7Wem3WZBNMrqd/jDTDYZM8aNUFJXDQ0y1MuW+RuKzFcgDQ1GfLuEzrtnQ0CQB9xZqaVdjJd7NL1hqxzdsIJGC46hHy/OzdTHeOMVNOCUS96LIwIgasM/HCPQefW5lSpgNd0AtiWwaT3DyevL2pSveGX5mpl+e1M1Sv/0FMh6osMHw+u/+EvtHe6iiY+jiNrpsAAAAASUVORK5CYII=", "floor": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAAASUlEQVR42u2UsQ0AIAzDHMT/L5cLQAVUBhTPViYrIoIk0pbcAcQGablRhqffTRcySTWf8Nzsq051FbsL+Tk+n6qnfao+Vcd3wgD+MRQ/s5EDsQAAAABJRU5ErkJggg==", "land": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAAAJ0lEQVR42u3MQQ0AAAgEoNPkRreDmz8IQM3kSSdqtVqtVqvVavXVAvO7ATwti96SAAAAAElFTkSuQmCC", "back1": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAABR0lEQVR42q1WQZLDIAyTOvwr/lnpz9iXeQ9pUgMGTKc+ZCatbQksRAhVBIPcSk4AQGxEOPnhldI0YEs8DNK31hpDrxYNWPNkkHX/ynEOg6xpWG+F9hiPZUZ4uAFOqqphkU2SUyvVSwN3AUm3Y/9TZCH0i/2TwVpXM4V8as5Y/ltKCem6lL9RFxvfncYhCzcmyWlSICLzvjlnEbEaIT/Dc8aYQTFcXABL9pADil5OdBX0AgG4AM0OHHJY7+FtvCfIuZ5rLVToy0DeACJy9y0iAJ52xVrtxvuA2NNxnvQcGOCz3km2e8vU+6n1ERcjA7ro2yjETECvOeQhhlWC701pbpRTVyagHHteCtqi+k46K2KkxXc3MEemGkHiwE7n20CoghUzHVF+Z+6MsRZLy04Ht8Tar9fXyuq6SNGJcfs6DrbWH3yo/TD+AYgpiqg/RzVXAAAAAElFTkSuQmCC", "back2": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAABQUlEQVR42rWVYY7EIAiF32u813qzcW5mT8b86OpiRcVOljRNavHzoQKECJxGbjkHACA2zO187JFI6xfLs0ZXv/6tP6Ulil81x7vA8eAMzX59n8mNfiw9ds7XoUlExH3PRs7BuKrlGtQJJE1iP+SJgvZkOzm4cUNyztecy0bEyV9PyjQUbZ2a04u+hDvNdA5anNrcH5IppZTSA6iRQn9o4lQBxhjn0Bxj6o5R1UkW1WW5s92+usANCuAFKfPYotnuiYrkDQKIhRVjrNysQnlBWArWpY/kDQ2A0ob2duR9KvVBZ1mPNugE04B4r6cKHcyqwIbOEdFIQdXkTNVaO3u2rMrVRLXW7mANShKX5f1xQw52//89Xu419xYV5rr7msu+JdXT4rCGGA1Bho1ivVXHvDM5B00Ljvbx0MLsen5F/k/7ANycmWkePzxZAAAAAElFTkSuQmCC", "front1": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAABWElEQVR42q1Wba6EIAzsEO8lN7PeDE/W94O1WwpoydvGbFxTZ4Z+ChKhoAFLzhsREWjBws5p9CoMALzwMEkPLS2H3BCOzP0iqLr/i7kPgqphVC+Z9Bzp1SOcXInmW0ydnedZb5g5zpZIpLlaXABEdByHPldj5obJ4YjUILirgVCg/mEbSX9t7hTMJxEvhbmUkvNbhZRy5ZxtcF2sNUTLmS3lUiFDbw165WPm6pnzHoXujzyTVnPQnkksNLTFZ+gPtudd5dlwoW2YL/8V49g1FHJDy+cuaalN34ng2mjcwyoN2y+CPsZ1jW57TwajAK7OuQ1d9elmCJLllY+THyb8Ur/jeWlU38mFFSXTTqk+mM5hbH2Fq3YbfRmvYXqY75itr/9v4G7/A3Em6DgNbocvJRplMpP88fS2BZbejdOqk7cpmKJrdXRqefyY2qIZw/I6DkLLDz7Ufmh/MvHgMEhDAlwAAAAASUVORK5CYII=", "front2": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAABVElEQVR42rWWYbKDIAyEsx3uJTcz3syebPuDQgNEBN+8DNNRih+BLAkQUiYNWBocREQgCzY9+LVGAry/kNs9uozrf+0rayLnvcb1LuC6c4RGP/+csaG/bkesxJeP4i0iIqqaHvZ9N6HFhULIthmQqtKY5RZi6e859FoZ3FozmZmyhfgKOc9zdaNUj9Uj42zocVSU9BpjPM/3vdTSoBijqtqINdBiMcb8sLlo0MQQQNHDgNX1b774fmjIu17djGVuYtLkSWSv83ST9K3yFHUYv0mGjfjtNzNcq9deIWt0l2tWQHanHWyzAZqAqgg7acEIAYCra2KYW7T27seta4XrdeV7P40VUsUtmUQE39p4kX/TBxym6BQbusfkNr0/LsjBr//pXgCsFfcaFcZ+9ykGfUkq0ULj9eBC4ykhL+V+q0ZJld5ecfoCFSZz9AMLA5/lT+T/tA+72ti43t/OkAAAAABJRU5ErkJggg==", "left1": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAABVklEQVR42rVWW44DIQyLq7nXcLOyN4OTeT/oUB5JgJU2HxVIwQnGdQZCymYAR8mXiAjkILaTrzMklC3/DI2NejyCPuVlgf5q1pSzwAEhJEUEMM+wUUiTBrU/WCdX0sKqnvRSBfwC84VY2uTTY6P9a2bMIcQJVhJgiC+lJCL3fZcaZVsihFBz6rrVC4CB6+H6GLgb0Os2hMAOaIR67V/5CHeG/vRY6W5bbtdL3ML1+Gg558JJztlqv0LjcxzaP6oy29OqRnpe791Cq2JFkeGjSQpzyj5ojbcQnpN8ocEpCUTKSUTCHaKm9eiZD6quiQmdoG9c8fOr9945H1Qzo9A1xWg84yC+Cf3BjPShuZwyxQPAbROPdg5Ul7Hip1PIYiKMpspVfTNhUjdaO5ydGsoId8pTh7YmwGCVHXp/xDJVbBi96b0qOkz2vgZwOs65+fW0vMeyiX+IX/nhqgiMRqU1AAAAAElFTkSuQmCC", "left2": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAABVklEQVR42q1WW47EIAyzqzkYN+v2ZnAy70fpAwhpprtRNSpVsCEPZwgJQSMh1d+A8+4dAm6Xj+j8fA/afZxyfF7hhjiWv+F6zg+n1iRj5CxKui28NHJEJ2ny3ch01NMri91GMp77dyDnrMP2pUmmYaOsB1B973A7dIumbvQrBDmXWRxcdL/4yA73jObTkUN1Xa2Ucr7knDvElJLZNUuwJEopJ0FKyT/vQ78JIjiLYw1ISuuBSKMbxwolhb10hIQNBJAGjnzF4TrKhcZd+Xo+ERV9BLpzrKPsEX6j97hnJLkRgNapNvCSES5ft/iqmUqzlScTWvxOTkGww/WVj2obcTukZ71yVZP8Y9TfdDayu/EWOPtPgz4RVX+mbh50F5Cmot8YT31uWobhnfM7afehPxuH5iTH1FODpwbPpUmdNZYkGVIT8Lzz+KFR+E+EjPEeq/fXnv9nv8QX7Lt0/uwqAAAAAElFTkSuQmCC", "right1": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAABWUlEQVR42sWVUZLEIAhE6anca7jZJjczJ+v9MMkQATW7W7VWPoziA7FFCCmTDXhkvIiIQB60aePlGRINmL9HY2KcP0DjofvDx+vPUutiX4YbpFEFkHqqZnYeftpTOK05u8pI9ZQtLzm4bHR8HFDahGBOSqOE+CzYXBMASX9ypRRVvfrXuKrWfez7Xn8bL02soBmB4GKpasg1G7qhvPhoU0yhjbeJq99CXbd0mxnfrwdQSmn09hJB9N3kkQVbU0yyds4MH19eJ/FJ+na6URN12FT1AKKiU0WBws1NZw7e+sZHFz00RGSNJlZK2YuI6FsJumWVnqKx5rteKZ5454oIQoX0uIdm2Ofm4uuHHJYFyPjKjOn386g6g6+jGJb0zQx+PXk1Il0jPiOMnlvci2pYnjIuHYdJ1aVHo7UGIm5k6UqgRcfWvlpOPMcOPfNOBz6S+7wk6/u15b/bN5wyqBBnZuvAAAAAAElFTkSuQmCC", "right2": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAABX0lEQVR42q2WUZKEIAxEu6c8GDdjvFk8We/HKEKIiNZSfMxgeISYdCQkTA7ykfECALw3POkAMHXAMkWM1/UCzck7j+mft9x742XGVBdvj5xFcwAi6dbHXO/mO++uh7RPQFJIN7PyVNLvb9l1EtwEdMwAV3M7+rFLqiDn/IQ3cdwwXGbbOBw1euR4GO4x3Xm901NK7gwz27YdVH48rUa5tDGzclIMZVyWwTV12K1gqmLdj5SSIF4UWquTpKrzVxBAT7eUAOTKkuj0diyqGVqrZ9a+gIYL9RBCZbVx2cWIKwEoK3SFgQqySb44ar+yyHpa5j75CPKZroYu+4CcOfM9Yl22rEfJZAlV+fCy3dCh+Z1wMwf529O5YE4w80A695iM8/ro2Xolz9xVsBQ6w4y4qVpNtBbfG4NWsIueXFaEllfJx7iBBYuxpdRIW52S4/ep6Q8KjT9T+ny/ju6s5f+NP4Gu2g06mvo8AAAAAElFTkSuQmCC", "wall": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAIAAAC0Ujn1AAAAYklEQVR42u2WsQ3AMAgEIWFw2AwmI0Wk1BiBlOKvc+HzC9kvc2bSAmZ2LXmJSN5FRIwfsJIaaqihbiDfkx/nZuat2FlGVfOE6qwbQ5NGnRa34F5DDfVvStXdG5+u+dRHJfUAafZth/FN2fcAAAAASUVORK5CYII="};
+const KEY = 'kevinhyhau.ch6.set.v1', PKEY = 'kevinhyhau.ch6.prog.v1';
+const $ = id => document.getElementById(id);
+const rnd = n => Math.floor(Math.random()*n);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const pick = a => a[rnd(a.length)];
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e) { return null; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k,v); } catch(e) {} };
+const reduced = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e) { return false; } })();
+const coarse = (() => { try { return matchMedia('(pointer: coarse)').matches; } catch(e) { return false; } })();
+const TILE = 30, COLS = 16, ROWS = 14, NL = LEVELS.length;
+const DESKS = {teal:['Teal (Windows 95)','#008080'], navy:['Navy','#000080'], forest:['Forest','#1f5f3a'], plum:['Plum','#5b2a86'], maroon:['Maroon','#800000'], slate:['Slate','#475569'], black:['Black','#000000'], site:['Match the page','']};
+const WSTYLES = [['95','Windows 95'],['31','Windows 3.1'],['flat','Modern flat']];
+const DEFAULTS = {dark:true, ws:'95', desk:'teal', sprites:'orig', scale:1.5, beep:true, animate:true, walk:true, mouse:true, speed:70, swipe:true, dpad:coarse, autoNext:false, lock:false, pushes:true, dead:false};
+let S;
+{ let saved = {}; try { saved = JSON.parse(lsGet(KEY) || '{}') || {}; } catch(e) {} S = Object.assign({}, DEFAULTS, saved); if (!WSTYLES.some(w => w[0] === S.ws)) S.ws = '95'; if (!DESKS[S.desk]) S.desk = 'teal'; }
+const save = () => lsSet(KEY, JSON.stringify(S));
+let P = {highest:1, world:1, best:{}, solved:{}};
+{ try { Object.assign(P, JSON.parse(lsGet(PKEY) || '{}') || {}); } catch(e) {} P.best = P.best || {}; P.solved = P.solved || {}; P.highest = clamp(+P.highest || 1, 1, NL); P.world = clamp(+P.world || 1, 1, NL); }
+const saveP = () => lsSet(PKEY, JSON.stringify(P));
+
+/* ---------- sprites ---------- */
+const NAMES = Object.keys(SPR), IMG = {};
+let imgLoaded = 0;
+NAMES.forEach(n => { const i = new Image(); i.onload = () => { if (++imgLoaded === NAMES.length) { draw(); } }; i.src = SPR[n]; IMG[n] = i; });
+$('tbIcon').src = SPR.boxout;
+
+/* ---------- sound (all optional) ---------- */
+let ac = null;
+function tone(f, d, type, when, vol){
+  if (!S.beep) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + (when || 0);
+    o.type = type || 'square'; o.frequency.value = f; g.gain.setValueAtTime(vol || .05, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .02);
+  } catch(e) {}
+}
+const sfx = {
+  blocked(){ tone(140, .09, 'square'); },
+  push(){ tone(420, .04, 'square', 0, .03); },
+  place(){ tone(880, .09, 'triangle'); tone(1320, .12, 'triangle', .08); },
+  win(){ [523,659,784,1047,1319].forEach((f,i) => tone(f, .16, 'triangle', i*.11, .06)); },
+  undo(){ tone(300, .05, 'sine'); }
+};
+
+/* ---------- level state ---------- */
+let G = null, A = null, queue = [], walkTimer = 0, busyWin = false;
+function parse(n){
+  const rows = LEVELS[n-1], h = rows.length, w = rows[0].length;
+  const g = {n, w, h, terr:new Uint8Array(w*h), goal:new Uint8Array(w*h), box:new Uint8Array(w*h), man:-1, dir:'front', frame:0, moves:0, pushes:0, hist:[], nbox:0, won:false, dead:null};
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    const c = +rows[y][x], i = y*w+x;
+    g.terr[i] = c === 0 ? 0 : c === 1 ? 1 : 2;
+    if (c === 3 || c === 5) g.goal[i] = 1;
+    if (c === 4 || c === 5){ g.box[i] = 1; g.nbox++; }
+    if (c === 6) g.man = i;
+  }
+  g.ox = Math.floor((COLS - w)/2); g.oy = Math.floor((ROWS - h)/2);
+  // dead squares: a crate there can never reach any spot (reverse "pull" search from the spots)
+  const reach = new Uint8Array(w*h), q = [];
+  for (let i=0;i<w*h;i++) if (g.goal[i]){ reach[i] = 1; q.push(i); }
+  const D = [[1,0],[-1,0],[0,1],[0,-1]], fl = (x,y) => x >= 0 && y >= 0 && x < w && y < h && g.terr[y*w+x] === 2;
+  while (q.length){ const c = q.pop(), cx = c % w, cy = (c/w)|0; for (const [dx,dy] of D){ const px = cx+dx, py = cy+dy; if (fl(px,py) && fl(cx+2*dx, cy+2*dy) && !reach[py*w+px]){ reach[py*w+px] = 1; q.push(py*w+px); } } }
+  g.dead = new Uint8Array(w*h); for (let i=0;i<w*h;i++) if (g.terr[i] === 2 && !reach[i]) g.dead[i] = 1;
+  return g;
+}
+const onGoals = g => { let c = 0; for (let i=0;i<g.box.length;i++) if (g.box[i] && g.goal[i]) c++; return c; };
+const DIRV = {up:[0,-1], down:[0,1], left:[-1,0], right:[1,0]};
+const dirName = (dx,dy) => dx < 0 ? 'left' : dx > 0 ? 'right' : dy < 0 ? 'back' : 'front';
+
+function loadWorld(n, quiet){
+  n = clamp(Math.round(+n) || 1, 1, NL);
+  cancelWalk(); queue = []; A = null; busyWin = false; closeDlg();
+  G = parse(n); P.world = n; saveP();
+  updateHud(); draw(); fit();
+  if (!quiet) setStatus('World '+n+' — push every crate onto a spot.');
+}
+function setStatus(t, cls){ const s = $('status'); s.textContent = t; s.className = 'status' + (cls ? ' '+cls : ''); }
+function updateHud(){
+  $('sbWorld').textContent = 'World '+G.n;
+  $('sbMoves').textContent = 'Your moves: '+G.moves+(S.pushes ? ' ('+G.pushes+' push'+(G.pushes === 1 ? '' : 'es')+')' : '');
+  const b = P.best[G.n]; $('sbBest').textContent = 'Best moves: '+(b ? b : ' N/A');
+  $('btnUndo').disabled = !G.hist.length || busyWin; $('btnPrev').disabled = G.n <= 1; $('btnNext').disabled = G.n >= NL || (S.lock && G.n >= P.highest && !P.solved[G.n]);
+}
+
+/* ---------- moves ---------- */
+function tryMove(dx, dy){
+  if (!G || G.won || busyWin) return false;
+  const {w,h} = G, mx = G.man % w, my = (G.man/w)|0, nx = mx+dx, ny = my+dy;
+  G.dir = dirName(dx,dy);
+  const ok = (x,y) => x >= 0 && y >= 0 && x < w && y < h && G.terr[y*w+x] === 2;
+  let pushed = false;
+  if (!ok(nx,ny)){ blocked(); return false; }
+  const ni = ny*w+nx;
+  if (G.box[ni]){
+    const bx = nx+dx, by = ny+dy;
+    if (!ok(bx,by) || G.box[by*w+bx]){ blocked(); return false; }
+    G.box[ni] = 0; G.box[by*w+bx] = 1; pushed = true;
+    A = {t0:performance.now(), dur:S.animate && !reduced ? Math.max(60, Math.min(120, S.speed*1.4)) : 0, from:G.man, to:ni, bFrom:ni, bTo:by*w+bx};
+    G.pushes++;
+  } else A = {t0:performance.now(), dur:S.animate && !reduced ? Math.max(50, Math.min(110, S.speed*1.3)) : 0, from:G.man, to:ni, bFrom:-1, bTo:-1};
+  G.man = ni; G.moves++; if (S.walk) G.frame ^= 1;
+  G.hist.push({dx,dy,pushed});
+  if (pushed){ if (G.goal[A.bTo] && !G.goal[A.bFrom]) sfx.place(); else sfx.push(); }
+  updateHud();
+  const won = onGoals(G) === G.nbox;
+  if (won){ G.won = true; }
+  startAnim(() => { if (G.won) finish(); else drainQueue(); });
+  return true;
+}
+function blocked(){
+  sfx.blocked(); draw();
+  if (!reduced && S.animate){ const w = $('win'); w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
+}
+function startAnim(done){
+  if (!A || !A.dur){ A = null; draw(); done(); return; }
+  const step = now => { if (!A){ return; } if (now - A.t0 >= A.dur){ A = null; draw(); done(); return; } draw(now); requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function drainQueue(){ if (!queue.length) return; const m = queue.shift(); tryMove(m[0], m[1]) || drainQueue(); }
+function step(dx, dy){ cancelWalk(); if (A){ if (queue.length < 2) queue.push([dx,dy]); return; } tryMove(dx, dy); }
+function undo(){
+  cancelWalk(); queue = [];
+  if (!G || busyWin || !G.hist.length) return;
+  if (A){ A = null; }
+  G.won = false;
+  const m = G.hist.pop(), {w} = G, mi = G.man;
+  const back = mi - (m.dy*w + m.dx);
+  if (m.pushed){ const bi = mi + (m.dy*w + m.dx); G.box[bi] = 0; G.box[mi] = 1; G.pushes--; }
+  G.man = back; G.moves--; G.dir = dirName(m.dx, m.dy); if (S.walk) G.frame ^= 1;
+  sfx.undo(); updateHud(); draw();
+}
+function retry(){ if (!G) return; cancelWalk(); queue = []; loadWorld(G.n, true); setStatus('World '+G.n+' restarted.'); }
+
+/* ---------- auto-walk (click / tap) ---------- */
+function cancelWalk(){ if (walkTimer){ clearTimeout(walkTimer); walkTimer = 0; } }
+function pathTo(target){
+  const {w,h} = G, start = G.man, prev = new Int16Array(w*h).fill(-2); prev[start] = -1;
+  const q = [start]; const D = [[1,0],[-1,0],[0,1],[0,-1]];
+  for (let k=0;k<q.length;k++){
+    const c = q[k]; if (c === target) break; const cx = c % w, cy = (c/w)|0;
+    for (const [dx,dy] of D){ const x = cx+dx, y = cy+dy; if (x<0||y<0||x>=w||y>=h) continue; const i = y*w+x; if (prev[i] !== -2 || G.terr[i] !== 2 || G.box[i]) continue; prev[i] = c; q.push(i); }
+  }
+  if (prev[target] === -2) return null;
+  const out = []; for (let c = target; c !== start; c = prev[c]){ const p = prev[c]; out.push([(c%w)-(p%w), ((c/w)|0)-((p/w)|0)]); }
+  return out.reverse();
+}
+function walk(path){
+  cancelWalk(); queue = [];
+  const next = () => { if (!path.length || !G || G.won) { walkTimer = 0; return; } const m = path.shift(); if (!tryMove(m[0], m[1])) { walkTimer = 0; return; } walkTimer = setTimeout(next, Math.max(30, S.speed)); };
+  next();
+}
+function clickCell(cx, cy){
+  if (!G || G.won || busyWin) return;
+  const x = cx - G.ox, y = cy - G.oy; if (x < 0 || y < 0 || x >= G.w || y >= G.h) return;
+  const i = y*G.w+x, mx = G.man % G.w, my = (G.man/G.w)|0, dx = x-mx, dy = y-my;
+  if (Math.abs(dx)+Math.abs(dy) === 1){ step(dx, dy); return; }          // next to the man: one step / push
+  if (!S.mouse) return;
+  if (G.terr[i] !== 2){ return; }
+  if (G.box[i]){ // a crate in the same row/column as the man, with free squares in between: walk up to it and push once
+    if (dx !== 0 && dy !== 0) { setStatus('Click the square right next to a crate to push it.'); return; }
+    const sx = Math.sign(dx), sy = Math.sign(dy), adj = (my+sy*(Math.abs(dy)-1))*G.w + (mx+sx*(Math.abs(dx)-1));
+    const p = pathTo(adj); if (p){ p.push([sx,sy]); walk(p); } return;
+  }
+  const p = pathTo(i); if (p && p.length) walk(p); else if (!p){ blocked(); setStatus('No walkable route there — crates are in the way.'); }
+}
+
+/* ---------- finish ---------- */
+function finish(){
+  busyWin = true; updateHud(); sfx.win();
+  const n = G.n, mv = G.moves, old = P.best[n], first = !P.solved[n], better = !old || mv < old;
+  P.solved[n] = 1; if (better) P.best[n] = mv; if (n < NL) P.highest = Math.max(P.highest, n+1); saveP(); updateHud();
+  setStatus(better && old ? '🎉 New personal best on world '+n+': '+mv+' moves!' : '🎉 World '+n+' solved in '+mv+' moves!', 'good');
+  const btns = [];
+  const nextBtn = n < NL ? ['OK', () => { closeDlg(); loadWorld(n+1); }, true] : ['OK', () => { closeDlg(); busyWin = false; updateHud(); }, true];
+  openDlg('Box World', '<p><strong>You have done a good job!</strong></p><p>Your moves: '+mv+(S.pushes ? ' ('+G.pushes+' pushes)' : '')+'<br>Best moves: '+P.best[n]+(better && old ? ' &nbsp;★ new best' : '')+'</p>'+(n >= NL ? '<p>That was the last world. Brilliant!</p>' : ''),
+    [nextBtn, ['Retry', () => { closeDlg(); retry(); }]]);
+  if (S.autoNext && n < NL) setTimeout(() => { if (G && G.n === n && $('dlgBack').classList.contains('hide') === false){ closeDlg(); loadWorld(n+1); } }, 1600);
+}
+
+/* ---------- drawing ---------- */
+const cv = $('cv'), ctx = cv.getContext('2d');
+function cleanTile(kind, x, y){
+  const t = TILE;
+  const rr = (px,py,w,h,r,fill) => { ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(px,py,w,h,r) : ctx.rect(px,py,w,h); ctx.fill(); };
+  if (kind === 'land'){ ctx.fillStyle = '#6b7a55'; ctx.fillRect(x,y,t,t); return; }
+  if (kind === 'wall'){ ctx.fillStyle = '#4a5260'; ctx.fillRect(x,y,t,t); ctx.fillStyle = '#5d6676'; ctx.fillRect(x+1,y+1,t-2,t/2-2); ctx.fillRect(x+1,y+t/2+1,t/2-2,t/2-2); ctx.fillRect(x+t/2+1,y+t/2+1,t/2-2,t/2-2); return; }
+  ctx.fillStyle = '#e9dcc0'; ctx.fillRect(x,y,t,t); ctx.fillStyle = '#d7c8a6'; ctx.fillRect(x,y,t,1); ctx.fillRect(x,y,1,t);
+  if (kind === 'dest'){ ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(x+t/2,y+t/2,6,0,7); ctx.fill(); ctx.strokeStyle = '#7f1d1d'; ctx.lineWidth = 2; ctx.stroke(); }
+  if (kind === 'boxout' || kind === 'boxin'){ const c = kind === 'boxin' ? '#22a45d' : '#c98a2b'; rr(x+3,y+3,t-6,t-6,4,c); ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 2; ctx.strokeRect(x+5,y+5,t-10,t-10); ctx.beginPath(); ctx.moveTo(x+5,y+5); ctx.lineTo(x+t-5,y+t-5); ctx.moveTo(x+t-5,y+5); ctx.lineTo(x+5,y+t-5); ctx.stroke(); }
+  if (kind === 'man'){ ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.arc(x+t/2,y+t/2+2,10,0,7); ctx.fill(); ctx.fillStyle = '#fcd9b6'; ctx.beginPath(); ctx.arc(x+t/2,y+t/2-3,7,0,7); ctx.fill(); }
+}
+const manSprite = () => G.dir + (G.frame ? 2 : 1);
+function drawTile(kind, px, py){
+  if (S.sprites === 'orig' && IMG[kind] && IMG[kind].complete && IMG[kind].naturalWidth) ctx.drawImage(IMG[kind], px, py, TILE, TILE); else cleanTile(kind, px, py);
+}
+function drawMan(px, py){
+  if (S.sprites === 'orig'){ const im = IMG[manSprite()]; if (im && im.complete && im.naturalWidth) ctx.drawImage(im, px, py, TILE, TILE); }
+  else {
+    cleanTile('man', px, py);
+    // a little dot shows the direction the man is facing
+    const o = {left:[-8,0], right:[8,0], back:[0,-9], front:[0,9]}[G.dir]; ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(px+TILE/2+o[0], py+TILE/2-3+o[1]*.6, 2.2, 0, 7); ctx.fill();
+  }
+}
+function draw(now){
+  ctx.imageSmoothingEnabled = false;
+  for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++) drawTile('land', x*TILE, y*TILE);
+  if (!G) return;
+  const {w,h,ox,oy} = G, pos = i => [(ox + i % w)*TILE, (oy + ((i/w)|0))*TILE];
+  const p = A && A.dur ? clamp(((now || performance.now()) - A.t0)/A.dur, 0, 1) : 1;
+  for (let i=0;i<w*h;i++){
+    if (G.terr[i] === 0) continue; const [px,py] = pos(i);
+    if (G.terr[i] === 1){ drawTile('wall', px, py); continue; }
+    drawTile(G.goal[i] ? 'dest' : 'floor', px, py);
+    if (S.dead && G.dead[i] && !G.box[i]){ ctx.fillStyle = 'rgba(255,0,0,.28)'; ctx.fillRect(px,py,TILE,TILE); }
+  }
+  for (let i=0;i<w*h;i++){
+    if (!G.box[i]) continue; let [px,py] = pos(i);
+    if (A && A.dur && i === A.bTo){ const [fx,fy] = pos(A.bFrom); px = fx+(px-fx)*p; py = fy+(py-fy)*p; }
+    drawTile(G.goal[i] ? 'boxin' : 'boxout', Math.round(px), Math.round(py));
+    if (S.dead && G.dead[i] && !G.goal[i]){ ctx.strokeStyle = 'rgba(255,0,0,.9)'; ctx.lineWidth = 3; ctx.strokeRect(Math.round(px)+2, Math.round(py)+2, TILE-4, TILE-4); }
+  }
+  let [mx,my] = pos(G.man);
+  if (A && A.dur){ const [fx,fy] = pos(A.from); mx = fx+(mx-fx)*p; my = fy+(my-fy)*p; }
+  drawMan(Math.round(mx), Math.round(my));
+}
+function fit(){
+  const wrap = $('desktop'), cs = getComputedStyle(wrap), pad = (parseFloat(cs.paddingLeft) || 0) * 2, avail = Math.max(200, wrap.clientWidth - pad - 18);
+  const eff = Math.min(S.scale, avail/(COLS*TILE));
+  cv.style.width = Math.floor(COLS*TILE*eff)+'px'; cv.style.height = Math.floor(ROWS*TILE*eff)+'px';
+}
+
+/* ---------- dialogs (Windows-style message boxes) ---------- */
+let dlgKeyHandler = null;
+function openDlg(title, html, buttons, onOpen){
+  $('dlgTitle').textContent = title; $('dlgBody').innerHTML = html;
+  const bt = $('dlgBtns'); bt.innerHTML = '';
+  buttons.forEach(b => { const x = document.createElement('button'); x.type = 'button'; x.className = 'wb'+(b[2] ? ' def' : ''); x.textContent = b[0]; x.onclick = b[1]; bt.append(x); if (b[2]) setTimeout(() => x.focus(), 20); });
+  $('dlgBack').classList.remove('hide'); if (onOpen) onOpen();
+}
+function closeDlg(){ $('dlgBack').classList.add('hide'); }
+const dlgOpen = () => !$('dlgBack').classList.contains('hide');
+
+function aboutDlg(){
+  const im = n => '<img class="pix" src="'+SPR[n]+'" alt="">';
+  openDlg('About Box World', '<p><strong>To win:</strong> push every crate '+im('boxout')+' onto a spot '+im('dest')+' so it turns '+im('boxin')+'.</p>'
+    +'<p><strong>The rules:</strong></p><div class="rules">'+im('right1')+im('boxout')+'<span>→ you can push one crate into an empty square ✔</span></div>'
+    +'<div class="rules">'+im('left1')+im('boxout')+im('boxout')+'<span>→ you cannot push two crates, or a crate into a wall ✘</span></div>'
+    +'<p><strong>Keys:</strong> arrows / WASD to move · Z undo · R retry<br><strong>Mouse / touch:</strong> click a square to walk there, swipe to step.</p>'
+    +'<p style="font-size:11px">A tribute rebuilt for the web. The original <em>Box World</em> for Windows is by Jeng-Long Jiang — levels and sprites are from that game.</p>', [['OK', closeDlg, true]]);
+}
+function gotoDlg(){
+  let html = '<p>Input new stage: <input class="wi" id="gotoIn" type="number" min="1" max="'+NL+'" value="'+G.n+'"> <small>(1–'+NL+')</small></p><div class="gotogrid" id="gotoGrid"></div><p style="font-size:11px;margin:0">✔ bold green = solved'+(S.lock ? ' · only worlds you have reached are open' : '')+'</p>';
+  const go = n => { n = Math.round(+n); if (!(n >= 1 && n <= NL)){ toast('Pick a world from 1 to '+NL); return; } if (S.lock && n > P.highest){ toast('You have only reached world '+P.highest+' so far'); return; } closeDlg(); loadWorld(n); };
+  openDlg('Go to world', html, [['OK', () => go($('gotoIn').value), true], ['Cancel', closeDlg], ['🎲 Random', () => go(randomWorld())]], () => {
+    const g = $('gotoGrid'); for (let n=1;n<=NL;n++){ const b = document.createElement('button'); b.type = 'button'; b.textContent = n; b.className = (P.solved[n] ? 'done ' : '')+(n === G.n ? 'cur' : ''); if (S.lock && n > P.highest) b.disabled = true; if (P.best[n]) b.title = 'Best: '+P.best[n]+' moves'; b.onclick = () => go(n); g.append(b); }
+    const inp = $('gotoIn'); inp.focus(); inp.select(); inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') go(inp.value); else if (e.key === 'Escape') closeDlg(); };
+  });
+}
+function randomWorld(){ const top = S.lock ? P.highest : NL; if (top <= 1) return 1; let n; do { n = 1 + rnd(top); } while (n === G.n); return n; }
+
+/* ---------- menu ---------- */
+const menu = $('menu'), miGame = $('miGame');
+const menuOpen = o => { menu.classList.toggle('hide', !o); miGame.classList.toggle('open', o); };
+miGame.onclick = e => { e.stopPropagation(); menuOpen(menu.classList.contains('hide')); };
+document.addEventListener('click', e => { if (!menu.contains(e.target)) menuOpen(false); });
+function act(a){
+  menuOpen(false);
+  if (a === 'undo') undo(); else if (a === 'retry') retry();
+  else if (a === 'beep'){ S.beep = !S.beep; save(); syncBeep(); syncAll(); toast(S.beep ? 'Beep on' : 'Beep off'); if (S.beep) tone(660, .08); }
+  else if (a === 'prev') goStep(-1); else if (a === 'next') goStep(1);
+  else if (a === 'goto') gotoDlg(); else if (a === 'random') loadWorld(randomWorld()); else if (a === 'about') aboutDlg();
+}
+function goStep(d){ const n = G.n + d; if (n < 1 || n > NL) return; if (S.lock && n > P.highest){ toast('Solve world '+G.n+' first (original rules are switched on)'); return; } loadWorld(n); }
+menu.querySelectorAll('button').forEach(b => b.onclick = e => { e.stopPropagation(); act(b.dataset.a); });
+const syncBeep = () => { $('miBeep').firstChild.textContent = S.beep ? 'Beep off ' : 'Beep on '; };
+$('btnUndo').onclick = undo; $('btnRetry').onclick = retry; $('btnPrev').onclick = () => goStep(-1); $('btnNext').onclick = () => goStep(1); $('btnGoto').onclick = gotoDlg;
+
+/* ---------- input ---------- */
+const KEYS = {ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right', w:'up', s:'down', a:'left', d:'right', W:'up', S:'down', A:'left', D:'right'};
+addEventListener('keydown', e => {
+  if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) { if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)){ e.preventDefault(); undo(); } return; }
+  if (dlgOpen()){ if (e.key === 'Escape'){ closeDlg(); busyWin = false; updateHud(); } return; }
+  const k = e.key;
+  if (KEYS[k]){ e.preventDefault(); const v = DIRV[KEYS[k]]; step(v[0], v[1]); return; }
+  const l = k.toLowerCase();
+  if (l === 'z' || k === 'Backspace'){ e.preventDefault(); undo(); } else if (l === 'r') retry(); else if (l === 'n') goStep(1); else if (l === 'p') goStep(-1); else if (l === 'g') { e.preventDefault(); gotoDlg(); } else if (l === 'b') act('beep'); else if (k === 'Escape') menuOpen(false);
+});
+{
+  let sx = 0, sy = 0, st = 0, sid = -1;
+  cv.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; st = performance.now(); sid = e.pointerId; try { cv.setPointerCapture(e.pointerId); } catch(_) {} });
+  cv.addEventListener('pointerup', e => {
+    if (e.pointerId !== sid) return; sid = -1;
+    const dx = e.clientX - sx, dy = e.clientY - sy, adx = Math.abs(dx), ady = Math.abs(dy);
+    if (e.pointerType !== 'mouse' && S.swipe && Math.max(adx, ady) >= 26){ if (adx > ady) step(dx > 0 ? 1 : -1, 0); else step(0, dy > 0 ? 1 : -1); return; }
+    if (Math.max(adx, ady) > 14) return;
+    const r = cv.getBoundingClientRect(), x = Math.floor((e.clientX - r.left)/r.width*COLS), y = Math.floor((e.clientY - r.top)/r.height*ROWS);
+    if (x >= 0 && y >= 0 && x < COLS && y < ROWS) clickCell(x, y);
+  });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+}
+$('dp').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { const k = b.dataset.k; if (k === 'undo') undo(); else if (k === 'retry') retry(); else { const v = DIRV[k]; step(v[0], v[1]); } }));
+
+/* ---------- look ---------- */
+function applyLook(){
+  document.documentElement.setAttribute('data-theme', S.dark ? 'dark' : 'light');
+  $('themeBtn').textContent = S.dark ? '🌙 Dark' : '☀️ Light';
+  $('win').dataset.ws = S.ws;
+  const d = $('desktop'); d.classList.toggle('site', S.desk === 'site'); d.style.setProperty('--desk', DESKS[S.desk][1] || 'transparent');
+  $('dp').classList.toggle('on', !!S.dpad);
+  syncBeep(); fit(); draw(); if (G) updateHud();
+}
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2400); }
+
+/* ---------- customise panel ---------- */
+const SCHEMA = [
+  {g:'🪟 Look', open:true, items:[
+    {k:'ws', t:'select', l:'Window style', opts:WSTYLES},
+    {k:'desk', t:'select', l:'Desktop colour', opts:Object.keys(DESKS).map(k => [k, DESKS[k][0]])},
+    {k:'sprites', t:'select', l:'Pictures', h:'Original game sprites or simple drawn ones', opts:[['orig','Original sprites'],['clean','Clean drawn tiles']]},
+    {k:'scale', t:'range', l:'Zoom', min:1, max:3, step:.25, fmt:v => '×'+v, h:'Shrinks automatically on small screens'},
+    {k:'dead', t:'toggle', l:'Show dead squares', h:'Red tint where a crate could never reach a spot'}
+  ]},
+  {g:'🎮 Play', open:true, items:[
+    {k:'beep', t:'toggle', l:'Beep & sounds', h:'Also in the Game menu'},
+    {k:'animate', t:'toggle', l:'Smooth sliding'},
+    {k:'walk', t:'toggle', l:'Walking animation', h:'The little man swaps legs as he steps'},
+    {k:'mouse', t:'toggle', l:'Click a square to walk there', h:'Off = only the squares next to the man react'},
+    {k:'speed', t:'range', l:'Auto-walk speed', min:30, max:200, step:10, fmt:v => v+' ms/step', dep:s => s.mouse},
+    {k:'swipe', t:'toggle', l:'Swipe to move (touch)'},
+    {k:'dpad', t:'toggle', l:'On-screen arrow buttons', h:'Handy on phones'},
+    {k:'pushes', t:'toggle', l:'Show push counter'}
+  ]},
+  {g:'🏁 Progress', items:[
+    {k:'lock', t:'toggle', l:'Original rules: only reached worlds', h:'Off = every world is open'},
+    {k:'autoNext', t:'toggle', l:'Auto-continue after a win', h:'Moves on by itself after the message'},
+    {t:'note', l:'Your best moves per world and the worlds you solved are saved in this browser only.'}
+  ]}
+];
+function el(tag, props={}, ...kids){
+  const e = document.createElement(tag);
+  for (const k in props){ if (k === 'class') e.className = props[k]; else if (k === 'text') e.textContent = props[k]; else if (k.startsWith('on')) e.addEventListener(k.slice(2), props[k]); else e.setAttribute(k, props[k]); }
+  kids.forEach(c => c != null && e.append(c)); return e;
+}
+const syncs = [], deps = [];
+function commit(it, v){ S[it.k] = v; save(); applyLook(); if (it.k === 'lock' && G) updateHud(); syncDeps(); syncAll(); }
+const labelOf = it => el('div', {class:'lab'}, el('span', {text:it.l}), it.h ? el('small', {text:it.h}) : null);
+function buildControl(it){
+  let row;
+  if (it.t === 'note') return el('div', {class:'note', text:it.l});
+  if (it.t === 'toggle'){
+    const b = el('button', {class:'sw', type:'button', role:'switch', 'aria-label':it.l}); b.addEventListener('click', () => commit(it, !S[it.k]));
+    syncs.push(() => b.setAttribute('aria-checked', String(!!S[it.k]))); row = el('div', {class:'row'}, labelOf(it), b);
+  } else if (it.t === 'range'){
+    const inp = el('input', {type:'range', min:it.min, max:it.max, step:it.step||1}), out = el('output');
+    inp.addEventListener('input', () => { out.textContent = (it.fmt||(v=>v))(+inp.value); commit(it, +inp.value); });
+    syncs.push(() => { inp.value = S[it.k]; out.textContent = (it.fmt||(v=>v))(S[it.k]); });
+    row = el('div', {class:'row stack'}, el('div', {class:'head'}, labelOf(it), out), inp);
+  } else if (it.t === 'select'){
+    const sel = el('select', {}, ...it.opts.map(o => el('option', {value:o[0], text:o[1]})));
+    sel.addEventListener('change', () => commit(it, sel.value)); syncs.push(() => { sel.value = S[it.k]; });
+    row = el('div', {class:'row'}, labelOf(it), sel);
+  }
+  if (it.dep) deps.push({row, dep:it.dep}); return row;
+}
+const syncDeps = () => deps.forEach(d => { const on = !!d.dep(S); d.row.classList.toggle('dim', !on); d.row.querySelectorAll('input,button,select').forEach(x => x.disabled = !on); });
+const syncAll = () => syncs.forEach(f => f());
+function randomiseLook(){
+  Object.assign(S, {ws:pick(WSTYLES)[0], desk:pick(Object.keys(DESKS)), scale:pick([1.25,1.5,1.75,2,2.25]), sprites:Math.random() < .8 ? 'orig' : 'clean'});
+  save(); applyLook(); syncAll(); toast('New look: '+WSTYLES.find(w => w[0] === S.ws)[1]+' · '+DESKS[S.desk][0]);
+}
+function buildPanel(){
+  const panel = $('panel');
+  panel.append(el('button', {class:'btn primary', type:'button', style:'width:100%;margin-bottom:8px', text:'🎲 Randomise the look', onclick:randomiseLook}));
+  panel.append(el('button', {class:'btn', type:'button', style:'width:100%;margin-bottom:8px', text:'🎲 Random world', onclick:() => loadWorld(randomWorld())}));
+  SCHEMA.forEach(g => { const d = el('details', {}, el('summary', {text:g.g})); if (g.open) d.setAttribute('open',''); g.items.forEach(it => d.append(buildControl(it))); panel.append(d); });
+  panel.append(el('div', {class:'foot'},
+    el('button', {class:'btn', type:'button', text:'↺ Reset settings', onclick:() => { const dark = S.dark; S = Object.assign({}, DEFAULTS, {dark}); save(); applyLook(); syncDeps(); syncAll(); }}),
+    el('button', {class:'btn', type:'button', text:'🗑 Reset my progress', onclick:() => { P = {highest:1, world:1, best:{}, solved:{}}; saveP(); loadWorld(1); toast('Progress cleared'); }})
+  ));
+  syncAll(); syncDeps();
+}
+$('themeBtn').onclick = () => { S.dark = !S.dark; save(); applyLook(); };
+addEventListener('resize', () => { fit(); });
+buildPanel(); applyLook(); loadWorld(P.world, true); setStatus('World '+G.n+' — push every crate onto a spot.');
+window.__bw = {get G(){return G;}, get S(){return S;}, get P(){return P;}, LEVELS, tryMove, step, undo, retry, loadWorld, clickCell, finish, draw, act, onGoals, fit};
+})();
+</script>
+</body>
+<script src="../nav.js"></script>
+</html>

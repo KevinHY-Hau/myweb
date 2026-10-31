@@ -1,0 +1,31 @@
+{
+  "name": "Shatranj",
+  "short_name": "Shatranj",
+  "description": "Chess as it was played in Persia and the Arab world a thousand years ago. Same board, but a slow Ferz, a leaping Alfil, no castling, no double pawn step, and you can also win by taking every enemy piece",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#3a2a14",
+  "theme_color": "#3a2a14",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

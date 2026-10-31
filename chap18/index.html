@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 18 · Sun and Moon</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sun and Moon">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:620px;--tcell:#f6efe0;--tline:#b8ab8e;--tgiven:#e5dcc4;--tbad:#dc2626;--tbox:#3b352a}
+:root[data-theme="dark"]{--tcell:#1e2430;--tline:#3a4254;--tgiven:#2b3342;--tbox:#aab4c6}
+.twrap{display:flex;flex-direction:column;gap:10px}
+.thead{display:flex;gap:8px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
+.tstat small{display:block;font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.tboardwrap{position:relative}
+.tb{--n:6;--fs:50px;display:grid;grid-template-columns:repeat(var(--n),1fr);grid-template-rows:repeat(var(--n),1fr);width:100%;aspect-ratio:1;border:3px solid var(--tbox);border-radius:8px;outline:none;user-select:none;-webkit-user-select:none;touch-action:manipulation;font-size:var(--fs);background:var(--tline);gap:1px}
+.tc{position:relative;display:flex;align-items:center;justify-content:center;background:var(--tcell);cursor:pointer;line-height:1}
+.tc.given{background:var(--tgiven);cursor:default}
+.tc.tintA{background:var(--tintA)}.tc.tintB{background:var(--tintB)}
+.tc .ic{font-size:.6em}
+.tc .ic.txt{font-weight:900;font-family:Georgia,serif}
+.tc.given::after{content:"";position:absolute;right:3px;bottom:3px;width:.12em;height:.12em;border-radius:50%;background:var(--muted);opacity:.7}
+.tc.bad{box-shadow:inset 0 0 0 3px var(--tbad)}
+.tc.hintc{animation:tpulse 1s 2}
+@keyframes tpulse{50%{box-shadow:inset 0 0 0 4px #f59e0b}}
+.edge{position:absolute;z-index:3;font-size:calc(var(--fs)*.3);width:1.5em;height:1.5em;border-radius:50%;background:var(--tcell);border:2px solid var(--tbox);display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--fg);line-height:1;pointer-events:none}
+.edge.r{right:-.75em;top:50%;transform:translateY(-50%)}
+.edge.d{bottom:-.75em;left:50%;transform:translateX(-50%)}
+.edge.badE{border-color:var(--tbad);color:var(--tbad)}
+.tmsg{min-height:2.6em;font-size:14px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.tbar .kl{color:var(--muted);font-size:14px}
+.tbar .btn.on{background:var(--accent);color:#000}
+.tpanel{margin-top:2px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Sun and Moon</h2>
+  <p>Chapter 18 · Fill the board with two symbols: no three in a row, equal numbers in every line, and obey the = and × clues</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TIME</small><b id="tm">0:00</b></div>
+    <div class="tstat"><small>BOARD</small><b id="sz">6×6</b></div>
+    <div class="tstat"><small>BEST</small><b id="bt">-</b></div>
+    <div class="tstat"><small>HINTS</small><b id="hn">0</b></div>
+  </div>
+  <div class="tboardwrap">
+    <div id="tb" class="tb" tabindex="0" aria-label="Sun and Moon board"></div>
+    <div class="ov" id="ovWin"><h3>Solved!</h3><p id="winTxt"></p><div><button class="btn primary" data-act="new" type="button">New puzzle</button> <button class="btn" data-act="winClose" type="button">Look at board</button></div></div>
+    <div class="ov" id="ovPause"><h3>Paused</h3><p>The board is hidden while paused.</p><button class="btn primary" data-act="pause" type="button">Resume</button></div>
+  </div>
+  <div class="tmsg" id="tmsg"></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" id="bUndo" type="button">↶ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="clear" type="button">🧹 Clear</button>
+    <button class="btn sm" data-act="pause" type="button">⏸ Pause</button>
+  </div>
+  <div class="tbar"><span class="kl">Board:</span><span id="sizes"></span></div>
+  <div class="tbar"><span class="kl">Level:</span><span id="levels"></span><button class="btn sm" data-act="daily" type="button">📅 Daily</button></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">Rules: fill every square with one of the two symbols. No more than two of the same symbol side by side (across or down). Every row and column has the same number of each. “=” between two squares means the same, “×” means different. Tap to cycle. Keys: Z undo, H hint, P pause.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 This is a classic logic puzzle (known as Takuzu or Binairo, with extra = and × clues). The puzzles are made by my own generator, each has exactly one solution and can be solved by pure logic. Code, symbols and colours are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else last = performance.now(); });
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* made by gen.js (tools/genall.js). Every puzzle has exactly one solution (checked twice, see tools/verify.py) and can be solved by logic; Hard needs one what-if step */
+const PUZ={"4":{"easy":[{"s":"1122112222112211","g":"0000000000010000","e":[11,15,1,0,4,1,2,3,1,8,9,1,14,15,1,5,9,0,10,11,1]},{"s":"1221112222112112","g":"0000000000010000","e":[7,11,0,2,6,1,8,12,1,6,7,1,12,13,0,14,15,0,10,11,1]},{"s":"2211112222111122","g":"0000000020000000","e":[8,9,1,8,12,0,0,1,1,4,8,0,13,14,0,4,5,1]},{"s":"1122122121122211","g":"1000000000000210","e":[7,11,0,11,15,0,6,7,0,2,6,1,1,5,0,12,13,1]},{"s":"1221112222112112","g":"0200000022000000","e":[11,15,0,7,11,0,0,4,1,14,15,0,8,9,1]},{"s":"1122221122111122","g":"0000020000000002","e":[6,10,1,1,2,0,0,4,0,2,3,1,1,5,0,9,10,0,8,9,1,2,6,0]}],"normal":[{"s":"2121221111221212","g":"0000200000000000","e":[10,14,0,8,9,1,0,4,1,6,7,1]},{"s":"2121112222111212","g":"0001000000000000","e":[0,4,0,1,2,0,2,3,0,4,5,1,8,9,1]},{"s":"1122221122111122","g":"0000000000000100","e":[7,11,1,2,3,1,9,13,0,8,9,1,0,4,0]},{"s":"1122112222112211","g":"0000010000000000","e":[5,6,0,14,15,1,11,15,1,2,6,1]},{"s":"2112221111221221","g":"0000200000000000","e":[0,4,1,3,7,0,0,1,0,1,5,0,5,9,0]},{"s":"1212212122111122","g":"0000002000000000","e":[2,6,0,6,10,0,7,11,1,3,7,0,4,8,1,2,3,0]}],"hard":[{"s":"1122122122112112","g":"0000002000000000","e":[5,6,1,8,12,1,8,9,1]},{"s":"1212221121211122","g":"0000000000001000","e":[2,3,0,4,5,1,6,10,0,4,8,1]},{"s":"1122121222112121","g":"0000000020000000","e":[6,10,1,0,1,1,0,4,1]},{"s":"1221211212212112","g":"0000001000000000","e":[7,11,0,10,11,0,5,9,0,1,2,1,0,4,0,11,15,0]},{"s":"1212221111222121","g":"0000001000000000","e":[1,5,1,3,7,0,8,9,1,0,1,0]},{"s":"2211112222111122","g":"0000000000100000","e":[4,5,1,14,15,1,0,1,1,4,8,0,2,6,0]}]},"6":{"easy":[{"s":"121221211221122112121212212121212112","g":"000020000000000000000002000021000000","e":[29,35,0,23,29,0,7,8,1,14,20,0,25,26,0,25,31,1,33,34,1,34,35,0,15,16,1,28,34,0,31,32,0,5,11,1]},{"s":"121221211212122112212121121221212112","g":"000020000000002000000000000000000000","e":[7,13,0,22,28,1,13,19,0,26,32,0,33,34,1,31,32,0,10,16,1,9,15,0,15,16,1,18,24,0,8,9,0,8,14,0,25,26,0,3,4,1,10,11,0,24,25,0,18,19,0,20,21,0]},{"s":"121221221211212112112122121221212112","g":"000000200000000000000000000000000000","e":[12,13,0,6,12,1,8,9,0,11,17,0,30,31,0,3,9,1,18,19,1,27,28,1,18,24,1]},{"s":"211212221211112122112122221211122121","g":"000000000000000000010000000000000000","e":[16,22,1,8,9,0,20,21,0,6,12,0,16,17,1,12,13,1,18,19,1,29,35,1,25,31,1,1,2,1,28,34,0,33,34,0,28,29,1]},{"s":"112122122121221211112212221121211212","g":"002000000000000200000000000000200000","e":[20,21,1,15,21,1,19,25,0,11,17,1,25,26,0,12,13,1,24,30,1,23,29,0,13,19,0,14,15,0]},{"s":"112122122112211221112212221121221211","g":"102000000000000020000000000000200000","e":[30,31,1,7,8,1,28,29,0,15,16,1,8,14,0,15,21,1,32,33,0,21,22,0,28,34,0,14,20,0,22,28,0,16,22,0]},{"s":"212211112122221121121212212112121221","g":"000000000100000001000000000000000000","e":[24,30,0,31,32,0,22,28,1,27,28,1,14,15,1,11,17,0,20,26,0,9,15,1,16,17,0,10,16,1,26,32,0,33,34,1]},{"s":"211221212211121122112122221211122112","g":"000020200001000000000000000000000000","e":[6,7,0,8,9,1,13,14,0,7,13,0,15,21,1,8,14,0,19,20,0,14,20,0,10,16,0,18,19,1,11,17,0,27,33,0,4,10,0,31,32,1,24,25,1,0,1,0,12,18,1]},{"s":"122112122121211212221121112212211221","g":"000000000000000200000100000210000000","e":[21,27,0,13,14,1,26,32,0,8,9,0,31,32,1,20,21,1,28,34,0,24,25,1,17,23,0,11,17,0,15,21,0,18,19,1,18,24,0,24,30,0]},{"s":"112122112122221211221121112212221211","g":"000000000000000000001000000000020000","e":[28,34,1,34,35,1,25,31,0,17,23,1,13,19,1,18,19,1,24,25,1,20,26,0,16,22,0,20,21,1,5,11,1,15,16,0,6,7,1,21,27,0]},{"s":"112212112212221121121212212121221121","g":"000000010000220000000000000000000000","e":[23,29,0,20,21,0,12,18,0,16,22,0,26,32,0,15,21,0,12,13,1,10,16,0,8,9,1,24,30,1,8,14,0,2,3,1,14,15,1,15,16,0]},{"s":"221211221121112122211212122121112212","g":"000000000100000000000000000020000000","e":[10,11,0,10,16,1,8,9,1,21,27,0,11,17,0,26,32,1,19,20,1,0,6,1,20,21,0,2,8,1,16,17,1]}],"normal":[{"s":"122121211212112122121221221211212112","g":"000000000002000000000000000000000000","e":[12,18,1,23,29,1,26,27,0,24,30,1,8,14,0,16,22,1,12,13,1,19,20,0,11,17,1,16,17,1]},{"s":"122121122121211212122112211221211212","g":"000000000000000000000000000000200000","e":[28,34,0,14,20,0,27,33,1,30,31,0,17,23,1,23,29,0,31,32,1,25,31,1,8,9,0,27,28,1,12,18,0]},{"s":"221121122112112212221121112212211221","g":"000000000000002000000000000000000000","e":[9,15,0,14,15,1,24,25,1,7,13,0,11,17,1,8,9,0,12,13,1,20,21,1,1,7,1]},{"s":"221121112122121212211221122112212211","g":"000000000000000000000000002000000000","e":[16,22,0,13,19,0,34,35,1,22,28,0,21,22,1,7,8,0,19,20,1,26,32,1,15,16,0,17,23,0,6,7,1]},{"s":"122112212112121221211221122112211221","g":"000010000000000000000000000000000000","e":[5,11,1,3,4,1,16,17,0,15,21,1,7,8,0,21,22,1,13,14,0,12,18,0,15,16,1,25,31,0,18,24,0]},{"s":"122112122121211221112212221121211212","g":"000000000000000000000010000000000000","e":[15,21,1,14,20,0,11,17,1,13,14,1,21,22,0,9,10,0,26,32,1,26,27,1,1,7,1]},{"s":"122121221121112212212121121212211212","g":"000000000000000000000000001000000000","e":[25,31,0,15,21,0,9,15,0,14,15,1,27,28,0,29,35,1,31,32,1,20,26,0,19,20,0,16,17,0,20,21,0,22,23,0]},{"s":"122121112122211212121221212112221211","g":"000000000000000000000000000000000010","e":[28,29,0,19,25,0,13,19,0,13,14,1,25,26,0,14,20,1,7,13,1,27,28,1,29,35,0,34,35,1,9,15,0]},{"s":"221211112122221121112212121122212211","g":"000000000000000000000000000000000010","e":[23,29,1,19,20,0,26,27,1,9,15,1,27,33,0,12,13,1,33,34,0,7,13,0,28,29,1,20,21,1,10,11,1,14,15,1,19,25,0,3,4,0,26,32,0]},{"s":"122121121122212211212121121212211212","g":"000001000000000000000000000000000000","e":[5,11,0,10,11,1,24,30,0,9,15,0,15,21,0,12,18,1,17,23,1,18,24,0,20,21,0,24,25,0,13,19,1,14,20,1,26,27,0,27,33,1]},{"s":"122121221121112212121221212112211212","g":"000000000000000000000000000000001000","e":[31,32,1,14,20,0,15,16,0,27,28,1,26,32,0,25,31,1,10,11,0,17,23,0,20,26,0,26,27,0,33,34,0]},{"s":"211221121122212112212211121221122112","g":"000000000000000000000000000000100000","e":[30,31,0,26,32,0,19,20,0,22,28,0,10,11,1,21,27,1,13,19,1,25,31,1,20,21,1]}],"hard":[{"s":"122112112122211221121212212121221211","g":"000000000000000000000000000100000000","e":[14,20,1,8,9,0,9,10,0,10,16,1,24,30,1,12,18,0,14,15,0,29,35,1]},{"s":"112122221211211212122121221121112212","g":"000000000000000000000000000000000002","e":[30,31,1,15,16,0,19,25,1,12,18,0,21,27,1,28,29,0,9,15,1,10,11,1,14,15,0,6,7,1]},{"s":"112122221121112212221211221121112212","g":"000000000000000000000000000000000200","e":[7,13,0,34,35,0,20,26,1,11,17,0,23,29,1,12,13,1,27,33,0,15,21,1,18,19,1]},{"s":"211221121122212211112212221121122112","g":"000000000000000000100000000000000000","e":[29,35,0,12,13,0,16,22,1,11,17,0,14,15,1,32,33,0,12,18,0,24,30,0,26,27,1,1,2,1]},{"s":"112122112122221211221211112122221211","g":"000000000000200000000000000000000000","e":[29,35,0,28,34,0,32,33,0,25,31,0,22,23,1,16,22,1,16,17,1,1,7,1]},{"s":"112212212211221121112212221121121122","g":"000000000001000000000000000000000000","e":[18,24,0,11,17,1,24,25,1,16,22,0,32,33,1,28,29,0,26,32,1,6,7,0]},{"s":"221211122121212112211212121221112122","g":"000000000000000000000000000200000000","e":[17,23,1,30,31,1,15,16,1,21,27,1,19,20,1,7,8,1]},{"s":"221211121122112122212211121221212112","g":"000000000000000000000000100000000000","e":[13,19,1,6,12,1,21,27,1,33,34,1,25,26,0,22,23,1,9,15,1]},{"s":"112212221121211212122112122121211221","g":"000000000001000000000000000000000000","e":[25,26,1,17,23,1,20,26,1,7,13,0,33,34,1,5,11,0,0,1,1]},{"s":"212211221211121122112122221211112122","g":"000000000000000000000100000000000000","e":[8,14,1,10,11,1,34,35,1,26,27,0,18,19,1,24,30,0,15,21,1,12,18,1]},{"s":"221121112122221211122121112212211212","g":"000000000000000000000000000000000010","e":[27,33,1,26,32,0,29,35,1,25,31,1,10,11,1,25,26,0,12,18,0,8,9,0,1,7,0,33,34,0]},{"s":"211212122112122121211221112212221121","g":"000000000000000000000001000000000000","e":[6,12,1,20,26,0,28,29,0,9,15,1,18,24,0,17,23,1,10,11,0,21,27,1]}]},"8":{"easy":[{"s":"2212121111221122221121121122122111212212221121122112122112212121","g":"0000000000000000200000000000000000000000000000120000000010000001","e":[14,22,0,23,31,0,48,56,0,42,43,1,40,48,1,16,17,1,36,44,1,52,53,0,38,46,1,26,34,1,15,23,1,38,39,0,18,26,0,12,20,0,53,54,1,24,32,1,20,28,0,54,62,1,55,63,1,61,62,0,10,11,1,58,59,0,34,35,0,40,41,1]},{"s":"1121212221122112221212111121212212121221212212112211211212211221","g":"0100000000000000000000000000000000000000000000000010200002001000","e":[8,9,0,50,51,1,29,30,0,17,18,0,50,58,0,36,44,1,55,63,0,26,27,0,36,37,0,18,26,0,46,47,1,35,36,0,38,46,0,59,60,1,47,55,0,61,62,1,49,57,1,3,11,0,19,20,0,45,53,0,57,58,1]},{"s":"1221122111221122221122112212121111212122221122111122112221122112","g":"0000000000000020000000000000000000200000000000000000010000000000","e":[34,42,0,18,26,1,20,21,1,42,50,0,25,33,0,14,15,1,54,55,1,38,39,1,50,51,1,51,59,1,20,28,0,61,62,1,39,47,0,48,56,0,53,61,1,44,45,1,35,43,1,30,38,0,56,57,0,2,10,1]},{"s":"1122121221221121221122111211221211221122212122111211212222121121","g":"0000000000000100000000000000000000000000000000000000010020000000","e":[56,57,1,49,50,0,18,19,1,49,57,1,28,36,0,42,43,0,28,29,1,20,21,1,21,29,1,30,31,0,32,33,1,32,40,0,31,39,1,45,53,0,14,15,0,43,44,0,54,62,1,43,51,1,37,45,0,34,42,1,26,27,1,35,36,0,46,54,0]},{"s":"2211211211221122221212111121212212121221211212121221212121212211","g":"0000000000000000000002000000010000000000000000020000000000000000","e":[0,1,1,9,17,0,30,38,1,29,37,0,35,36,0,29,30,0,18,26,0,25,33,0,34,35,0,34,42,1,19,27,0,22,23,1,40,41,0,54,55,0,12,20,1,49,57,0,38,46,0,40,48,0,52,60,1,59,60,0,53,61,0,46,47,0,51,59,1,28,36,0,27,28,0,36,44,1,48,56,0,4,12,0,37,38,1,5,6,1]},{"s":"2121221111212212121211222211221121221121122121121212122121121122","g":"0000000000000000000000000200000000000000000000100000000100020000","e":[30,31,1,22,23,1,14,15,0,26,27,1,33,34,0,17,25,1,38,46,0,19,27,0,43,44,0,42,43,0,46,47,0,47,55,0,45,46,1,41,42,1,44,52,0,50,58,1,41,49,1,54,62,1,40,48,1,58,59,0,36,44,0,16,17,0]},{"s":"1212212111212212221212111221212121121212122121212121121221121122","g":"0000000000000000000000001000000000000000000000000000020000000000","e":[58,59,0,29,30,0,25,33,0,30,38,0,38,39,0,50,51,0,45,46,0,42,43,0,32,40,0,45,53,0,38,46,0,17,25,1,43,44,0,16,17,1,20,28,0,41,42,1,60,61,1,40,48,0,48,56,1,53,61,0,52,53,0,50,58,0,55,63,1,8,16,0,42,50,1,27,35,0,36,44,0,51,59,0]},{"s":"1211221222121121212122111211221221221121221121121122122111221122","g":"0000000000000000000000000000000000000000000000000000002000201000","e":[20,28,1,56,57,1,20,21,1,50,51,1,38,39,0,59,60,0,44,45,0,40,41,1,34,42,0,24,25,0,51,59,1,42,50,0,30,38,0,17,25,0,31,39,0,15,23,1,34,35,1,16,17,0,26,27,1,6,14,0,27,35,0,55,63,0,48,56,1,47,55,0,54,55,0,14,15,0,37,45,1,22,30,1]},{"s":"1211221221221121211211221211221221221121121221121221221121211221","g":"0000000020000000000000000000000000000000020000000000000000000220","e":[13,21,1,34,42,0,12,20,1,62,63,0,55,63,1,18,19,0,49,50,1,45,53,0,17,18,1,43,44,1,35,36,0,20,21,1,44,52,1,45,46,1,20,28,0,48,56,0,32,33,0,28,29,1,23,31,1,46,47,0,12,13,1,40,48,1,29,30,0]},{"s":"2112211222121121112122122212112111212212112121222212121112211221","g":"0000000200000000000002000000000001000000000000000200000000000000","e":[16,17,1,42,50,0,27,35,0,34,42,1,26,27,0,22,30,0,35,43,1,37,38,0,43,44,0,17,25,0,19,27,0,44,45,0,30,31,0,21,22,0,28,29,1,49,50,0,56,57,0,39,47,1,46,47,1,48,56,0,45,46,0,53,61,1,62,63,0,50,58,0,55,63,1,5,6,1,25,26,0,23,31,0,36,44,1,51,52,0,4,5,0]},{"s":"1121221211212212221211212121122112122112212212111211212222121121","g":"0020020000000000000000200000000000000000000000000000000000100000","e":[52,53,0,21,29,0,47,55,0,38,39,0,58,59,0,48,49,0,41,42,0,23,31,1,18,26,0,37,45,0,57,58,0,27,28,1,51,59,0,20,28,1,49,57,1,39,47,0,25,26,0,53,61,1,42,50,0,61,62,0,28,36,0,48,56,0,34,42,0,44,52,0,33,34,0,32,40,0]},{"s":"1221122111212212211211221221122121122112122122112212112121122112","g":"0000000100000000000000000000000000020000100000000010000000000010","e":[25,33,0,38,46,1,47,55,1,22,30,1,62,63,0,46,47,1,50,58,1,48,56,1,35,36,1,52,60,0,29,30,1,20,28,1,13,14,0,55,63,0,50,51,0,16,24,0,5,6,1,38,39,0]}],"normal":[{"s":"2211221121211221121211222211221111221122121221122121221111221122","g":"0000000000000000000000000000000000000000000000000000000000000020","e":[52,60,0,60,61,1,36,37,1,17,18,0,61,62,0,32,40,1,56,57,1,50,58,1,43,44,1,47,55,0,33,41,0,34,35,1,40,41,0,20,28,0,23,31,0,26,34,0,41,49,0,44,52,1,6,7,1]},{"s":"2212121121221121112122121211212221221211221122111211212211221122","g":"0000000000000000000000000000000000000000000000100000000000000000","e":[0,1,1,53,61,1,53,54,0,34,35,1,21,29,0,20,28,1,33,41,0,14,15,0,16,24,1,51,52,0,24,25,0,32,33,0,37,45,1,26,27,1,56,57,1,40,41,1,44,45,1,52,53,0,46,54,0,48,49,0]},{"s":"2112122112211212122121122112122112122112122112122112212121212121","g":"0000000000000000000000000000000000000000000000100000000000000000","e":[11,19,1,20,28,0,23,31,0,30,31,0,30,38,0,37,38,1,27,35,1,29,37,0,36,44,0,57,58,0,41,49,0,33,34,0,39,47,1,14,22,1,35,43,0,54,55,0,46,54,0,43,44,1,54,62,1,62,63,0,43,51,0,53,61,1,59,60,0,49,50,1,52,53,0,1,2,1]},{"s":"1221122111221122211221121221221122121121112121222112121222112211","g":"0000000000000000000000000000000000000000000000000000000000100000","e":[15,23,1,19,20,1,41,49,1,60,61,1,21,29,0,54,55,0,41,42,0,25,33,1,62,63,1,23,31,0,19,27,0,20,28,1,25,26,1,50,58,1]},{"s":"1212212111212122212112122212112111212212122112122112212122121211","g":"0000000000000000000000000000000000000000000000000000002000000000","e":[8,9,1,22,30,0,20,21,0,19,20,1,13,14,0,32,40,1,16,24,1,45,46,0,36,37,1,56,57,1,53,61,0,46,54,0,48,56,1,59,60,0,60,61,0,37,38,0,51,59,1,46,47,0,38,39,0,39,47,1,52,53,0,41,42,1]},{"s":"1211221212211221211211221221211221121221122121212112211221221211","g":"0000000000000000000000000000000000000000000000000000000000001000","e":[17,25,0,45,46,0,19,27,0,59,60,0,26,34,0,44,45,0,41,42,1,33,41,0,34,42,0,44,52,1,28,36,0,20,21,1,58,59,1,30,38,0,14,22,1,25,33,0,51,59,1,62,63,1,49,50,1,51,52,1,10,11,0]},{"s":"2112121222121211122121211121221222121121221122111121212211221122","g":"0000000000000000000000000000000000000000000000000000000000200000","e":[29,37,0,38,39,0,38,46,0,54,55,1,34,35,0,14,15,1,43,51,1,32,40,1,44,45,1,18,26,1,15,23,1,28,36,0,20,28,1,60,61,1,23,31,0,16,17,0,58,59,1,47,55,0,1,9,0,54,62,1,49,57,1]},{"s":"2211212121121212112121222212121111212212212211211212112212212211","g":"0000000000000000000000000000000000000000000000000000000000000200","e":[9,17,1,44,52,1,14,22,0,34,35,0,22,23,1,30,38,1,18,26,0,20,28,0,44,45,1,28,36,0,60,61,1,33,41,1,52,60,0,46,47,0,38,46,0,62,63,1,58,59,0,14,15,0]},{"s":"2212112121122121122112122121211212121221221211211121221211212212","g":"0000000000000000000000000000000000000000000000000000000000000010","e":[12,20,0,53,61,1,37,38,1,29,37,0,21,22,0,61,62,0,17,18,1,30,31,0,43,44,0,18,26,1,46,47,0,45,46,0,52,60,1,27,28,0,35,43,1,33,41,1,19,20,1,6,7,0,30,38,0,27,35,0,39,47,1,58,59,0,50,58,1]},{"s":"2122121122112211121211222122112112112212112211222211221111212122","g":"0000000000000000000000000000000000000000000000000000000000000100","e":[8,9,1,60,61,0,40,41,1,32,33,0,18,19,0,56,57,1,29,37,0,48,56,0,34,42,0,21,29,1,47,55,0,46,47,1,16,24,0,42,43,1,38,46,0,55,63,0,43,44,0,52,60,1,12,13,1,34,35,1]},{"s":"1121212211221122221212112211212111221212112212212211211222112211","g":"0000000000000000000000000000000000000000000000000000000000000200","e":[12,20,1,20,21,0,18,19,0,19,20,0,50,51,1,16,17,1,39,47,0,21,29,0,48,56,1,58,59,1,33,41,1,16,24,1,53,61,0,60,61,1,29,37,0,17,25,1,47,55,0,54,62,1,51,59,1]},{"s":"1122121222112211122121212112121222112121122112212112211211221122","g":"0000000000000000000000000000000000000000000000000000000000000100","e":[10,11,1,15,23,1,22,30,0,12,20,1,22,23,0,34,42,0,24,25,0,38,39,0,34,35,1,19,27,0,45,46,1,43,44,1,53,61,1,39,47,1,41,42,1,52,60,0,13,21,0]}],"hard":[{"s":"2211221111212212211211221221122112122112212122111212112221221121","g":"0000000000000000000000000000000000000000000000000000000000000020","e":[8,9,1,56,57,0,21,29,0,62,63,0,15,23,1,44,45,1,46,47,1,53,54,0,39,47,0,41,49,0,20,28,1,18,19,0,34,35,0,24,32,1,3,11,1,25,26,1,26,34,0,27,28,1]},{"s":"2212121121212121122112122112121212122121112122122122112112112122","g":"0000000000000000000000000000000000000000000000000000000010000000","e":[0,1,1,25,26,1,37,38,0,22,30,1,56,57,0,16,24,0,16,17,0,44,45,1,62,63,1,50,51,1,20,28,1,36,44,1,48,49,0,18,19,0,51,59,0,51,52,0,4,5,0,35,43,0]},{"s":"2212112122112112112122122212112111221221221121121121221211221221","g":"0000000000000000000000000000000000000000000000000000001000000000","e":[18,19,0,14,22,1,50,58,1,46,54,1,40,41,1,52,53,1,20,21,1,24,25,1,61,62,1,34,35,1,27,35,1]},{"s":"1221212111221212221211211211221221211212121221212121121221122121","g":"0000000000000000000000000000000000000000000000000000000000100000","e":[26,27,1,48,56,1,17,25,1,13,21,0,50,58,0,44,52,0,43,51,0,43,44,1,46,54,0,27,35,1,33,41,0,53,54,0,15,23,0,30,38,1]},{"s":"1211221221211221221211211212211211212212221211211121221221221121","g":"0000000000000000000000000000000000000000000000001000000000000000","e":[58,59,1,27,28,1,19,27,1,23,31,0,24,32,1,25,26,0,51,59,0,40,48,0,50,51,0,60,61,1,17,18,0,46,54,0,41,42,0,29,37,0]},{"s":"1212112211221221221121122121122112122112112121222122121122112211","g":"0000000000000000000000000000000000000000000000000020000000000000","e":[2,3,0,21,22,1,52,60,0,22,30,0,18,26,0,41,42,0,55,63,1,44,45,0,15,23,0,56,57,1,42,43,0,35,36,1,59,60,0,41,49,1,19,20,0,19,27,1,32,40,1,6,14,1]},{"s":"2112112222121211112122122122112112112122212212111211212212212211","g":"0000000000000000000000000000000000000000000000000000000002000000","e":[48,56,1,13,21,1,16,24,0,28,29,1,48,49,0,62,63,1,17,25,1,46,54,0,60,61,1,18,19,0,35,43,0,34,42,0,56,57,0,42,43,1,37,38,0,52,60,1,39,47,0]},{"s":"1121221222121121121121221121221221121221221211211221211221221211","g":"0000000000000000000000000000000000000000000000000000000000020000","e":[16,24,1,18,19,1,13,21,1,35,43,1,47,55,0,61,62,0,55,63,0,41,49,1,51,59,0,44,45,1,53,54,1,9,17,1]},{"s":"1212122111221122212121121212122122112211112121222212121121212112","g":"0000000000000000000000000000000000000000000000000000000000200000","e":[10,18,1,26,34,1,13,21,1,13,14,0,20,28,0,36,37,1,50,51,0,51,59,0,39,47,0,59,60,0,60,61,0,48,56,1,54,55,1,49,57,0,44,52,0,53,61,0,41,49,0,55,63,0]},{"s":"2212112122112121112122121212112221221211121122122121212111221212","g":"0000000000000000000000000000000000000000000000002000000000000000","e":[12,20,1,30,31,1,60,61,0,21,29,0,19,20,0,55,63,0,18,19,0,44,52,1,45,46,0,40,41,0,46,47,0,23,31,1,24,25,0,42,50,0,39,47,0,36,37,0,56,57,1,45,53,0,41,42,0,8,9,1,40,48,0]},{"s":"1221122121212211211221121221122121121122121221122121122112122112","g":"0000000000000000000000000000000000000000000000000100000000000000","e":[8,16,1,12,20,1,33,34,1,35,43,1,32,40,0,25,26,1,54,55,0,46,54,0,42,43,0,40,48,0,59,60,1,38,46,0,19,20,1,39,47,1,19,27,0]},{"s":"2112211222121211122121212112112212211212122121212112122111212212","g":"0000000000000000000000000000000000000000000000000000000000000200","e":[32,40,1,50,58,0,41,42,1,31,39,1,17,18,1,33,34,1,22,30,1,47,55,1,53,61,1,54,62,0,52,53,0,36,37,0,52,60,0]}]},"10":{"easy":[{"s":"1212121212221122112111221121221121212212221122121111221211222211212121112211221221212211212212112211","g":"0000000000000000000010000000000000000000000000001010000000000010000000100000000000000000000000000000","e":[16,17,1,14,24,0,21,31,1,21,22,0,38,39,0,32,42,0,32,33,0,74,75,1,86,96,0,24,25,1,66,76,1,58,68,1,80,81,0,72,73,1,29,39,1,46,56,1,44,54,0,41,42,0,78,88,0,84,85,1,54,55,0,51,61,0,80,90,1,56,57,1,41,51,0,70,71,1,60,70,0,71,81,1,37,47,1,25,35,1,87,88,0,39,49,0,85,86,0,27,28,0]},{"s":"2211221211112212122112122121122211221211212112122112121121222121212112121122122121221121121122112122","g":"0000000000000000000000000000000000000000000000000000000000000000000000000002000100000000020100000000","e":[68,78,0,67,68,1,41,51,0,28,29,0,75,76,0,35,45,1,79,89,0,78,79,0,64,74,1,21,31,1,82,83,1,32,33,1,56,66,1,56,57,0,40,41,0,38,39,1,94,95,1,84,94,1,51,61,0,47,48,1,44,54,1,96,97,0,84,85,1,90,91,1,75,85,0,1,11,0,10,11,1,13,14,0,50,51,0,57,58,0,16,17,0]},{"s":"1221211221121221221121211211221122121122221121221121221211211212122112212121221121121211221211212212","g":"0000000000000000000000000010200000000000000100000000000000000000000000000001001000000000000000000000","e":[21,31,1,26,27,1,28,38,1,23,24,1,48,49,1,44,54,0,71,72,0,76,86,0,68,78,1,66,76,1,96,97,1,48,58,0,50,60,0,81,82,1,85,95,0,41,51,0,50,51,0,94,95,0,92,93,1,80,90,0,37,47,0,80,81,0,87,97,0,30,31,1,88,89,1,31,41,0,23,33,0,24,25,0,36,37,1,98,99,0,93,94,0,27,28,0,65,66,1,31,32,0,52,53,1,22,32,1,91,92,0,97,98,0,70,80,1]},{"s":"2212121211112212211211212121222212121211112112212211212121222212211211221212112111212122122211211221","g":"0000000000100000000001002000002000000000000010000000200000000000000000000000010100000000000000000000","e":[12,13,1,27,28,0,21,31,0,23,24,0,31,32,0,23,33,0,26,27,0,32,33,0,28,29,1,47,48,0,87,97,1,62,72,1,69,79,1,31,41,0,26,36,0,44,54,0,40,50,1,43,44,1,41,42,0,61,62,0,42,43,0,48,49,1,55,56,0,88,98,0,54,64,1,53,54,0,88,89,0,55,65,1,93,94,0,45,46,1,97,98,1,66,76,1,95,96,1,17,27,1,0,10,0,11,21,1,86,96,0,22,32,0]},{"s":"1122122121122122112121122112121212112122112122122121221212112211212112122112122121121122122211212112","g":"0000000000000000000100000000000000100000000000000000000000000000000100000100100100000000000000000000","e":[31,32,0,89,99,1,30,40,1,60,61,1,60,70,0,50,51,0,77,78,1,92,93,1,34,35,1,86,96,1,29,39,1,26,36,0,81,82,1,77,87,1,25,26,1,96,97,0,30,31,0,36,37,0,32,33,0,23,24,1,81,91,0,84,85,1,74,75,0,78,79,0,93,94,0,71,81,0,67,68,1,75,85,0,33,34,0,84,94,0,51,52,0,2,12,1,1,11,0]},{"s":"1212121212112112212222122112112211212211112212112211211221222212211211221211221111212211222121212121","g":"0000000000000000000000000000000000000000000000000010000000000000000000001000000000012000000000000000","e":[27,28,0,25,26,1,23,24,1,28,29,1,64,74,0,84,94,1,96,97,0,78,79,1,45,55,1,35,36,0,63,64,1,51,52,0,40,50,1,30,31,1,23,33,0,33,34,0,81,91,1,46,56,0,97,98,0,42,43,1,98,99,0,54,55,0,85,95,0,44,45,0,27,37,1,82,83,0,94,95,0,93,94,0,88,98,1,86,96,0,75,85,0,71,72,0,14,15,0,6,16,0,89,99,0,85,86,0,44,54,1,57,67,0]},{"s":"2211212112112112212221221212112211211212122121212111221221212112121212121121221221221211211212211221","g":"0000000000000010000000000000000000000000000000000100000000000000000000000020000000020000001010000000","e":[12,22,1,22,23,1,48,58,1,95,96,1,98,99,0,67,68,0,27,37,1,33,43,1,73,74,0,87,97,0,66,67,0,89,99,1,53,54,0,52,53,1,54,55,0,73,83,0,65,66,0,63,73,0,93,94,1,86,87,1,78,79,0,32,42,0,77,87,0,68,78,1,60,61,0,50,60,0,83,93,1,46,56,1,54,64,1,55,56,1,20,21,0,0,10,0,37,38,0,3,4,0,5,15,0,45,46,0]},{"s":"1221221121122122121121121121221122121122221122121112212121212112112212122112122121122121122112112212","g":"0000000000000000000000000100000000000000000000000000000000000000000000000000102000000000002000000200","e":[21,22,1,68,78,0,67,68,0,22,32,0,44,54,1,29,39,1,48,58,0,34,35,0,28,38,1,62,63,0,30,31,1,32,33,1,66,67,1,55,65,1,34,44,0,57,58,0,38,39,1,52,62,0,51,52,1,77,87,0,85,86,0,83,93,1,80,90,1,87,97,0,81,82,1,98,99,0,86,87,0,84,94,0,84,85,0,88,98,1,94,95,1,35,45,1,46,47,0,2,12,1,26,36,0,74,75,0,68,69,0,93,94,0]},{"s":"1121212122112211221222121211211121212122212211221122121211211211221212212121212112121212122211221211","g":"0000002000000000000000000000000100000000000000000000100000000000000000000000000000000000020000000000","e":[13,23,1,96,97,0,92,93,1,37,47,0,28,29,0,22,23,0,56,66,1,89,99,0,61,71,0,27,37,1,50,60,0,65,75,0,68,69,0,47,57,0,98,99,1,40,50,1,31,41,1,46,47,1,50,51,1,95,96,0,88,89,0,85,95,1,63,73,1,81,91,1,83,93,0,64,74,1,74,75,0,35,45,1,48,58,0,81,82,0,29,39,0,17,18,0,42,52,0,15,16,0]},{"s":"1121221221122121221122121121122121121221112121212212121212122112212121122121121221121221122212121121","g":"0000000000000020200000000000000000000020000000000000000000000000000000000000000000101000000000000000","e":[4,5,1,33,34,1,33,43,1,23,24,0,48,49,1,97,98,0,85,86,1,84,85,0,87,88,1,64,74,1,2,3,0,94,95,0,40,50,1,49,59,1,43,44,0,96,97,1,44,54,0,76,86,0,59,69,0,71,72,1,77,78,0,52,62,1,27,28,1,62,63,0,89,99,0,47,57,0,98,99,0,83,84,0,52,53,0,84,94,1,58,59,0,19,29,0,50,51,0,10,20,0]},{"s":"2112112122221212112112212122111121122122221221121122112121121122121221211211221212212211211121221212","g":"0000000000000010000000000000000000000000000001000000000000000000000000200000000000000000000000000000","e":[8,9,1,60,70,0,50,60,0,27,37,0,23,33,1,61,71,1,31,41,0,65,75,0,30,31,1,75,85,0,98,99,0,44,54,1,41,51,1,84,94,1,48,58,1,32,33,0,35,36,1,26,36,1,87,97,0,57,58,1,85,95,1,71,72,1,63,73,1,81,91,0,97,98,0,64,74,1,22,23,0,40,50,1,80,90,1,1,11,0,96,97,0,49,59,0,88,98,0,12,22,0,0,1,0,4,14,1,51,61,0,93,94,0,24,34,0]},{"s":"1221212121122122112121121212121211212212112212212122112112212112121212112212212122112112122122112112","g":"0000002000000000000000000000100000000000000200000000000000000000000000000000010000002000000000000002","e":[16,26,1,52,53,1,29,39,1,67,68,0,34,35,0,85,86,1,23,33,0,35,45,0,89,99,1,76,86,0,44,45,0,57,67,1,69,79,0,92,93,1,50,60,1,30,31,0,68,69,0,76,77,0,27,28,0,73,74,0,63,73,1,85,95,1,42,43,1,37,47,0,42,52,0,90,91,0,83,93,0,35,36,0,66,67,0,63,64,0,30,40,1,27,37,1,58,59,0,49,59,1,32,42,0,5,6,0,66,76,0]}],"normal":[{"s":"2211221121212211221112112211221211212122212211221112112211221122121212221211221121212121211122121212","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000","e":[16,26,0,98,99,0,21,31,1,29,39,1,43,53,0,92,93,1,82,83,0,27,37,1,36,37,0,86,96,0,76,86,1,34,44,0,77,87,0,50,51,0,35,36,0,83,84,0,24,34,1,86,87,0,30,31,0,42,43,1,72,73,0,35,45,1,64,65,0,56,66,1,67,77,1,84,85,0,60,61,1,63,64,0,58,68,0,52,53,1,88,89,0,83,93,0,75,85,1,32,42,0]},{"s":"2211211212221121211211221221212122121211121121221212122121212122121121112122121212121121222121121221","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000","e":[7,8,0,84,94,1,23,24,0,21,31,1,21,22,0,37,47,1,36,37,0,25,26,1,26,36,0,54,64,0,38,48,1,73,74,0,51,52,0,80,90,0,86,87,0,33,34,0,63,73,0,58,68,1,90,91,0,50,60,0,53,63,1,77,87,0,67,77,0,70,71,1,60,70,0,87,97,0,63,64,0,64,65,0,66,76,1,65,66,0,42,43,1]},{"s":"2212121121221221121111212122122121121122221221121112211221211121212212211221122112121221121121122122","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000","e":[14,24,1,21,31,1,57,67,0,28,38,0,83,93,0,49,59,1,90,91,1,39,49,0,36,46,1,38,39,1,85,86,1,81,91,0,24,34,0,92,93,0,35,36,0,64,74,1,80,81,0,77,78,1,75,85,0,33,34,1,33,43,0,66,76,0,53,54,1,37,47,0,73,83,1,86,96,1,73,74,1]},{"s":"2212112121121121212211212212122212121211221121212111212212122122121211121121212211221122122122121121","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000","e":[4,5,1,18,19,1,25,35,1,88,89,0,26,27,0,72,82,0,75,85,1,59,69,0,82,92,1,66,67,0,65,66,0,79,89,1,38,39,1,73,83,0,35,45,0,67,77,0,51,61,1,83,93,1,80,81,1,78,88,0,54,55,1,74,75,0,32,42,1,48,58,0,49,59,0,42,43,1,55,65,1,39,49,1,43,53,1]},{"s":"1212212112212112121211212212211212112122211221221112211212122112122121122121211221212112212212121121","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000","e":[11,12,0,10,11,0,17,18,0,14,24,0,28,38,1,24,34,0,63,73,0,58,59,0,49,59,0,31,32,0,26,27,0,57,58,0,34,44,0,75,76,0,34,35,1,48,49,1,32,42,1,53,63,0,81,82,0,44,45,0,92,93,0,46,56,0,87,88,1,33,43,1,67,77,1,62,63,0,77,87,0,88,89,0,65,75,0,73,83,1,96,97,1,66,67,0,0,10,0,40,50,0]},{"s":"2112121212211221221112211211222212211211212112212112112211221122112212221121212112212211211122112212","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000","e":[68,78,0,28,38,0,23,24,1,21,22,1,31,41,0,82,83,0,23,33,0,84,94,0,45,55,1,58,59,1,76,77,0,72,73,1,52,53,1,43,53,1,64,65,1,84,85,1,93,94,0,96,97,1,82,92,1,77,78,0,80,90,1,56,57,1,46,56,0,81,91,0,88,98,0,85,95,0,56,66,0]},{"s":"1221221211212212112112112122122122121121121221221111212212122112112122221121221112211211222112112122","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002","e":[12,13,1,17,27,0,97,98,0,28,29,0,45,55,0,89,99,1,39,49,1,59,69,1,63,73,0,91,92,1,44,54,1,69,79,0,62,72,1,90,91,0,85,95,0,72,73,1,24,34,0,86,87,1,80,90,0,55,65,0,61,62,1,24,25,0,26,27,1,28,38,0,22,23,1,26,36,0,33,34,0,27,28,0,33,43,1,66,76,1,34,44,0,87,97,1,66,67,0]},{"s":"2211212112211212212111212212212211212112121212211211221212212121211212121211212221221212111221211221","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000","e":[18,28,1,80,90,0,53,54,0,44,54,1,51,52,0,82,83,1,47,48,1,72,82,0,56,66,1,63,73,0,85,86,0,86,87,0,61,62,0,51,61,1,22,23,0,24,34,1,65,75,1,27,28,1,23,24,0,62,72,0,26,27,0,84,85,0,78,79,1,79,89,0,24,25,1,32,42,1,87,97,1,38,48,1,85,95,0,83,84,0,88,89,1,46,56,0]},{"s":"2212112211121212122111212121222112112212122122121112212121212112121122212122121112212121122112121122","g":"0000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000","e":[17,18,1,28,29,1,21,31,1,24,25,0,37,47,1,45,55,0,54,55,0,41,51,1,42,52,1,57,67,1,25,35,1,57,58,0,52,53,0,97,98,0,72,73,0,48,49,1,73,83,1,56,66,0,91,92,1,82,83,0,69,79,0,94,95,0,62,72,0,56,57,0,27,37,0,66,76,1,53,54,0,35,45,0,61,71,1,79,89,0,61,62,1,17,27,0,55,56,0]},{"s":"1212112122211221121221212212111212122121211221211212212212111121122122221211211212212112212121121221","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000","e":[15,16,1,22,23,0,28,38,0,24,25,1,21,22,0,25,35,1,65,66,1,37,38,0,29,39,1,34,35,0,30,40,0,45,46,0,55,65,1,63,73,0,44,54,1,42,52,0,55,56,0,88,98,1,96,97,0,97,98,1,70,80,0,83,84,0,82,92,1,64,74,1,74,84,0,11,21,1]},{"s":"2112212211112122121212121221212212112112112122121222112112212122112121121212121221212121211221121122","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100","e":[21,31,1,94,95,0,54,55,0,24,25,0,96,97,1,25,35,0,86,87,0,51,61,0,35,36,0,82,92,1,22,23,0,67,68,0,71,72,0,71,81,0,43,53,1,41,51,0,40,41,1,61,71,0,23,24,0,86,96,0,55,65,1,37,38,1,93,94,1,45,46,0,42,43,0,57,58,1,79,89,0,46,47,0,47,48,0,80,90,0,51,52,0,83,93,1,1,11,1,37,47,0]},{"s":"1121122122221221121111221122122121221121121221122122121121121121122122221121122111221221122211221211","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000","e":[8,9,1,15,16,1,6,7,0,18,28,1,22,32,1,72,82,0,65,66,1,27,28,0,40,50,0,63,73,1,60,61,1,61,71,0,48,58,0,39,49,1,42,52,1,72,73,1,34,35,1,43,44,1,86,87,0,68,78,1,53,54,0,55,65,0,54,64,1,80,90,0,36,37,1,94,95,1]}],"hard":[{"s":"2121121212221212121112122121212121122112212122121112121121221211212122212212121112122112211121212122","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000","e":[13,23,1,63,64,0,81,91,0,73,83,1,87,88,1,95,96,0,71,81,0,31,32,0,54,55,1,98,99,1,27,37,1,50,51,0,75,85,0,58,68,1,54,64,0,56,66,1,56,57,0,52,62,1,52,53,0,51,61,1]},{"s":"1121122122112211212222122112111221121122212211212121122122111211221212212112212112122112122211221211","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000","e":[6,16,1,15,16,0,0,10,1,23,24,1,53,54,1,56,66,0,75,85,0,64,65,1,66,67,0,57,67,1,85,95,0,98,99,1,84,94,1,92,93,1,79,89,0,82,83,0,80,90,0,80,81,0,88,89,0,87,88,0,90,91,1,77,87,0]},{"s":"2112122112121121212212212212112122121121121121221212121212212121212112212112122112122112212122112112","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000","e":[21,22,1,60,70,1,58,68,0,83,93,1,92,93,1,26,27,0,28,29,1,75,76,0,74,75,0,85,86,1,25,26,0,90,91,0,97,98,1,64,74,0,26,36,1,50,51,0,69,79,0,46,47,1,40,50,1,33,43,0,56,57,0,24,34,0,42,43,1,48,58,0,14,24,1,53,54,0,54,64,0,27,28,0,88,98,0]},{"s":"2112122112121221121221211212211122112122221121211222121212111121221221112211212222112212111221212121","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000","e":[7,8,1,96,97,0,74,75,1,36,37,0,78,79,1,48,49,0,29,39,0,23,24,1,85,86,0,91,92,1,40,41,1,61,71,1,95,96,0,32,33,1,93,94,0,88,98,0,36,46,1,80,81,1,43,53,0,89,99,1,77,87,0,34,35,1,55,65,1,57,58,0,83,93,1,72,73,1,1,11,0]},{"s":"1121221212112122122122121121121121122122221121122111221122122212121121122121211221122122112212121121","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020","e":[24,25,1,49,59,0,52,53,1,83,84,1,89,99,1,22,23,0,51,61,0,75,85,1,38,48,1,26,36,1,88,98,0,90,91,1,27,37,1,97,98,0,98,99,0,81,82,1,67,77,1,54,64,1]},{"s":"2122112121221122121111211221221122112212221121122111221211222211212211211212112212212212111212212112","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000","e":[15,16,0,8,9,0,97,98,1,86,87,0,78,88,0,23,33,0,60,70,1,75,85,1,63,64,0,77,78,0,41,42,0,25,26,1,41,51,0,87,88,0,74,75,0,28,29,1,71,72,1,63,73,0,64,74,0,74,84,0,32,33,1,65,66,0,24,34,1,36,37,1,46,56,1,25,35,0,0,10,1]},{"s":"1211212122112121221221121212211211221122212211221112112211222122121211221211211212212121212122121211","g":"0000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000","e":[92,93,1,70,71,1,49,59,0,54,55,1,55,65,1,42,43,1,30,31,0,52,62,0,27,37,0,26,36,1,57,67,0,96,97,0,84,85,0,98,99,1,87,88,0,72,82,0,62,72,0,71,81,1,29,39,0,67,68,0,75,76,0,66,76,0,63,73,1,0,10,1]},{"s":"2212211211121122122121211221122212211211112212212111211221222211211212212211212111221211221211212212","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010","e":[40,50,1,41,51,1,26,36,0,86,96,0,48,49,0,28,38,1,79,89,0,48,58,1,72,82,1,88,89,1,90,91,0,87,97,0,74,75,1,56,66,0,38,39,1,73,83,1,47,57,1,65,66,1,85,86,0,66,67,0,68,69,0,14,15,1]},{"s":"2211221211122122121121121121222112122121122121121222112211211122112122212211221112112211221122112212","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000","e":[21,31,1,22,32,1,80,81,0,68,69,1,86,96,0,84,85,1,78,88,0,66,76,1,41,42,1,82,92,0,56,57,1,83,93,0,29,39,0,44,54,1,49,59,0,41,51,1,26,36,1,72,73,1,28,38,1,74,84,0,89,99,1,54,55,1,51,52,0,45,46,1,34,35,0,26,27,0,52,62,0]},{"s":"2122121211122112212121122112121121122122121212122122122112112121212112122112122121122121121211212122","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000","e":[21,31,1,80,90,0,25,26,1,41,42,0,23,33,0,38,48,1,58,68,1,96,97,0,82,92,1,85,95,1,47,57,1,88,89,0,39,49,0,55,56,1,81,91,0,67,68,1,85,86,0,83,84,1,3,13,0,54,64,1]},{"s":"1121122122221221121121221211211121122122221121221111221212122211212121112112212222122112111212211212","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010","e":[19,29,1,16,26,1,56,57,0,60,61,1,22,23,1,36,46,1,42,52,0,64,74,0,37,47,0,88,89,1,38,39,1,96,97,0,76,77,0,85,95,1,83,84,1,25,26,0,25,35,1,79,89,0,89,99,0,30,40,0,86,96,1,67,68,0]},{"s":"2122112211212212121112112121222112212211212112112212211212121212212121211211212212212212111211221122","g":"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000","e":[58,68,0,59,69,0,89,99,0,65,75,1,31,32,1,63,64,1,45,55,1,88,89,1,26,27,0,67,68,0,78,88,0,24,25,0,84,85,1,47,57,0,88,98,0,83,93,1,58,59,0,30,40,1,33,34,1,92,93,1,85,95,1,90,91,0,24,34,1,46,56,1,28,29,1,13,23,0]}]}};
+
+/* Sun and Moon on the kit. Puzzles (PUZ) are made offline by gen.js: one solution each, solvable by logic. */
+(() => {
+const { $, store, ui, rng, sfx, settings } = KIT;
+const S = store('kevinhyhau.ch18.v1', { dark: true, sound: true, sym: 'sunmoon', tint: true, order: 'ab', errors: true, size: 6, level: 'normal', best: {}, daily: { d: '', t: 0 }, game: null }), st = S.st;
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovWin', 'ovPause']);
+const SYMS = { sunmoon: ['☀️', '🌙'], catdog: ['🐱', '🐶'], heartstar: ['❤️', '⭐'], discs: ['🔴', '🔵'], fruit: ['🍎', '🍐'], garden: ['🌸', '🍀'], letters: ['X', 'O'], shapes: ['▲', '●'] };
+const TEXTY = new Set(['letters', 'shapes']);
+settings([
+  { id: 'sym', label: 'Symbols', type: 'select', options: [['sunmoon', '☀️ Sun / 🌙 Moon'], ['catdog', '🐱 Cat / 🐶 Dog'], ['heartstar', '❤️ Heart / ⭐ Star'], ['discs', '🔴 Red / 🔵 Blue'], ['fruit', '🍎 Apple / 🍐 Pear'], ['garden', '🌸 Flower / 🍀 Clover'], ['letters', 'X / O letters'], ['shapes', '▲ Triangle / ● Circle']], def: 'sunmoon' },
+  { id: 'tint', label: 'Colour the squares by symbol', type: 'check', def: true },
+  { id: 'order', label: 'Tap order', type: 'select', options: [['ab', 'empty → first → second'], ['ba', 'empty → second → first']], def: 'ab' },
+  { id: 'errors', label: 'Show mistakes as I play', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); if (G) paintAll(); });
+const NAMES = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
+
+/* ---------- symmetry (flips, transpose) and swapping the two symbols: none of these change the rules ---------- */
+function symmetry(N, k) { const fr = k & 1, fc = k & 2, T = k & 4, map = new Array(N * N);
+  for (let i = 0; i < N * N; i++) { let r = (i / N) | 0, c = i % N; if (fr) r = N - 1 - r; if (fc) c = N - 1 - c; if (T) [r, c] = [c, r]; map[i] = r * N + c; } return map; }
+let G = null; const cells = [], edgeEls = [];
+function load(N, level, idx, tseed, daily) {
+  const p = PUZ[N][level][idx], r = rng.mulberry(tseed), map = symmetry(N, Math.floor(r() * 8)), swap = r() < .5, f = v => (swap && v ? 3 - v : v);
+  const sol = new Array(N * N), given = new Array(N * N).fill(0), edges = [];
+  for (let i = 0; i < N * N; i++) { sol[map[i]] = f(+p.s[i]); if (+p.g[i]) given[map[i]] = f(+p.g[i]); }
+  for (let k = 0; k < p.e.length; k += 3) { let a = map[p.e[k]], b = map[p.e[k + 1]]; if (a > b) [a, b] = [b, a]; edges.push({ a, b, same: p.e[k + 2] }); }
+  G = { N, level, idx, tseed, daily: !!daily, sol, given, edges, v: given.slice(), hist: [], secs: 0, hints: 0, done: false, paused: false, hintCell: -1 };
+  st.size = N; st.level = level;
+}
+const has = (N, level) => PUZ[N] && PUZ[N][level] && PUZ[N][level].length;
+function newGame(N, level) { N = N || st.size; level = level || st.level; if (!has(N, level)) level = 'normal'; load(N, level, Math.floor(Math.random() * PUZ[N][level].length), (Math.random() * 4294967296) >>> 0, false); start(); }
+function dailyGame() { const seed = rng.dailySeed('sunmoon'), N = [6, 8][seed % 2], level = ['easy', 'normal', 'hard'][(seed >>> 3) % 3]; load(N, level, Math.floor(rng.mulberry(seed)() * PUZ[N][level].length), seed, true); start(); }
+function start() { O.hideAll(); build(); paintAll(); persist(); }
+
+/* ---------- board ---------- */
+const tb = $('tb');
+function build() {
+  const N = G.N; tb.innerHTML = ''; cells.length = 0; edgeEls.length = 0; tb.style.setProperty('--n', N);
+  for (let i = 0; i < N * N; i++) { const el = KIT.el('div', { class: 'tc' }); el.dataset.i = i; tb.appendChild(el); cells.push(el); }
+  G.edges.forEach((e, k) => { const horiz = e.b === e.a + 1, el = KIT.el('div', { class: 'edge ' + (horiz ? 'r' : 'd') }, e.same ? '=' : '×'); cells[e.a].appendChild(el); edgeEls[k] = el; });
+  fit(); buildPickers();
+}
+function fit() { if (G) tb.style.setProperty('--fs', (tb.clientWidth / G.N) + 'px'); }
+window.addEventListener('resize', fit);
+function buildPickers() {
+  const sz = $('sizes'), lv = $('levels');
+  if (!sz.children.length) { [4, 6, 8, 10].forEach(n => sz.appendChild(KIT.el('button', { class: 'btn sm', type: 'button', 'data-act': 'size', 'data-n': n }, n + '×' + n)));
+    ['easy', 'normal', 'hard'].forEach(l => lv.appendChild(KIT.el('button', { class: 'btn sm', type: 'button', 'data-act': 'level', 'data-l': l }, NAMES[l]))); }
+  [...sz.children].forEach(b => b.classList.toggle('on', +b.dataset.n === G.N && !G.daily)); [...lv.children].forEach(b => b.classList.toggle('on', b.dataset.l === G.level && !G.daily));
+}
+
+/* ---------- rules ---------- */
+function check() {
+  const N = G.N, H = N / 2, v = G.v, bad = new Set(), badE = new Set();
+  for (let line = 0; line < 2 * N; line++) {
+    const idx = []; for (let k = 0; k < N; k++) idx.push(line < N ? line * N + k : k * N + (line - N));
+    for (let k = 0; k + 2 < N; k++) if (v[idx[k]] && v[idx[k]] === v[idx[k + 1]] && v[idx[k]] === v[idx[k + 2]]) { bad.add(idx[k]); bad.add(idx[k + 1]); bad.add(idx[k + 2]); }
+    for (const s of [1, 2]) if (idx.filter(i => v[i] === s).length > H) idx.forEach(i => { if (v[i] === s) bad.add(i); });
+  }
+  G.edges.forEach((e, k) => { if (v[e.a] && v[e.b] && ((v[e.a] === v[e.b]) !== !!e.same)) { badE.add(k); bad.add(e.a); bad.add(e.b); } });
+  return { bad, badE };
+}
+const full = () => G.v.every(x => x);
+const solved = () => full() && check().bad.size === 0;
+
+/* ---------- paint ---------- */
+function paint(i, bad) {
+  const el = cells[i], v = G.v[i], sy = SYMS[st.sym] || SYMS.sunmoon, txt = TEXTY.has(st.sym);
+  el.classList.toggle('given', !!G.given[i]); el.classList.toggle('tintA', st.tint && v === 1); el.classList.toggle('tintB', st.tint && v === 2);
+  el.classList.toggle('bad', st.errors && bad.has(i)); el.classList.toggle('hintc', G.hintCell === i);
+  let ic = el.querySelector('.ic');
+  if (!v) { if (ic) ic.remove(); return; }
+  if (!ic) { ic = KIT.el('span', { class: 'ic' }); el.insertBefore(ic, el.firstChild); }
+  const g = sy[v - 1]; if (ic._g !== g) { ic._g = g; ic.textContent = g; } ic.classList.toggle('txt', txt);
+  ic.style.color = txt ? (st.sym === 'shapes' ? (v === 1 ? '#e11d48' : '#2563eb') : (v === 1 ? '#f59e0b' : '#38bdf8')) : '';
+}
+function paintAll() {
+  if (!G) return; const { bad, badE } = check();
+  document.documentElement.style.setProperty('--tintA', st.dark === false ? '#fde9b0' : '#4a3d17'); document.documentElement.style.setProperty('--tintB', st.dark === false ? '#cfe7fb' : '#17364f');
+  for (let i = 0; i < G.N * G.N; i++) paint(i, bad);
+  G.edges.forEach((e, k) => edgeEls[k].classList.toggle('badE', st.errors && badE.has(k)));
+  KIT.setText($('sz'), G.N + '×' + G.N); KIT.setText($('hn'), G.hints);
+  const key = G.N + G.level, b = st.best[key]; KIT.setText($('bt'), b ? fmt(b) : '-'); KIT.setText($('tm'), fmt(G.secs)); $('bUndo').disabled = !G.hist.length || G.done;
+  const left = G.v.filter(x => !x).length;
+  $('tmsg').textContent = st.errors && bad.size ? 'Something breaks a rule (shown in red).' : G.done ? 'Solved!' : NAMES[G.level] + (G.daily ? ' (daily)' : '') + ' · ' + left + ' square' + (left === 1 ? '' : 's') + ' to go. Tap to put in ' + (SYMS[st.sym] || SYMS.sunmoon).join(' or ') + '.';
+}
+const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+/* ---------- actions ---------- */
+function snap() { G.hist.push(G.v.slice()); if (G.hist.length > 300) G.hist.shift(); }
+function tap(i) {
+  if (!G || G.done || G.paused || G.given[i]) return; snap(); G.hintCell = -1;
+  const seq = st.order === 'ab' ? [0, 1, 2] : [0, 2, 1]; G.v[i] = seq[(seq.indexOf(G.v[i]) + 1) % 3];
+  A.beep(G.v[i] ? 560 + G.v[i] * 120 : 380, .05, 'triangle', .07); after();
+}
+function after() { paintAll(); persist(); if (!G.done && solved()) win(); }
+function undo() { if (!G || G.done || !G.hist.length) return; G.v = G.hist.pop(); G.hintCell = -1; paintAll(); persist(); }
+function clearAll() { if (!G || G.done) return; snap(); G.v = G.given.slice(); G.hintCell = -1; paintAll(); persist(); }
+function hint() {
+  if (!G || G.done || G.paused) return; const w = []; for (let i = 0; i < G.N * G.N; i++) if (G.v[i] !== G.sol[i]) w.push(i); if (!w.length) return;
+  snap(); const i = w[Math.floor(Math.random() * w.length)]; G.v[i] = G.sol[i]; G.hintCell = i; G.hints++; A.slide(400, 900, .15, 'triangle', .08); after();
+}
+function win() {
+  G.done = true; const t = G.secs, key = G.N + G.level; let msg = 'Time ' + fmt(t) + ' · hints ' + G.hints;
+  if (!G.hints) { if (!st.best[key] || t < st.best[key]) { st.best[key] = t; msg += ' · 🏆 new best'; } } else msg += ' · (best times count only without hints)';
+  if (G.daily && !G.hints) st.daily = { d: new Date().toISOString().slice(0, 10), t };
+  $('winTxt').textContent = msg; O.show('ovWin'); st.game = null; S.save(); paintAll();
+  [523, 659, 784, 1047].forEach((f, i) => A.beep(f, .14, 'triangle', .12, i * .08));
+}
+function persist() { if (!G || G.done) return; st.game = { N: G.N, level: G.level, idx: G.idx, tseed: G.tseed, daily: G.daily, v: G.v, secs: G.secs, hints: G.hints }; S.save(); }
+function pause() { if (!G || G.done) return; G.paused = !G.paused; if (G.paused) { O.show('ovPause'); persist(); } else O.hide('ovPause'); }
+
+let last = performance.now();
+setInterval(() => { const now = performance.now(), dt = now - last; last = now;
+  if (G && !G.done && !G.paused && !document.hidden && dt < 3000) { G.acc = (G.acc || 0) + dt; while (G.acc >= 1000) { G.acc -= 1000; G.secs++; } KIT.setText($('tm'), fmt(G.secs)); if (G.secs % 5 === 0) persist(); } }, 250);
+document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
+
+tb.addEventListener('pointerdown', e => { const c = e.target.closest('.tc'); if (c) { e.preventDefault(); tap(+c.dataset.i); } });
+ui.actions(document.body, { undo, hint, clear: clearAll, pause, new: () => newGame(), winClose: () => O.hide('ovWin'), size: b => newGame(+b.dataset.n, G && G.level), level: b => newGame(G && G.N, b.dataset.l), daily: dailyGame });
+window.addEventListener('keydown', e => { if (!G || e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase(); if (k === 'z') undo(); else if (k === 'h') hint(); else if (k === 'p') pause(); });
+
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+(function boot() {
+  const g = st.game;
+  try { if (g && has(g.N, g.level) && PUZ[g.N][g.level][g.idx] && g.v.length === g.N * g.N) { load(g.N, g.level, g.idx, g.tseed, g.daily); for (let i = 0; i < G.v.length; i++) if (!G.given[i]) G.v[i] = g.v[i] === 1 || g.v[i] === 2 ? g.v[i] : 0; G.secs = g.secs | 0; G.hints = g.hints | 0; build(); paintAll(); if (solved()) newGame(); return; } } catch (e) {}
+  newGame();
+})();
+KIT.hook({ get G() { return G; }, load, tap, hint, undo, solved, check, newGame, PUZ, symmetry });
+})();
+
+</script>
+</body>
+<script src="../nav.js"></script>
+</html>

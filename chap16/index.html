@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 16 · Killer Sudoku</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Killer Sudoku">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px;--kbg:#e9e2d4;--kcell:#f7f2e7;--kink:#1f2328;--kuser:#1d4ed8;--kline:#8a7d63;--kbox:#3b352a;--ksel:#fde68a;--kpeer:#efe6c9;--kbad:#dc2626;--kcage:#6b5d3e}
+:root[data-theme="dark"]{--kbg:#2a2f3a;--kcell:#1b2029;--kink:#e6edf3;--kuser:#7aa8ff;--kline:#566074;--kbox:#aab4c6;--ksel:#5b4a12;--kpeer:#232a36;--kbad:#ff6b6b;--kcage:#b9a77a}
+.kwrap{display:flex;flex-direction:column;gap:10px}
+.khead{display:flex;gap:8px;justify-content:space-between}
+.kstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
+.kstat small{display:block;font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.kstat b{font-size:17px;color:var(--accent-light)}
+.kboardwrap{position:relative}
+.kb{--fs:40px;display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr);width:100%;aspect-ratio:1;background:var(--kbg);border:3px solid var(--kbox);border-radius:6px;outline:none;user-select:none;-webkit-user-select:none;touch-action:manipulation;font-size:var(--fs)}
+.kc{position:relative;background:var(--kcell);border:1px solid var(--kline);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--kuser);font-weight:700;line-height:1}
+.kc.r2{border-bottom:3px solid var(--kbox)}.kc.r5{border-bottom:3px solid var(--kbox)}
+.kc.c2{border-right:3px solid var(--kbox)}.kc.c5{border-right:3px solid var(--kbox)}
+.kc.peer{background:var(--kpeer)}
+.kc.same{background:var(--ksel);opacity:.95}
+.kc.sel{background:var(--ksel)}
+.kc.cagehi{box-shadow:inset 0 0 0 100px rgba(245,158,11,.14)}
+.kc.given{color:var(--kink)}
+.kc.bad .v{color:var(--kbad)}
+.kc.wrong{background:rgba(220,38,38,.25)}
+.kc::before{content:"";position:absolute;inset:3px;pointer-events:none;border:0 dashed var(--kcage)}
+.kc.cT::before{border-top-width:2px}.kc.cR::before{border-right-width:2px}.kc.cB::before{border-bottom-width:2px}.kc.cL::before{border-left-width:2px}
+.kc .v{font-size:1em;transform:translateY(.04em)}
+.kc .sum{position:absolute;top:1px;left:2px;font-size:.36em;font-weight:800;line-height:1;color:var(--kcage);background:var(--kcell);padding:0 2px;border-radius:2px;z-index:2}
+.kc.sel .sum,.kc.same .sum{background:var(--ksel)}.kc.peer .sum{background:var(--kpeer)}
+.kc .sum.sbad{color:var(--kbad)}.kc .sum.sok{color:#16a34a}
+.kc .nt{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:14% 8% 4% 12%;font-size:.26em;font-weight:600;color:var(--muted);text-align:center;line-height:1}
+.kc .nt i{font-style:normal;display:flex;align-items:center;justify-content:center}
+.kinfo{min-height:3.2em;font-size:14px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--fg)}
+.kinfo b{color:var(--accent-light)}
+.kinfo .combo{display:inline-block;margin:2px 4px 0 0;padding:1px 7px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-weight:700;letter-spacing:.06em}
+.kinfo .combo.dim{opacity:.35;text-decoration:line-through}
+.kpad{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.kpad button{appearance:none;border:1px solid var(--line);background:var(--panel2);color:var(--fg);border-radius:8px;font:inherit;font-weight:800;font-size:clamp(17px,5vw,24px);padding:10px 0;cursor:pointer;touch-action:manipulation}
+.kpad button:active{transform:scale(.94)}
+.kpad button.done{opacity:.28}
+.kbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.kbar .kl{color:var(--muted);font-size:14px}
+.kbar .btn.on{background:var(--accent);color:#000}
+.kpanel{margin-top:2px}
+@media(max-width:480px){.kpad{gap:4px}.kc::before{inset:2px}}
+html.app .hint{display:none}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Killer Sudoku</h2>
+  <p>Chapter 16 · Sudoku where the digits in every dotted cage must also add up to the number shown</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="kwrap" id="kwrap">
+  <div class="khead">
+    <div class="kstat"><small>TIME</small><b id="tm">0:00</b></div>
+    <div class="kstat"><small>LEVEL</small><b id="lv">Normal</b></div>
+    <div class="kstat"><small>BEST</small><b id="bt">-</b></div>
+    <div class="kstat"><small>HINTS</small><b id="hn">0</b></div>
+  </div>
+  <div class="kboardwrap">
+    <div id="kb" class="kb" tabindex="0" aria-label="Killer Sudoku board"></div>
+    <div class="ov" id="ovWin"><h3>Solved!</h3><p id="winTxt"></p><div><button class="btn primary" data-act="new" type="button">New puzzle</button> <button class="btn" data-act="winClose" type="button">Look at board</button></div></div>
+    <div class="ov" id="ovPause"><h3>Paused</h3><p>The board is hidden while paused.</p><button class="btn primary" data-act="pause" type="button">Resume</button></div>
+  </div>
+  <div class="kinfo" id="kinfo">Tap a square. Dotted shapes are cages. The small number is the sum of that cage.</div>
+  <div class="kpad" id="kpad"></div>
+  <div class="kbar">
+    <button class="btn sm" id="bNote" data-act="notes" type="button">✏️ Notes: off</button>
+    <button class="btn sm" id="bUndo" data-act="undo" type="button">↶ Undo</button>
+    <button class="btn sm" data-act="auto" type="button">✨ Fill notes</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="check" type="button">✔ Check</button>
+    <button class="btn sm" data-act="pause" type="button">⏸ Pause</button>
+  </div>
+  <div class="kbar kmenu">
+    <span class="kl">New:</span>
+    <button class="btn sm" data-act="lvl" data-l="easy" type="button">Easy</button>
+    <button class="btn sm" data-act="lvl" data-l="normal" type="button">Normal</button>
+    <button class="btn sm" data-act="lvl" data-l="hard" type="button">Hard</button>
+    <button class="btn sm" data-act="daily" type="button">📅 Daily</button>
+  </div>
+  <div id="panel" class="kpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">Rules: every row, column and 3×3 box holds 1 to 9 once. In each dotted cage the digits add up to the small number and never repeat. Keys: 1-9, arrows, Backspace, N notes, Z undo, H hint.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 Killer Sudoku is a classic puzzle type that grew out of Sudoku. The puzzles are made by my own generator and each one is proved to have exactly one solution. Code is my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else last = performance.now(); });
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* made by tools/gen.py, each puzzle has exactly one solution (checked by tools/verify.py) */
+const PUZ={"easy":[{"s":"386579412942381657571462389264815793813697524795234168438126975629753841157948236","c":"QQQWEEDhideCUEDDhgdCCUXXRggdZZFFXYYLTTTSSbYBLGfkaPbbBLGGjPPIMKKJJHcOOMMVAAAccNNNV"},{"s":"198543276654872193327916548816729354275634981943158627581267439469385712732491865","c":"BPENUUUFFSOENNeIIJSXXKKKIHJSZZZdRfHJiCCkjRAGGMTCblnAWDMTTgmQWWDaLLgVVYYDaLcVVhYYD"},{"s":"153674298276958134894132576962813745315746982487529613648291357521387469739465821","c":"JJjjYcTTLMddiYnPTUMdBiaaPOORRBiIIXXZRSQeelhhZDDKKelmbbFVkNEEggCFVNNEHGfCWVAAApoqC"},{"s":"367942851815763942492815637138296574546387129279451386954628713683174295721539468","c":"ccchGgKYdQQhhGJKYYQaeGGJAASaaekNJAHHLWONNZDDDLWOCTRPjBLWECTRPUULfEbTFFFVifMMMXIVV"},{"s":"624937815138254796759681432471528369563179248982346571317865924846792153295413687","c":"GGMKKUUccaGMQQUAAZBBMLQQAVVkkgLbFFVOkCCebhhOOEECjjjSXXTENJJPSWXTEHdffSWiTIIdRRYDD"},{"s":"573289614921647583648153729739865241216974358854312976487596132162738495395421867","c":"nggkOciLLYYPdacJLDHbPdaceeDHbbTjUFFZmCGTjUNNZmClEVUhWZopMEVRRXXQMMEBBRXIQKSSSSAAf"},{"s":"428731695519486732637295418352614987791328564864579321943152876286947153175863249","c":"GRRjUUWhaGRBBnTThaGJXNNVVLCZJJKKYLLClHPPKDDICHHMPPFFIdQEMSbgFIdQOOScccAAmOeSiffkA"},{"s":"258734916134569287796812453913658742582473691467921538379285164641397825825146379","c":"eZZPnLLLjhZJPClaaahDJJCNbbEODfRRNiAUOmfgHHdAUOMMMXBdcUWGGMIBQSSWGYYIVVFFWkKKKVTTT"},{"s":"298615734561734829437982156756293481384176592912548673175429368849367215623851947","c":"JCCDhSVVOJCCDDSSOOJJMMMMkLLEETWWWkNLjETHFGGNUjeTHHfddUjelYYRgPZaBBcQRKPAaabIQXKiA"},{"s":"362489751798315462541627398975268134486531279123794685639842517217956843854173926","c":"EEXToQIIFMMXTQQImFjCCZeeeKKnCOZaSNNNPffZaShhAPHJgBiUhcWDYBBiUlcWDDVVLbGcWkkVdLbRR"},{"s":"534876921281459673967213458649385712718962534325741896872534169153698247496127385","c":"ENNVGccnFEBQQGjHXFlBDbYjLXmOUDDajLMAOUPPaaMMeORRffJJJekRdIIITZZCCdggWTKhCSSgiWTKK"},{"s":"417832659928165473365794281836547192741629538259318746593276814674981325182453967","c":"ZDDOOicckZnYOQQlLLNjjVVhPPLNBKVegHJJNBKAAgHJGTTKaUUbGGSSSRRUbbCFXXWWIIImFMMfWdEEE"},{"s":"357196824629438715814725639971653482236984571548217963482561397165379248793842156","c":"iLLTffkkAianTfdMAAaaJJcjMhgKKZJcCoXIeHZRcCpYIHHVWWbFDDPOVmEEFDDPOlBESSSUPQQBNNNGU"},{"s":"615372498738594216942861753493687521867125349521943867179458632256739184384216975","c":"FFFTWOOOACCJTWWZIISjJBWeZoVSGGBYeeVVngMcYQQddggMRRkXXdgiiHHbNNfDmKElbULPDDKEahULP"},{"s":"159742368864351729723698154345976281612835947978124635481269573536417892297583416","c":"AAJhEOFSSbbJJEOFXXLLZJaOWTTiLgmaWWTIYggKKHDDIVddNKHQDIVGdNMCQPjVGfNMUPPcBBffkReel"},{"s":"237845961546291378891763425472586193319472586685139742758324619923617854164958237","c":"EOOOCCCZZEqBlNNSiZIIhYYNSScoVVXXnLLcWWffXFFLjdHJJKemPadHkkKemPbUMTpKRRAAUQQDggGGG"},{"s":"471836952285914376693257841918465237324789615756321498839572164147698523562143789","c":"OMhBBPPCCOOhBHHkaKXQJJbHZiKXQJbbVZRRXIEggclFDGIEEgccffGGjSddNfLYAjSeUNWWAAASeTTTW"},{"s":"574862193136479285289513647728946351395281764641357829467125938813694572952738416","c":"MQQKKKXXXMJASSSlmUMJAAAeIZUddaFFeDRRWCabVDDTgCCaPViLLBNGajVEEYYNGGkkEHccNOOOOHHfh"},{"s":"592163487847925631361748592473619258956284713128357946684532179239471865715896324","c":"HHjKCMMZZaHHVCWTTTBUVVOOcAfBNNkGOcAfBPXXdLcifYPPhFLLIIQmmbFoJJEQDebFFJlEnDegRRSSE"},{"s":"352489761846751329719623485694238157571946832283175946425317698168594273937862514","c":"YYXRRiBBCOOZReMAACOZZdeMSSCDkNdIIIVhDkNUUaaVhWQcccTKVhWQcPPKKgFjfGLPbbHHEffLPJJJJ"},{"s":"194283765537614892826759431375468219681592374942371658759826143468135927213947586","c":"QQQeGUHhhIIRGGUTEMSLLYYUTEMSDiiKKgVMSDDDPffVACCCCPPJJAFOOaaaBddFONNNWBXkFccZZWjXb"},{"s":"263481597791253648584769213649128735358674921172935864436597182917842356825316479","c":"PJYAAndbbPPKKAVddbQFFhhVXleQcCCmGXRRgpECUWLRTgEEoUWLiTkZZZUWOOfSSSDajOMfBBHHaNNMI"},{"s":"513629847279845136486371259928436715345197682167582493851763924694258371732914568","c":"FFKKKlNjeffhARNNWeEooAaaCWMiUSSbaCccIUTSbYYnDIIQXOPYnDZZQVVgYJDqkBBdGGJmHHLLdGpJm"},{"s":"319758642254163897786942531832614759697325184541897263978531426123486975465279318","c":"YJJTggdbbaGGOOcdMjaGXXXcKMMalWeXQKMkDDWeeQAVVPBBiNNEVSPPRRRNEHSUCCCfhEHHUZLLLFFFI"}],"normal":[{"s":"279835164415976823638124759894563217362417985751298346986741532147352698523689471","c":"SWWWMKKKKSiWNMXXFFVUfNNhCFOVUUDDDCIOYYTTPPPIOBEEdHHPZLBBEGAcQQLeeJJAcbRLeegJAbbRa"},{"s":"427153869891467253536982471175239684362748915984615732743596128259871346618324597","c":"cXXVVNNSSWWMMaNBBSbbbMhPPPQfDDFFOOOQDDeFdJJJJUgRddZZEEUHRLdZCCGKHILLTTAGKIILiTYAG"},{"s":"439867521562143789178925634925316847847592316316784295294658173751239468683471952","c":"MMMXFFFTTMDdXLLPPPNDddKLWPbNaaaKKKPeSSAAAAHQQUUUJGOHQQIIJJGCCCRZBBcccCRRZEEYYfVVR"},{"s":"648729153179563428235184679351678294786492315924351786412835967897246531563917842","c":"PcREEKKAAPPRRENNAbZTTfMQCebZZTUMQCCCLLTUMQDDOLXFYYYGDOXXVHHJGGdBBVHJJaIIBBVWWJJSS"},{"s":"926473518718592364345861927834126759592387146671945832483659271167238495259714683","c":"VKKKLBYSSVKBBBBYYSIIIZCHeDDIUWCCHHTDRUWWCGGGMRUAAdNNNFPPXAJQQFFXXXcJEEOFbbaaaaEOO"},{"s":"391548672745326891826971543273615984459283167618794325167852439582439716934167258","c":"WHHZAAXXXIIHZCCUXJdfHOaaUUJPfHOBSKEQPPYMVSKEQcbMMMTKEFGbeRTTKEFGGeRLDDDDGGLLLLNNN"},{"s":"872461593936752841415398267623917458187546329594283176748635912369124785251879634","c":"TTIIIFOMZTWSaYdOMMRSSSYeOBGRRRSYbBBGRQVVNXXEPHQcDNUUEPHQDDKUEEJHHLDKCCCJAALKKKCCJ"},{"s":"862514937453297186197386254236849571745132698918675342589721463324968715671453829","c":"YYGGGhJJJKKbbGTIaaPPBBBTTaaNNgQUUUFiRRQQADDFFSRXZAAfEESSXZZWWdCLSMVVWOdCLHHeWWOOc"},{"s":"721869534853421796946537182497312865135986247682754319314295678269178453578643921","c":"aQQQQPPffaAAAHPPMMaOAXHbCWNTOXXJJZNNTTSUUUZZZESSLdIIKKEccLBIIeeVVYDBgGGFRRRDDDGGF"},{"s":"135976428726584931984312675379865142251749386648231759813657294562493817497128563","c":"QHHAAAKKEQWWAbbKEEWWMMGGGaFCYDTTddFFCYDRTIIVVPPPRRIZJVSSPBBfhJJNNXBOUULeNcOOOgLLL"},{"s":"964358712812497365537126489785932146123564978649871253491683527256719834378245691","c":"gCCCSSRRRaaLYEEJJRbbLLdEeJRHXXUUBAAAMMDZZBVATMOOOZBVhTNNQQIcVTTFGGQIcWWKFFPPccfWK"},{"s":"192764538865123974437985216249318657376452891518697423723849165654231789981576342","c":"cTfIIgNZZcTTSRhNZZMXXSRDaAAMPPRRDEEEKYYRLLEUUKCCCWLBFUKdQQHHBFFeJGQHHOOOeJGGGVVOb"},{"s":"826197453135846792947352186684571329312489675579263841268715934751934268493628517","c":"IIKKKRHQQIKKXXBHQQOAADXBHPPOADDDGGZPUCCeWGLZFUUEEWJJFFUaEEWJdTbcNNVSSMTbYYNVVVMMM"},{"s":"458196372316472985792385641865237194971648253243519768529861437137954826684723519","c":"QCCCSSSPWQQQRDDPPWJQRRRRPHHcddKZNYYLUBTKNNLLLUBTTaNOVMFbITGGOVMFIIEGXOVAFFEEGXOAA"},{"s":"345278691726491385918563724294657138687132549153984267462719853879325416531846972","c":"WZZeSSSSSWZHHVJJRRBBBHVdTTMbKAAANNTMDKEAFIOOODEEYFIPfLghEYFIPPLQUUCCGPLLQXXCcGGaa"},{"s":"189564372756823194342197658263758941814932765975416823521689437498375216637241589","c":"RNNNQTTZJRgIIQWWJJRRIIQQWHHeCCUUEcVHfDDMMEcVVPSSbMFFFVPPSKMOaBBAASKKOGGLXAYKddLLL"},{"s":"756981342924365178318472596135629487492857631867134925549218763681743259273596814","c":"FFHHZZeLLSSHTQaaLLgCPTQadBLRCPPfadBbRCccXXdIVRCNNUUUIVAAANhJYYYAWWiiOGDDEEEMMKKKK"},{"s":"693245781258671439417398625742986153165432978839517264976854312524163897381729546","c":"FFJAAYEEEfFccHHSEdgPOOHXIIdPPPOOXMGGWBBBBBMGGWTKbRDDeGWTKbRLLNQZZKbbCVNQaaUUCCCNN"},{"s":"571386924382794165694215378257941683963528417418637592135862749726459831849173256","c":"TFFEEEXXXTTFMENGGXOOaMMBcGGVOOCBBBBQSWWCdPPQQSIUUKKRDQLIJJYRRDZLbbAARHHZLLLAARHHZ"},{"s":"715426983983751624264398157147285369398164572652937418839512746421679835576843291","c":"BBXXKKfNNTBXRVVVNMJPRRIIINMJPPPWIQHMAFFeeDQHHAAFOOGGHYAbaCdEEHZcbaUUSZZZcaaSSSLLZ"},{"s":"457619832318257946269348517172534698945786123836921754621475389594863271783192465","c":"DdcOOPPPADDUUUJTTAfEZUUJTAAVEZKKJNBBVEXXKbNHGQQMMFaHHGQWMgFaYeRSIIICCYYRSSLLCCCRR"},{"s":"794582136583916472612734598376825914145369827829147653461293785937458261258671349","c":"YDJJJJaadDDLRRWTgdccLUUUTffIICCCQQQQbEECZZZGGeMESHHKKGeMESHOKXXPPPhiOKABNNNjVFFAB"},{"s":"548176923917382456362954871671439582239865714854217369795641238486523197123798645","c":"hQQCMaGGDhRRLMWYYDONNLWWHYSOiNLXPHFSOfJJJPPFFdIIIVEEUUdbbIVTKKUBeeAVgZZUBBBAAAZZc"},{"s":"845362197293157864176849352731285649428796513659431728964573281382614975517928436","c":"EgPPBSZZZEgJPSSQeeDbJYHHQheDbJJROQLGNAAXROLLGNAIXVUUMaNIIVVdFMaCITcddFMKCCCcWWfKK"}],"hard":[{"s":"647185932523479816981623745278934651364518279159267384432856197815792463796341528","c":"DDXXFFPPNODaFFGNNNODaRFGbAALDRRIGTTALLSSIIETJULVSQEEEJUZVVQMWCJUBBQQMCCCHHBQKKKYC"},{"s":"253847961489361725761952843142593678597628314638714259874136592325479186916285437","c":"GGFOKXXZLEWFOKSSLLEQTTKUSbLQQTJeUUDDNJJJJVVaDNNAAVVIaDHHAdddIPPHMBBBCCYcHMRRRRYYc"},{"s":"163478952794265813258931647387624195912853764645197328879546231436712589521389476","c":"PPPPPDIEMBBBBQDIEMaaQQQIIEXJJUKKWAAXJJUKWWAAORGGHHLLOORNVHYLCTTNNFFYLCTTbSSFZCCCT"},{"s":"317528469246179853598346217165437928432981675789652341671293584853764192924815736","c":"ZDTTTWUUUZDCHWWLLVZSCHHccJVZSSSaKKJJRSMNNXXJARRMMMQXAAIIMOOQQAPIEEOOBBFPYYEEbGGFF"},{"s":"721859346653471892894326517467983251915742638382615479538297164276134985149568723","c":"UUUDNNISSZZaDDNIOOZKaPNNIWOZKPPPVVQBLLLRMEEQBTGRRMbEYBTGHHHbCYBdGHHCCCXXcAAAJJCFF"},{"s":"782561394639428751415793286271945638598632417346817925154279863963184572827356149","c":"ZUURReFMbZURRRFFMbZaCCCCYYbDDQQCEEcdDDQLLLEccIDAWONNNSIGAWOPPPSGGAVXJJTBHHAVKKTTB"},{"s":"945761328863952174217483956154327869698145732732896541326519487479638215581274693","c":"ccSAJJBBNaaSAAJLLNQeeAIbLEEQQCUIbZZEFTCUWddZEFFCYWHOOXGFCHHHKKMGVVDRRKKMGPPDDRRRM"},{"s":"814367925729451638536289471478513269162894753395672184943725816281936547657148392","c":"FFEEHHHMMFAdUXRJJMAAYUURJbMPPYUcRDbMPZZaaDDCCNLLaOOOTTNLQQSSSITBBQKVGWIIBBKKKGWWW"},{"s":"672813549983754261145296873531648792498172356267935184816427935759361428324589617","c":"QQAbbcFFeMMAAEEFFeMdTTTVVFaUUHIIISSaUHHWPPZSaXXNWPBBOOXGNJJBBBOKGGYLLLRRKKKKDDCCC"},{"s":"972468315648513792513792864825376941496281537731954286364827159157639428289145673","c":"YYALLLLDDCCAAPPDDDEIUAFFNBBEIIIFFNNBKKRRXHHHcTaRXXHHOOTTVVVWSSOQZJMMWWSbQJJMMMGGb"},{"s":"927438516348165927651729843176384259539612478284597631812953764765841392493276185","c":"OWWWQLLLLOGWdQaMRRTGZZQaMMRJGFKYYYSSJHFKKcSSAJHUEKVVAAUUUEIVCCPUDDNIXBCPbDNNIXBBP"},{"s":"719863425435729681286514793142685937367941258598372146973456812651298374824137569","c":"HYYYTEEEEHHYVTbEJJWWVVBaXJJWLVUBKXIILLLUBKMRICCUUPPMMFSSNNNPPFFSQQQGZAAFSOOGGDDDD"}]};
+
+/* Killer Sudoku on the kit. Rules + UI only. Puzzles (PUZ) are made offline by tools/gen.py and are proved to have ONE solution. */
+(() => {
+const { $, store, ui, rng, sfx, settings, input } = KIT;
+const S = store('kevinhyhau.ch16.v1', { dark: true, sound: true, errors: true, autoclean: true, hl: true, level: 'normal', best: { easy: 0, normal: 0, hard: 0 }, daily: { d: '', t: 0 }, game: null }), st = S.st;
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovWin', 'ovPause']);
+settings([
+  { id: 'errors', label: 'Show mistakes as I type', type: 'check', def: true },
+  { id: 'autoclean', label: 'Clear notes when I place a digit', type: 'check', def: true },
+  { id: 'hl', label: 'Highlight matching digits', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); paintAll(); });
+
+const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-';
+const NAMES = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
+
+/* ---------- tables, built once ---------- */
+const ROWOF = i => (i / 9) | 0, COLOF = i => i % 9, BOXOF = i => ((ROWOF(i) / 3) | 0) * 3 + ((COLOF(i) / 3) | 0);
+const PEERS = Array.from({ length: 81 }, (_, i) => { const p = []; for (let j = 0; j < 81; j++) if (j !== i && (ROWOF(i) === ROWOF(j) || COLOF(i) === COLOF(j) || BOXOF(i) === BOXOF(j))) p.push(j); return p; });
+/* COMBOS[n][s]: every set of n different digits (1-9) that add up to s, as arrays */
+const COMBOS = {};
+(function () { const rec = (start, left, sum, cur) => { if (!left) { (COMBOS[cur.length] = COMBOS[cur.length] || {}); (COMBOS[cur.length][sum] = COMBOS[cur.length][sum] || []).push(cur.slice()); return; } for (let d = start; d <= 9; d++) { cur.push(d); rec(d + 1, left - 1, sum + d, cur); cur.pop(); } };
+  for (let n = 1; n <= 9; n++) rec(1, n, 0, []); })();
+const combosOf = (n, s) => (COMBOS[n] && COMBOS[n][s]) || [];
+
+/* ---------- puzzle variants: the 8 symmetries of a square (flip rows, flip columns, transpose) ---------- */
+/* They keep the sudoku rules, the cage sums AND the cage shapes connected. Two tempting tricks do NOT work:
+   relabelling digits breaks the sums, and swapping rows inside a band tears cages apart. */
+function transformMap(r) {
+  const k = Math.floor(r() * 8), fr = k & 1, fc = k & 2, T = k & 4, map = new Array(81);
+  for (let i = 0; i < 81; i++) { let rr = ROWOF(i), cc = COLOF(i); if (fr) rr = 8 - rr; if (fc) cc = 8 - cc; if (T) [rr, cc] = [cc, rr]; map[i] = rr * 9 + cc; }   // old cell i moves to map[i]
+  return map;
+}
+function applyMap(p, map) {
+  const sol = new Array(81), cid = new Array(81);
+  for (let i = 0; i < 81; i++) { sol[map[i]] = +p.s[i]; cid[map[i]] = ALPHA.indexOf(p.c[i]); }
+  return { sol, cid };
+}
+
+/* ---------- game state ---------- */
+let G = null;   // {level, idx, tseed, sol, cid, cages[], sums[], first[], v[], nt[], given[], hist[], sel, notes, secs, hints, wrong, done, paused, daily}
+const cells = [];
+function load(level, idx, tseed, daily) {
+  const p = PUZ[level][idx], map = transformMap(rng.mulberry(tseed)), { sol, cid } = applyMap(p, map);
+  const n = Math.max(...cid) + 1, cages = Array.from({ length: n }, () => []);
+  cid.forEach((c, i) => cages[c].push(i));
+  const sums = cages.map(cg => cg.reduce((a, i) => a + sol[i], 0)), first = cages.map(cg => Math.min(...cg));
+  const v = new Array(81).fill(0), given = new Array(81).fill(false);
+  cages.forEach(cg => { if (cg.length === 1) { v[cg[0]] = sol[cg[0]]; given[cg[0]] = true; } });   // a one-square cage IS a given digit
+  G = { level, idx, tseed, daily: !!daily, sol, cid, cages, sums, first, v, nt: new Array(81).fill(0), given, hist: [], sel: -1, notes: false, secs: 0, hints: 0, wrong: false, done: false, paused: false };
+  st.level = level;
+}
+function pick(level, rnd) { return Math.floor(rnd() * PUZ[level].length); }
+function newGame(level) {
+  level = level || st.level;
+  const sd = (Math.random() * 4294967296) >>> 0, idx = pick(level, rng.mulberry(sd ^ 0x5bd1e995));
+  load(level, idx, sd, false); start();
+}
+function dailyGame() {
+  const seed = rng.dailySeed('killer'), levels = ['easy', 'normal', 'hard'], level = levels[seed % 3];
+  load(level, pick(level, rng.mulberry(seed)), seed, true); start();
+}
+function start() { O.hideAll(); buildBoard(); paintAll(); info(); persist(); }
+
+/* ---------- board DOM (built once per puzzle; the cells are repainted, never rebuilt) ---------- */
+const kb = $('kb');
+function buildBoard() {
+  kb.innerHTML = ''; cells.length = 0;
+  for (let i = 0; i < 81; i++) {
+    const r = ROWOF(i), c = COLOF(i), el = KIT.el('div', { class: 'kc' });
+    el.dataset.i = i;
+    if (r % 3 === 2 && r < 8) el.classList.add('r' + r); if (c % 3 === 2 && c < 8) el.classList.add('c' + c);
+    const same = (rr, cc) => rr >= 0 && rr < 9 && cc >= 0 && cc < 9 && G.cid[rr * 9 + cc] === G.cid[i];
+    if (!same(r - 1, c)) el.classList.add('cT'); if (!same(r, c + 1)) el.classList.add('cR');
+    if (!same(r + 1, c)) el.classList.add('cB'); if (!same(r, c - 1)) el.classList.add('cL');
+    kb.appendChild(el); cells.push(el);
+  }
+  fit();
+}
+function fit() { kb.style.setProperty('--fs', (kb.clientWidth / 9 * .62) + 'px'); }
+window.addEventListener('resize', fit);
+
+/* ---------- rules ---------- */
+function conflict(i) {   // does the digit in square i break row/column/box or a cage?
+  const d = G.v[i]; if (!d) return false;
+  for (const p of PEERS[i]) if (G.v[p] === d) return true;
+  const cg = G.cages[G.cid[i]]; let sum = 0, filled = 0;
+  for (const j of cg) { if (j !== i && G.v[j] === d) return true; if (G.v[j]) { sum += G.v[j]; filled++; } }
+  const S_ = G.sums[G.cid[i]];
+  if (sum > S_) return true;
+  if (filled === cg.length && sum !== S_) return true;
+  return false;
+}
+function cageState(k) {   // 'ok' | 'bad' | ''
+  const cg = G.cages[k]; let sum = 0, filled = 0, seen = 0, dup = false;
+  for (const j of cg) { const d = G.v[j]; if (d) { sum += d; filled++; if (seen >> d & 1) dup = true; seen |= 1 << d; } }
+  if (dup || sum > G.sums[k]) return 'bad';
+  if (filled === cg.length) return sum === G.sums[k] ? 'ok' : 'bad';
+  return '';
+}
+function solved() { for (let i = 0; i < 81; i++) if (G.v[i] !== G.sol[i]) return false; return true; }
+
+/* ---------- painting ---------- */
+function paint(i) {
+  const el = cells[i], g = G, d = g.v[i], sel = g.sel, selD = sel >= 0 ? g.v[sel] : 0;
+  let cls = 'kc ' + el.className.split(' ').filter(c => /^(r|c)\d$|^c[TRBL]$/.test(c)).join(' ');
+  if (sel === i) cls += ' sel';
+  else if (sel >= 0 && g.cid[sel] === g.cid[i]) cls += ' cagehi';
+  else if (sel >= 0 && PEERS[sel].includes(i)) cls += ' peer';
+  if (st.hl && selD && d === selD && sel !== i) cls += ' same';
+  if (g.given[i]) cls += ' given';
+  if (st.errors && d && !g.given[i] && conflict(i)) cls += ' bad';
+  if (g.wrong && d && !g.given[i] && d !== g.sol[i]) cls += ' wrong';
+  el.className = cls;
+  let html = '';
+  if (g.first[g.cid[i]] === i) { const k = g.cid[i], s = st.errors ? cageState(k) : ''; html += '<span class="sum ' + (s === 'bad' ? 'sbad' : s === 'ok' ? 'sok' : '') + '">' + g.sums[k] + '</span>'; }
+  if (d) html += '<span class="v">' + d + '</span>';
+  else if (g.nt[i]) { html += '<div class="nt">'; for (let n = 1; n <= 9; n++) html += '<i>' + (g.nt[i] >> n & 1 ? n : '') + '</i>'; html += '</div>'; }
+  if (el._h !== html) { el._h = html; el.innerHTML = html; }
+}
+function paintAll() {
+  if (!G) return;
+  for (let i = 0; i < 81; i++) paint(i);
+  KIT.setText($('lv'), NAMES[G.level] + (G.daily ? ' · Daily' : '')); KIT.setText($('hn'), G.hints);
+  KIT.setText($('bt'), st.best[G.level] ? fmt(st.best[G.level]) : '-'); KIT.setText($('tm'), fmt(G.secs));
+  $('bNote').classList.toggle('on', G.notes); $('bNote').textContent = '✏️ Notes: ' + (G.notes ? 'on' : 'off');
+  $('bUndo').disabled = !G.hist.length || G.done;
+  const counts = new Array(10).fill(0); G.v.forEach(d => counts[d]++);
+  document.querySelectorAll('#kpad [data-d]').forEach(b => b.classList.toggle('done', counts[+b.dataset.d] >= 9));
+}
+const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+/* the info line: what the selected cage needs, and which digit sets could make it */
+function info() {
+  const el = $('kinfo'); if (!G || G.sel < 0) { el.innerHTML = 'Tap a square. Dotted shapes are cages. The small number is the sum of that cage.'; return; }
+  const k = G.cid[G.sel], cg = G.cages[k], placed = cg.filter(j => G.v[j]).map(j => G.v[j]), left = cg.length - placed.length, need = G.sums[k] - placed.reduce((a, b) => a + b, 0);
+  if (!left) { el.innerHTML = 'Cage sum <b>' + G.sums[k] + '</b> in ' + cg.length + ' square' + (cg.length > 1 ? 's' : '') + ' is full.'; return; }
+  let html = 'Cage sum <b>' + G.sums[k] + '</b> · ' + cg.length + ' squares' + (placed.length ? ' · still need <b>' + need + '</b> from <b>' + left + '</b>' : '') + '<br>';
+  const all = combosOf(cg.length, G.sums[k]);
+  html += all.map(c => '<span class="combo' + (placed.every(p => c.includes(p)) ? '' : ' dim') + '">' + c.join('') + '</span>').join('') || 'No digit set fits.';
+  el.innerHTML = html;
+}
+
+/* ---------- actions ---------- */
+function select(i) { if (!G || G.paused) return; G.sel = i; paintAll(); info(); }
+function snap() { G.hist.push({ v: G.v.slice(), nt: G.nt.slice(), hints: G.hints }); if (G.hist.length > 200) G.hist.shift(); }
+function setDigit(d) {
+  if (!G || G.done || G.paused || G.sel < 0 || G.given[G.sel]) return;
+  const i = G.sel; G.wrong = false;
+  if (G.notes && d) {
+    if (G.v[i]) return; snap(); G.nt[i] ^= 1 << d; A.beep(500, .03, 'square', .04);
+  } else {
+    if (G.v[i] === d && d) return; snap();
+    G.v[i] = d; G.nt[i] = 0;
+    if (d && st.autoclean) for (const p of PEERS[i]) if (!G.v[p] && G.nt[p] >> d & 1) G.nt[p] &= ~(1 << d);
+    if (d) A.beep(d === G.sol[i] || !st.errors ? 640 : 160, .06, 'triangle', .08); 
+  }
+  afterChange();
+}
+function afterChange() {
+  paintAll(); info(); persist();
+  if (!G.done && solved()) win();
+}
+function undo() { if (!G || G.done || !G.hist.length) return; const h = G.hist.pop(); G.v = h.v; G.nt = h.nt; G.hints = h.hints; G.wrong = false; paintAll(); info(); persist(); }
+function hint() {
+  if (!G || G.done || G.paused) return;
+  let i = G.sel;
+  if (i < 0 || G.given[i] || G.v[i] === G.sol[i]) { const empt = []; for (let j = 0; j < 81; j++) if (G.v[j] !== G.sol[j]) empt.push(j); if (!empt.length) return; i = empt[Math.floor(Math.random() * empt.length)]; }
+  snap(); G.sel = i; G.v[i] = G.sol[i]; G.nt[i] = 0; G.hints++; G.wrong = false;
+  for (const p of PEERS[i]) G.nt[p] &= ~(1 << G.sol[i]);
+  A.slide(400, 900, .15, 'triangle', .08); afterChange();
+}
+function check() {
+  if (!G || G.done) return;
+  let bad = 0; for (let i = 0; i < 81; i++) if (G.v[i] && G.v[i] !== G.sol[i]) bad++;
+  G.wrong = bad > 0; paintAll();
+  ui.toast(bad ? bad + ' square' + (bad > 1 ? 's are' : ' is') + ' wrong (shown in red)' : 'No mistakes so far 👍', 2200);
+}
+/* auto notes: a digit stays if row/column/box allow it AND some digit set of the cage still contains it */
+function autoNotes() {
+  if (!G || G.done) return; snap();
+  for (let i = 0; i < 81; i++) {
+    if (G.v[i]) { G.nt[i] = 0; continue; }
+    let m = 0; for (let d = 1; d <= 9; d++) m |= 1 << d;
+    for (const p of PEERS[i]) if (G.v[p]) m &= ~(1 << G.v[p]);
+    const k = G.cid[i], cg = G.cages[k], placed = cg.filter(j => G.v[j]).map(j => G.v[j]), left = cg.length - placed.length, need = G.sums[k] - placed.reduce((a, b) => a + b, 0);
+    let okm = 0;
+    for (const c of combosOf(left, need)) if (placed.every(p => !c.includes(p))) c.forEach(d => okm |= 1 << d);
+    G.nt[i] = m & okm;
+  }
+  paintAll(); persist();
+}
+function win() {
+  G.done = true; timerOn = false;
+  const t = G.secs; let msg = 'Time ' + fmt(t) + ' · hints ' + G.hints;
+  if (!G.hints) { if (!st.best[G.level] || t < st.best[G.level]) { st.best[G.level] = t; msg += ' · 🏆 new best'; } }
+  else msg += ' · (best times count only when no hints are used)';
+  if (G.daily && !G.hints) st.daily = { d: new Date().toISOString().slice(0, 10), t };
+  $('winTxt').textContent = msg; O.show('ovWin'); st.game = null; S.save(); paintAll();
+  [523, 659, 784, 1047].forEach((f, i) => A.beep(f, .14, 'triangle', .12, i * .08));
+}
+function persist() {
+  if (!G || G.done) return;
+  st.game = { level: G.level, idx: G.idx, tseed: G.tseed, daily: G.daily, v: G.v, nt: G.nt, secs: G.secs, hints: G.hints }; S.save();
+}
+
+/* ---------- timer ---------- */
+let timerOn = true, last = performance.now();
+setInterval(() => {
+  const now = performance.now(), dt = now - last; last = now;
+  if (G && !G.done && !G.paused && !document.hidden && dt < 3000) { G.acc = (G.acc || 0) + dt; while (G.acc >= 1000) { G.acc -= 1000; G.secs++; } KIT.setText($('tm'), fmt(G.secs)); if (G.secs % 5 === 0) persist(); }
+}, 250);
+document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
+function pause() { if (!G || G.done) return; G.paused = !G.paused; if (G.paused) { O.show('ovPause'); persist(); } else O.hide('ovPause'); }
+
+/* ---------- input ---------- */
+const pad = $('kpad');
+for (let d = 1; d <= 9; d++) pad.appendChild(KIT.el('button', { type: 'button', 'data-act': 'digit', 'data-d': d }, d));
+pad.appendChild(KIT.el('button', { type: 'button', 'data-act': 'digit', 'data-d': 0, title: 'Erase' }, '⌫'));
+kb.addEventListener('pointerdown', e => { const c = e.target.closest('.kc'); if (c) { e.preventDefault(); select(+c.dataset.i); } });
+ui.actions(document.body, {
+  digit: b => setDigit(+b.dataset.d), notes: () => { if (G) { G.notes = !G.notes; paintAll(); } }, undo, hint, check, auto: autoNotes, pause,
+  new: () => newGame(), winClose: () => O.hide('ovWin'), lvl: b => newGame(b.dataset.l), daily: dailyGame
+});
+window.addEventListener('keydown', e => {
+  if (!G || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (k >= '1' && k <= '9') { setDigit(+k); e.preventDefault(); }
+  else if (k === 'Backspace' || k === 'Delete' || k === '0') { setDigit(0); e.preventDefault(); }
+  else if (k === 'n' || k === 'N') { G.notes = !G.notes; paintAll(); }
+  else if (k === 'z' || k === 'Z') undo();
+  else if (k === 'h' || k === 'H') hint();
+  else if (k === 'p' || k === 'P') pause();
+  else if (k.startsWith('Arrow')) { e.preventDefault(); const s = G.sel < 0 ? 40 : G.sel, r = ROWOF(s), c = COLOF(s); select(k === 'ArrowUp' ? Math.max(0, r - 1) * 9 + c : k === 'ArrowDown' ? Math.min(8, r + 1) * 9 + c : k === 'ArrowLeft' ? r * 9 + Math.max(0, c - 1) : r * 9 + Math.min(8, c + 1)); }
+});
+
+/* ---------- start: resume a saved game, else a new one ---------- */
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+(function boot() {
+  const g = st.game;
+  try {
+    if (g && PUZ[g.level] && PUZ[g.level][g.idx] && g.v.length === 81 && g.nt.length === 81) {
+      load(g.level, g.idx, g.tseed, g.daily); G.secs = g.secs | 0; G.hints = g.hints | 0;
+      for (let i = 0; i < 81; i++) if (!G.given[i]) { const d = g.v[i] | 0; G.v[i] = d >= 0 && d <= 9 ? d : 0; G.nt[i] = g.nt[i] | 0; }
+      buildBoard(); paintAll(); info(); if (solved()) newGame(); return;
+    }
+  } catch (e) {}
+  newGame();
+})();
+KIT.hook({ get G() { return G; }, load, select, setDigit, hint, undo, autoNotes, newGame, solved, conflict, cageState, combosOf, transformMap, applyMap, PUZ, get sol() { return G.sol; } });
+})();
+
+</script>
+</body>
+<script src="../nav.js"></script>
+</html>

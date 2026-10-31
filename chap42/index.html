@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 42 · Word Swirl</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#102a43">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Swirl">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:560px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.cur{min-height:1.6em;text-align:center;font-weight:800;font-size:22px;letter-spacing:.12em;color:var(--accent-light)}
+.tboardwrap{position:relative;width:100%;max-width:440px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:3/4;border-radius:14px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+.slots{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.slot{padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);font-size:13px;font-weight:700;letter-spacing:.14em;color:var(--muted);white-space:nowrap}
+.slot.done{color:#0b1220;border-color:transparent;letter-spacing:.08em}
+.slot.rev{outline:2px dashed var(--accent);color:var(--text)}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul,.rules ol{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Word Swirl</h2>
+  <p>Chapter 42 · Every letter on the board belongs to a hidden word. Trace words that twist and turn in any direction</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>FOUND</small><b id="s1">0/0</b></div>
+    <div class="tstat"><small>TIME</small><b id="s2">0:00</b></div>
+    <div class="tstat"><small>HINTS</small><b id="s3">0</b></div>
+    <div class="tstat"><small>BEST</small><b id="s4">-</b></div>
+  </div>
+  <div class="tbar"><span class="kl">Puzzle:</span><span id="modes"></span></div>
+  <div class="cur" id="cur"></div>
+  <div class="tboardwrap">
+    <canvas id="cv" class="cv" aria-label="Word swirl board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">Every letter used! 🎉</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="again" type="button">New puzzle</button><button class="btn" data-act="hide" type="button">Look at board</button></div></div>
+  </div>
+  <div class="tmsg" id="msg">Theme: good vibes. Drag across touching letters to make a word.</div>
+  <div class="slots" id="slots"></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="clear" type="button">✖ Clear</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="reveal" type="button">👁 Show answers</button>
+    <button class="btn sm" data-act="again" type="button">🔄 New puzzle</button>
+  </div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to play Word Swirl</h2>
+    <p>The board is full of letters. <b>Every single letter belongs to exactly one hidden word</b>, and the words wind around the board like a snake: each next letter touches the one before it, <b>sideways, up, down or diagonally</b> (diagonals can be switched off in Settings). A word never uses the same square twice.</p>
+    <h3>Playing</h3>
+    <ul>
+      <li>All the hidden words are <b>good-vibes words</b>: happy, kind or pleasant things (love, calm, sunny, upbeat, jovial, serene ...). Some are short (3 or 4 letters), some are long.</li>
+      <li>Under the board you see one slot for each hidden word, showing only how many letters it has. A found word fills its slot.</li>
+      <li><b>Drag</b> from the first letter through touching letters and let go to check the word. Or <b>tap</b> the letters one at a time and tap the last letter again to check it. Drag back over the previous letter to undo one letter.</li>
+      <li>A correct word lights up in its own colour and stays. A word that is not one of the hidden ones is simply cleared, with a little shake.</li>
+      <li>You win when every letter is used. A hint shows the winding outline of one unfound word for a few seconds (the letters stay your job). The hints used are counted but do not stop you winning.</li>
+    </ul>
+    <h3>Tips</h3>
+    <ul>
+      <li>Look for long words first, they are the easiest to spot. Then the leftover letters are often short words.</li>
+      <li>Corners and edges are great places to start: a letter in a corner has few neighbours.</li>
+      <li>Because every letter is used, if a group of leftover squares has 3 letters, it is a 3-letter word.</li>
+      <li>Each hidden word can be traced in only one place on the board, so if you can trace a word in two ways, it is not one of the hidden ones.</li>
+    </ul>
+    <h3>Settings</h3>
+    <ul>
+      <li><b>Board size</b> from 5×5 to 7×9, <b>word sizes</b> (short, mixed or long words), and <b>8 or 4 directions</b> (4 means no diagonals).</li>
+      <li><b>Daily</b> gives everyone the same puzzle today. <b>Random</b> makes a new one each time.</li>
+      <li>Not included: a dictionary check for other words you might find (only the hidden words count), and a hint meter that rewards extra words.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🌀 A word-trail puzzle in the style of the daily 'find the hidden words' games. The computer picks random good-vibes words (my own short lists plus the long positive words from my earlier word games), cuts the whole board into winding paths and lays one word along each, so every letter is used. Drawings, sounds, puzzle maker and code are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+const WORDS="abound acumen admire adorer adroit affirm afford appeal ardent aspire assure attune avidly beauty beckon better blithe brainy breeze bright cajole catchy chaste cheery cherub classy clever cohere comely daring dazzle decent defeat devout divine easier easing endear enough enrapt enrich entice evenly excite extoll fairly faster favour feisty fervid fervor finely finest firmer flashy fluent fondly frolic frugal gaiety galore genial gentle gladly golden goodly heaven heroic homage honest hooray humane humble humour jovial joyful justly keenly kindly lavish lawful levity liking lively lovely loving luster luxury marvel master mature mighty modern modest neatly nicely nicest nimble openly outwit pamper pardon poetic polite praise prefer pretty prompt proper proven purify quaint redeem refine reform refund regard relent relief relish remedy renown revere revive reward richer richly robust safely sagely salute savior scenic secure serene silent smooth snappy snazzy softer solace soothe speedy sporty stable steady strong sturdy superb supple swanky talent tender thrift thrill thrive tickle timely tingle trendy trophy trusty unreal upbeat upheld uphold uplift usable useful virtue warmer warmly warmth winner wisdom wisely wonder worthy wowing zenith acclaim admirer adoring adulate affable affably agilely agility amazing amenity amiable amusing angelic applaud approve astound audible audibly awesome bargain benefit blossom bolster booming bravery bullish buoyant calming capable capably cheaper cherish clarity classic cleaner cleanly clearer clearly comfort commend compact concise coolest correct courage courtly crisper darling dashing decency delight destiny dignify dignity durable dynamic eagerly earnest easiest ecstasy elation elegant elevate eminent empathy empower enchant endorse enhance enliven ennoble enthral enthuse entrust erudite ethical fancier fanfare fastest fertile fervent festive flatter flutter fortune freedom fresher gainful gaining gallant genuine gladden gleeful glimmer glisten glitter glorify glowing godlike godsend gratify halcyon handier handily happier happily hardier harmony headway healthy hearten helpful helping heroine heroize honesty hopeful hottest ideally idolize idyllic immense improve inspire jollify leading liberty lighter likable logical lovable lovably loyalty lucidly luckier lyrical magical majesty mastery merrily miracle modesty neatest notably nourish novelty optimal opulent orderly outdone ovation passion patient patriot pepping perfect playful popular precise premier prodigy profuse promise prosper protect proving prudent qualify quicker quieter radiant rapport rapture readily reclaim recover rectify refresh regally rejoice resound respect respite restful revival rightly roomier saintly satisfy sharper simpler sincere smarter smartly smiling smitten soulful soundly sparkle stately staunch stellar stylish suavely sublime suffice support supreme surreal sweeten sweetly thinner thrifty tougher triumph trumpet twinkly unbound upscale useable valiant variety vibrant victory wealthy welcome willing winning abundant accolade accurate adaptive adequate admiring adorable adroitly advocate affinity affluent alluring amenable amicable amicably approval ardently assuring astonish astutely backbone beautify blessing blissful brighten brighter carefree cashback champion charisma charming cheapest cheerful chivalry civility civilize cleanest cleverly coherent cohesive colorful covenant creative credence credible daringly dazzling decisive defender delicacy delicate desiring diligent divinely dominate dotingly ecstatic effusion effusive elatedly elegance eloquent embolden eminence energize engaging enjoying enthrall enticing enviable enviably eulogize euphoria euphoric eventful exalting exciting exemplar expertly exultant faithful famously favorite feasible feasibly felicity fervidly fidelity flexible flourish foremost fragrant freshest friendly fruitful gentlest goodwill graceful grandeur grateful greatest guidance gumption hallmark handsome heartily heavenly honoring humility idealize illumine integral intimacy intimate intrigue joyfully joyously jubilant jubilate laudable laudably lavishly lawfully leverage liberate luckiest majestic maturely maturity merciful mightily morality optimism outshine outshone outsmart outstrip overtake overtook overture palatial paradise patience peaceful pinnacle pleasant pleasing pleasure poignant portable positive powerful praising prestige prettily profound prolific promoter promptly properly prudence punctual radiance rational readable reaffirm reassure recovery reliable reliably resolute reverent rightful rockstar romantic sagacity salutary securely sensible sensibly serenity sharpest simplest simplify skillful smartest smoother smoothly sociable speedily splendid splendor standout striking striving stronger stunning sturdier suitable superbly superior surmount survival survivor swankier sweeping tempting tenacity tenderly terrific thankful thriving topnotch toughest traction tranquil treasure trusting truthful valuable venerate viewable vigilant windfall winnable workable youthful abundance adaptable admirable admirably adoringly adulation adulatory advantage affection affluence agreeable agreeably amazement amazingly amusingly appealing assurance assuredly attentive authentic available awesomely awestruck beautiful beckoning bountiful brainiest brightest brilliant brotherly captivate celebrate coherence compactly compliant confident congenial contrasty correctly defeating deference deserving desirable diligence dreamland earnestly easygoing ebullient effective effectual efficient electrify elegantly eloquence empathize encourage endearing endorsing energetic enjoyable enjoyably enjoyment enlighten enrapture entertain enviously equitable evocative exceeding excellent excitedly exemplary exonerate expansive exquisite exuberant fantastic fascinate favorable fervently foolproof foresight fortitude fortunate gainfully gallantly gleefully glowingly gratitude guarantee harmonize healthful heartfelt honorable impartial important improving indulgent ingenuity inspiring instantly intricate intuitive inventive inviolate legendary lifesaver lucrative luxuriant luxuriate masterful memorable merriment mesmerize navigable nurturing obsession overtaken panoramic paramount patiently patriotic peaceable perfectly persevere playfully plentiful poeticize precisely privilege proactive profusion prominent promising prudently reachable realistic receptive recommend reconcile redeeming reforming rejoicing remission reputable resilient reverence rewarding selective sensation sensitive sincerely sincerity smilingly smoothest sparkling spellbind spiritual sprightly stability stabilize staunchly steadfast steadiest stimulate strongest stylishly subsidize supporter supremacy supremely swankiest tantalize thrilling titillate tolerable triumphal trivially unselfish uplifting valiantly veritable versatile vibrantly vigilance visionary vouchsafe wellbeing wholesome willingly wonderful accessible accomplish accurately achievable adjustable admiration admiringly affability affordable affordably alluringly altruistic ameliorate amiability appreciate articulate aspiration astounding attraction attractive believable benefactor beneficent beneficial benevolent blissfully brilliance capability charitable charmingly comforting commitment compassion compatible complement compliment conciliate confidence consistent consummate continuity convenient convincing delectable delightful dependable dependably deservedly detachable diligently diplomatic ebullience economical effusively eloquently enchanting engrossing enrichment enthusiasm enthusiast enticingly entrancing evaluative exaltation excellence excellency excitement excitingly exhilarate exuberance exultation exultingly fabulously facilitate faithfully fearlessly felicitate flattering flawlessly formidable futuristic generosity generously glimmering glistening gloriously gorgeously gracefully graciously gratefully gratifying handsomely heartening heroically hospitable humorously illuminate illuminati immaculate impeccable impeccably impressive incredible incredibly indulgence infallible infallibly innovation innovative insightful intriguing invaluable invigorate invincible inviolable jubilantly jubilation liberation manageable meaningful mercifully monumental noteworthy nourishing obtainable optimistic outperform overtaking painlessly passionate peacefully perfection phenomenal pleasantly pleasingly positively powerfully preeminent preferable preferably preferring productive proficient profoundly prominence prosperity protection protective providence purposeful realizable reasonable reasonably rectifying redemption refinement refreshing rejuvenate remarkable remarkably remunerate reputation resounding respectful responsive revelation reverently revitalize rightfully satisfying shimmering skillfully solidarity soothingly spellbound splendidly statuesque stirringly straighten strikingly stunningly succeeding successful sufficient supporting supportive sweetheart temptingly thoughtful triumphant trustingly truthfully unbeatable unwavering upgradable upliftment verifiable virtuously worthwhile acclamation achievement affectation affirmation affirmative ambitiously amicability appreciable appropriate astonishing beautifully beneficiary benevolence blockbuster brilliantly captivating celebration celebratory charismatic comfortable comfortably commendable commendably competitive considerate contentment convenience cooperative cornerstone dexterously distinction distinctive ebulliently effectively efficiently empowerment encouraging endorsement enhancement ergonomical everlasting exceedingly excellently exceptional exquisitely exuberantly fascinating fascination fashionable fashionably flexibility flourishing fortunately fulfillment imaginative impartially improvement inestimable inestimably inexpensive influential ingeniously ingenuously inspiration instructive intelligent interesting luxuriously magnificent marvelously masterfully masterpiece mesmerizing nourishment originality outstanding permissible picturesque pleasurable pleasurably progressive rapturously reassurance renaissance replaceable resourceful respectable resplendent responsibly restructure retractable righteously romanticize sensational significant simplifying spectacular steadfastly stimulating stimulative subsidizing substantive sumptuously superiority sustainable tantalizing tenaciously thrillingly titillating tranquility transparent trustworthy unabashedly unequivocal upgradeable versatility wonderfully affectionate appreciative astonishment astoundingly attractively beneficially breakthrough breathtaking conciliatory congratulate consistently constructive contribution conveniently convincingly courageously delightfully dumbfounding ecstatically effortlessly enchantingly enterprising entertaining enthusiastic euphorically exhilarating exhilaration flatteringly fortuitously gratifyingly harmoniously heartwarming illuminating immaculately impartiality impressively instrumental intelligence intelligible intriguingly invigorating invulnerable irresistible irresistibly magnificence maneuverable meticulously miraculously monumentally passionately perseverance phenomenally praiseworthy prodigiously productively proficiently propitiously rejuvenating respectfully romantically satisfactory shimmeringly solicitously spellbinding stupendously successfully sufficiently terrifically thoughtfully tremendously triumphantly unassailable undisputable accommodative adventuresome astonishingly authoritative compassionate complementary complimentary comprehensive cooperatively encouragement encouragingly enlightenment exceptionally expeditiously extraordinary fantastically fascinatingly gratification infallibility inspirational invincibility irreplaceable knowledgeable magnanimously magnificently mesmerizingly outperforming outstandingly reaffirmation rectification restructuring revolutionary revolutionize sensationally spectacularly tantalizingly titillatingly unconditional unequivocally unforgettable accomplishment advantageously altruistically appreciatively breathtakingly congratulation congratulatory exhilaratingly groundbreaking irreproachable recommendation reconciliation satisfactorily sustainability understandable unquestionable unquestionably wholeheartedly extraordinarily straightforward enthusiastically".split(" ");
+
+/* Short "good vibes" words to go with the longer positive words in words.js (those are 6 to 16 letters). */
+const GOOD3 = "joy fun win yay hug wow zen ace pal fan fit gem hip top pro sun toy yes fab art awe gym hop jam jog nap pet pie pop sea sip sky spa tea tip yum zip zap bee fly bun cub".split(' ');
+const GOOD4 = "love hope calm kind nice good best cool fine glad warm wise easy free fair fond gift gold grin hero joke keen lush luck neat open pure rich safe soft sure true vibe wink wish zeal zest cozy dear epic glee gain glow hugs jazz joys lift like mild mint play rosy sing song star tune yoga bold cute dive flow grow heal hike home idea join kiss lead leap mate move nest pals rose sail save seed skip snow soar spin team tide trip walk wave well wing yarn bake beam boom chic clap coin dash deal fest feat gala grit halo hype icon kite lamp lake moon note palm park pink plus pool race rain ride ripe roar silk spry swan wins".split(' ');
+const GOOD5 = "happy smile bliss grace charm peace sweet brave magic merry shine bloom cheer laugh dream angel bravo candy crown dance daisy eager early gleam glory grand grape heart honey ideal jolly jewel kudos lucky lunch mango melon music noble ocean olive party pearl piano pizza plush proud pride prize quiet quick relax rhyme royal savor scent sharp sheer shiny skill sleek smart solid spark spice sport sunny super swift tasty thank tiger toast trust truly unity vivid water witty worth youth yummy zesty bunny puppy sugar apple berry beach cloud flute gleam lemon lilac light maple meadow".split(' ').filter((w, i, a) => w.length === 5 && a.indexOf(w) === i);
+
+/* The puzzle maker for Word Swirl, with no drawing.
+   1. Cut the whole grid into winding paths (each path is a chain of touching cells, no cell used twice).
+   2. Give each path a random word of exactly that length, laid along it, so every letter on the board is used.
+   3. Check that no hidden word can also be traced somewhere else on the board, so each word has exactly one home. */
+const SW_MIX = { short: [3, 3, 4, 4, 4, 5, 5, 6], mixed: [3, 4, 5, 5, 6, 6, 7, 7, 8, 9], long: [5, 6, 7, 7, 8, 9, 10] };
+function swShuffle(a, rnd) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function swNbrs(rows, cols, nb8) {   // for every cell, the cells you can step to
+  const out = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const l = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue; if (!nb8 && dr && dc) continue; const rr = r + dr, cc = c + dc; if (rr >= 0 && cc >= 0 && rr < rows && cc < cols) l.push(rr * cols + cc);
+    }
+    out.push(l);
+  }
+  return out;
+}
+function swPools() {
+  const P = {}; const add = (w) => { (P[w.length] = P[w.length] || []).push(w); };
+  GOOD3.forEach(add); GOOD4.forEach(add); GOOD5.forEach(add); WORDS.filter(w => w.length >= 6 && w.length <= 12).forEach(add); return P;
+}
+function swPartition(rows, cols, nb, lens, rnd, maxNodes) {   // returns a list of paths covering every cell once, or null
+  const N = rows * cols, cov = new Int8Array(N), paths = [], minL = Math.min(...lens); let nodes = 0;
+  const stack = new Int16Array(N), seen = new Int8Array(N);
+  const comps = () => {   // every empty region left must be big enough to hold a word
+    seen.fill(0);
+    for (let i = 0; i < N; i++) {
+      if (cov[i] || seen[i]) continue; let sp = 0, sz = 0; stack[sp++] = i; seen[i] = 1;
+      while (sp) { const q = stack[--sp]; sz++; for (const x of nb[q]) if (!cov[x] && !seen[x]) { seen[x] = 1; stack[sp++] = x; } }
+      if (sz < minL) return false;
+    }
+    return true;
+  };
+  const walks = (s, L) => {
+    const out = [], path = [s]; cov[s] = 1;
+    const rec = () => {
+      if (out.length >= 5) return; if (path.length === L) { out.push(path.slice()); return; }
+      for (const x of swShuffle(nb[path[path.length - 1]].filter(y => !cov[y]), rnd)) { if (out.length >= 5 || nodes++ > maxNodes) return; cov[x] = 1; path.push(x); rec(); path.pop(); cov[x] = 0; }
+    };
+    rec(); cov[s] = 0; return out;
+  };
+  const solve = () => {
+    let s = -1; for (let i = 0; i < N; i++) if (!cov[i]) { s = i; break; } if (s < 0) return true;
+    const order = [], bag = lens.slice(); while (bag.length) { const i = Math.floor(rnd() * bag.length), L = bag[i]; if (!order.includes(L)) order.push(L); bag.splice(i, 1); }
+    for (const L of order) {
+      for (const p of walks(s, L)) { for (const c of p) cov[c] = 1; paths.push(p); if (comps() && solve()) return true; paths.pop(); for (const c of p) cov[c] = 0; if (nodes > maxNodes) return false; }
+      if (nodes > maxNodes) return false;
+    }
+    return false;
+  };
+  return solve() ? paths : null;
+}
+function swOccurs(grid, nb, w) {   // how many different ways the word can be traced on the board
+  let k = 0; const used = new Uint8Array(grid.length);
+  const go = (c, i) => { if (grid[c] !== w[i]) return; if (i === w.length - 1) { k++; return; } used[c] = 1; for (const x of nb[c]) if (!used[x]) go(x, i + 1); used[c] = 0; };
+  for (let c = 0; c < grid.length; c++) go(c, 0); return k;
+}
+function swGen(rows, cols, nb8, mix, rnd) {   // a puzzle: { grid: [letters], words: [{ w, cells }] } or null
+  const nb = swNbrs(rows, cols, nb8), lens = SW_MIX[mix] || SW_MIX.mixed, P = swPools(), N = rows * cols;
+  const pick = (len, others) => { const pool = P[len]; if (!pool) return null; for (let t = 0; t < 60; t++) { const c = pool[Math.floor(rnd() * pool.length)]; if (!others.some(u => u.includes(c) || c.includes(u))) return c; } return null; };
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const paths = swPartition(rows, cols, nb, lens, rnd, 4000); if (!paths) continue;
+    const words = [], grid = new Array(N).fill(''); let ok = true;
+    for (const p of swShuffle(paths, rnd)) {
+      const w = pick(p.length, words.map(x => x.w)); if (!w) { ok = false; break; }
+      const cells = rnd() < .5 ? p.slice().reverse() : p; words.push({ w, cells: cells.slice() }); for (let i = 0; i < w.length; i++) grid[cells[i]] = w[i];
+    }
+    if (!ok) continue;
+    for (let step = 0; step < 400; step++) {   // repair: swap a word that can be traced a second way for another of the same length
+      const bad = words.filter(x => swOccurs(grid, nb, x.w) !== 1); if (!bad.length) return { grid, words };
+      const x = bad[Math.floor(rnd() * bad.length)], w = pick(x.w.length, words.filter(y => y !== x).map(y => y.w)); if (!w) continue;
+      x.w = w; for (let i = 0; i < w.length; i++) grid[x.cells[i]] = w[i];
+    }
+  }
+  return null;
+}
+
+/* Word Swirl. swirl.js makes the puzzle (checked on its own); this file draws the board, reads drags and taps, and keeps score. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.swirl.v1', { dark: true, sound: true, size: '8x6', nb: '8', mix: 'mixed', mode: 'random', slots: true, best: {} }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+let regenT = 0;
+settings([
+  { id: 'size', label: 'Board size', type: 'select', options: [['5x5', '5 × 5 (small)'], ['6x6', '6 × 6'], ['8x6', '6 wide × 8 high (classic)'], ['9x7', '7 wide × 9 high (big)']], def: '8x6' },
+  { id: 'nb', label: 'Directions you can turn', type: 'select', options: [['8', '8 ways, diagonals allowed'], ['4', '4 ways, no diagonals']], def: '8' },
+  { id: 'mix', label: 'Word sizes', type: 'select', options: [['short', 'Short words (3 to 6 letters)'], ['mixed', 'Mixed (3 to 9 letters)'], ['long', 'Long words (5 to 10 letters)']], def: 'mixed' },
+  { id: 'slots', label: 'Show how many letters each hidden word has', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S0.save(); clearTimeout(regenT); regenT = setTimeout(newGame, 350); });
+
+const W = 480, H = 640, cv = $('cv'), C = KIT.canvas(cv, W, H, 2), ctx = C.ctx;
+const HUES = [10, 35, 55, 95, 140, 170, 195, 220, 255, 285, 315, 340, 20, 75, 120, 160, 205, 240, 300];
+const col = (i, a = 1, l = 55) => `hsla(${HUES[i % HUES.length]},70%,${l}%,${a})`;
+const ALLGOOD = new Set([...GOOD3, ...GOOD4, ...GOOD5, ...WORDS]);
+let G = null, sel = [], dragging = false, moved = false, T = 0, shake = 0, hintI = -1, hintT = 0, tClock = 0, nbr = null, geo = null;
+const setMsg = t => KIT.setText($('msg'), t);
+const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+
+function newGame() {
+  const [rows, cols] = st.size.split('x').map(Number), nb8 = st.nb === '8', key = [st.size, st.nb, st.mix].join(':');
+  const rnd = st.mode === 'daily' ? KIT.rng.mulberry(KIT.rng.dailySeed('swirl' + key)) : Math.random;
+  const p = swGen(rows, cols, nb8, st.mix, rnd) || swGen(rows, cols, nb8, 'mixed', Math.random);
+  nbr = swNbrs(rows, cols, nb8); const cs = Math.min(W / cols, H / rows); geo = { rows, cols, cs, ox: (W - cols * cs) / 2, oy: (H - rows * cs) / 2 };
+  G = { key, rows, cols, grid: p.grid, words: p.words.map((x, i) => ({ ...x, i, found: false, shown: false })), state: 'play', revealed: false, hints: 0 };
+  sel = []; dragging = false; T = 0; hintI = -1; O.hide('ovEnd'); cv.style.aspectRatio = '3/4'; mkSlots(); hud(); setMsg('Theme: good vibes. Drag across touching letters to make a word.'); $('cur').textContent = '';
+  [...$('modes').children].forEach(b => b.classList.toggle('on', b.dataset.k === st.mode));
+}
+const cx = c => geo.ox + ((c % geo.cols) + .5) * geo.cs, cy = c => geo.oy + (Math.floor(c / geo.cols) + .5) * geo.cs;
+function hud() {
+  const f = G.words.filter(w => w.found).length; KIT.setText($('s1'), f + '/' + G.words.length); KIT.setText($('s2'), fmt(T)); KIT.setText($('s3'), G.hints);
+  const b = st.best[G.key]; KIT.setText($('s4'), b ? fmt(b) : '-'); KIT.setText($('recLine'), G.cols + '×' + G.rows + ' board, ' + (st.nb === '8' ? '8 ways' : '4 ways') + ', ' + st.mix + ' words · best time ' + (b ? fmt(b) : 'none yet'));
+  $('modes').innerHTML = [['random', 'Random'], ['daily', 'Daily']].map(([k, n]) => `<button class="btn sm${st.mode === k ? ' on' : ''}" data-act="mode" data-k="${k}" type="button">${n}</button>`).join('');
+}
+function mkSlots() {
+  const box = $('slots'); box.innerHTML = '';
+  if (!st.slots) { box.innerHTML = '<span class="slot">' + G.words.length + ' words hidden</span>'; return; }
+  [...G.words].sort((a, b) => a.w.length - b.w.length || a.i - b.i).forEach(o => { const s = document.createElement('span'); s.className = 'slot'; s.id = 'sl' + o.i; s.textContent = '_ '.repeat(o.w.length).trim(); box.appendChild(s); });
+  refreshSlots();
+}
+function refreshSlots() {
+  if (!st.slots) return; G.words.forEach(o => { const el = $('sl' + o.i); if (!el) return; el.className = 'slot' + (o.found ? ' done' : '') + (o.shown && !o.found ? ' rev' : ''); el.textContent = o.found || o.shown ? o.w.toUpperCase() : '_ '.repeat(o.w.length).trim(); el.style.background = o.found ? col(o.i, 1, 62) : ''; });
+}
+
+/* ---------- input ---------- */
+function cellAt(p) {
+  const c = Math.floor((p.x - geo.ox) / geo.cs), r = Math.floor((p.y - geo.oy) / geo.cs); if (c < 0 || r < 0 || c >= geo.cols || r >= geo.rows) return -1;
+  const i = r * geo.cols + c; return Math.hypot(p.x - cx(i), p.y - cy(i)) <= geo.cs * .46 ? i : -1;
+}
+const usable = c => !G.words.some(w => w.found && w.cells.includes(c));
+const curWord = () => sel.map(c => G.grid[c]).join('');
+function showCur() { $('cur').textContent = curWord().toUpperCase(); }
+cv.addEventListener('pointerdown', e => {
+  if (G.state !== 'play') return; cv.setPointerCapture && cv.setPointerCapture(e.pointerId); const c = cellAt(C.pos(e)); dragging = true; moved = false; if (c < 0) { return; }
+  if (!usable(c)) { setMsg('That letter is already part of a found word.'); return; }
+  if (sel.length && c === sel[sel.length - 1]) { submit(); dragging = false; return; }
+  if (sel.length && nbr[sel[sel.length - 1]].includes(c) && !sel.includes(c)) sel.push(c); else sel = [c];
+  A.beep(500 + sel.length * 40, .03, 'sine', .06); showCur();
+});
+cv.addEventListener('pointermove', e => {
+  if (!dragging || G.state !== 'play') return; const c = cellAt(C.pos(e)); if (c < 0 || !sel.length || c === sel[sel.length - 1]) return;
+  if (sel.length >= 2 && c === sel[sel.length - 2]) { sel.pop(); moved = true; showCur(); return; }
+  if (nbr[sel[sel.length - 1]].includes(c) && !sel.includes(c) && usable(c)) { sel.push(c); moved = true; A.beep(500 + sel.length * 40, .03, 'sine', .06); showCur(); }
+});
+cv.addEventListener('pointerup', () => { if (!dragging) return; dragging = false; if (moved && sel.length >= 2) submit(); });
+cv.addEventListener('pointercancel', () => { dragging = false; });
+function clear() { sel = []; $('cur').textContent = ''; }
+function submit() {
+  const w = curWord(); if (w.length < 3) { setMsg('Words have at least 3 letters.'); shake = .3; clear(); return; }
+  const hit = G.words.find(o => !o.found && o.w === w && o.cells.length === sel.length && o.cells.every(c => sel.includes(c)));
+  if (hit) {
+    hit.found = true; hit.shown = false; hintI = -1; clear(); A.beep(660, .08, 'triangle', .12); A.beep(990, .1, 'triangle', .1, .08); refreshSlots(); hud();
+    const left = G.words.filter(o => !o.found).length; setMsg(left ? '“' + w.toUpperCase() + '” ✓  ' + left + ' to go.' : 'All words found!'); if (!left) win();
+  } else if (G.words.some(o => o.found && o.w === w)) { setMsg('You already found “' + w.toUpperCase() + '”.'); shake = .3; clear(); }
+  else { setMsg(ALLGOOD.has(w) ? '“' + w.toUpperCase() + '” is a good word, but it is not one of the hidden words.' : 'Not one of the hidden words.'); shake = .35; A.beep(150, .12, 'sawtooth', .07); clear(); }
+}
+function win() {
+  G.state = 'won'; hud(); let line = 'Time ' + fmt(T) + (G.hints ? ', ' + G.hints + (G.hints === 1 ? ' hint' : ' hints') : ', no hints') + '.';
+  if (!G.revealed) { const b = st.best[G.key]; if (!b || T < b) { st.best[G.key] = T; S0.save(); line += ' New best time!'; hud(); } }
+  $('endP').textContent = line; A.beep(660, .1, 'triangle', .12); A.beep(880, .1, 'triangle', .12, .1); A.beep(1320, .25, 'triangle', .12, .2); setTimeout(() => { if (G.state === 'won') O.show('ovEnd'); }, 700);
+}
+function hint() {
+  if (G.state !== 'play') return; const left = G.words.filter(o => !o.found && !o.shown); if (!left.length) return; const o = left[Math.floor(Math.random() * left.length)];
+  G.hints++; hintI = o.i; hintT = 4; hud(); setMsg('Hint: the dotted outline shows the path of a ' + o.w.length + '-letter word.');
+}
+function reveal() { if (G.state !== 'play') return; G.revealed = true; G.words.forEach(o => { if (!o.found) o.shown = true; }); G.state = 'revealed'; refreshSlots(); setMsg('Here are the hidden words.'); }
+ui.actions(document.body, {
+  again: newGame, clear, hint, reveal, hide: () => O.hide('ovEnd'),
+  mode: b => { st.mode = b.dataset.k; S0.save(); newGame(); }
+});
+window.addEventListener('keydown', e => { if (e.key === 'Escape') clear(); });
+
+/* ---------- drawing ---------- */
+function path(g, cells, style, lw, dash) {
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = style; g.lineWidth = lw; if (dash) g.setLineDash(dash); g.beginPath(); cells.forEach((c, i) => i ? g.lineTo(cx(c), cy(c)) : g.moveTo(cx(c), cy(c)));
+  if (cells.length === 1) g.lineTo(cx(cells[0]) + .01, cy(cells[0])); g.stroke(); g.restore();
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0); if (!G) return; const cs = geo.cs, r = cs * .37;
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#16314d'); bg.addColorStop(1, '#0d2036'); g.fillStyle = bg; g.beginPath(); g.roundRect ? g.roundRect(0, 0, W, H, 16) : g.rect(0, 0, W, H); g.fill();
+  const sx = shake > 0 ? Math.sin(tClock * 60) * 6 * shake / .35 : 0; g.save(); g.translate(sx, 0);
+  const found = new Map(); G.words.forEach(o => { if (o.found) o.cells.forEach(c => found.set(c, o.i)); });
+  G.words.forEach(o => { if (o.found) path(g, o.cells, col(o.i, .9, 55), cs * .3); else if (o.shown) path(g, o.cells, col(o.i, .45, 55), cs * .3); });
+  if (hintI >= 0 && hintT > 0) { const o = G.words[hintI], pulse = .5 + .5 * Math.sin(tClock * 6); path(g, o.cells, 'rgba(255,255,255,' + (.35 + .5 * pulse) + ')', cs * .12, [cs * .12, cs * .14]); }
+  if (sel.length) path(g, sel, 'rgba(255,214,102,.9)', cs * .3);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold ' + Math.round(cs * .42) + 'px sans-serif';
+  for (let c = 0; c < G.grid.length; c++) {
+    const x = cx(c), y = cy(c), isSel = sel.includes(c), fi = found.get(c), isShown = G.words.some(o => o.shown && !o.found && o.cells.includes(c));
+    g.fillStyle = fi !== undefined ? col(fi, 1, 38) : isSel ? '#ffd666' : isShown ? '#3a4f70' : '#22385a'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.strokeStyle = fi !== undefined ? 'rgba(255,255,255,.55)' : isSel ? '#fff3c4' : 'rgba(255,255,255,.18)'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = isSel ? '#2b1d00' : '#f4f8ff'; g.fillText(G.grid[c].toUpperCase(), x, y + 1);
+  }
+  g.restore();
+}
+function update(dt) { tClock += dt; if (shake > 0) shake -= dt; if (hintT > 0) { hintT -= dt; if (hintT <= 0) hintI = -1; } if (G && G.state === 'play') { const t0 = Math.floor(T); T += dt; if (Math.floor(T) !== t0) KIT.setText($('s2'), fmt(T)); } }
+KIT.loop(update, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get G() { return G; }, get sel() { return sel; }, st, newGame, hint, reveal, submit,
+  xy: c => { const r = cv.getBoundingClientRect(); return [r.left + cx(c) / W * r.width, r.top + cy(c) / H * r.height]; }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

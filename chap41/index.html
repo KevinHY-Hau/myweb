@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 41 · Go 圍棋</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3a2a10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Go">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:660px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:620px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.est{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul,.rules ol{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+.rt{border-collapse:collapse;width:100%;margin:6px 0;font-size:13.5px}
+.rt th,.rt td{border:1px solid var(--line);padding:4px 7px;text-align:left}
+.rt th{background:rgba(255,255,255,.06);color:var(--muted);font-size:12px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Go 圍棋</h2>
+  <p>Chapter 41 · The classic board game of surrounding territory. Boards from 5x5 to 19x19, handicap stones, play the computer or a friend</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small id="l1">TURN</small><b id="s1">Black</b></div>
+    <div class="tstat"><small id="l2">BLACK ⚫</small><b id="s2">0</b></div>
+    <div class="tstat"><small id="l3">WHITE ⚪</small><b id="s3">0</b></div>
+    <div class="tstat"><small id="l4">MOVE</small><b id="s4">0</b></div>
+  </div>
+  <div class="tmsg" id="msg">Tap a point to play</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="Go board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">Black wins</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="est" id="estLine"></div>
+  <div class="tbar" id="scoreBar" style="display:none">
+    <button class="btn primary" data-act="scoredone" type="button">✔ Done, score it</button>
+    <button class="btn" data-act="resume" type="button">↩ Keep playing</button>
+  </div>
+  <div class="tbar" id="placeBar" style="display:none">
+    <button class="btn primary" data-act="place" type="button">✔ Place stone</button>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" data-act="pass" type="button">⏭ Pass</button>
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="resign" id="resignBtn" type="button">🏳 Resign</button>
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+  </div>
+  <div class="tbar"><span class="kl">Board:</span><span id="sizeBar"></span></div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 Rules of Go (圍棋)</h2>
+    <p>Go is a two-player game from China, more than 2,500 years old. Black and White take turns placing a <b>stone on an empty crossing</b> of the lines. Stones never move once placed, but they can be <b>captured</b>. At the end, the player who controls more of the board wins.</p>
+    <h3>The basics</h3>
+    <ul>
+      <li><b>Black plays first</b> (unless there is a handicap, then White starts). Each turn you either place one stone on an empty crossing, or <b>pass</b>.</li>
+      <li><b>Liberties:</b> the empty crossings straight next to a stone (up, down, left, right) are its liberties. Stones of one colour that touch in a line form a <b>group</b> and share all their liberties.</li>
+      <li><b>Capture:</b> when you take away a group's <b>last liberty</b>, the whole group is removed from the board and kept as prisoners.</li>
+      <li><b>No suicide:</b> you may not play a stone that leaves its own group with no liberties, <i>unless</i> that move captures enemy stones (they are removed first, which gives you liberties).</li>
+      <li><b>Ko and repeats:</b> you may not make a move that brings the board back to <b>any earlier position</b> (this is “positional superko”). The simple case is a <b>ko</b>: after you capture one stone, your opponent cannot immediately capture back; they must play elsewhere first.</li>
+      <li><b>Eyes:</b> a group with <b>two separate eyes</b> (single empty points it surrounds) can never be captured, because you cannot play in an eye without suicide. This is how groups live.</li>
+    </ul>
+    <h3>Ending and scoring</h3>
+    <ul>
+      <li>The game ends when <b>both players pass in a row</b>.</li>
+      <li>Then the <b>dead stones</b> are removed: stones that could not avoid capture. The game makes a guess and marks them with a ✕; <b>tap a group to mark or unmark it</b> if you disagree, then press <b>Done, score it</b>. (If you cannot agree, press Keep playing.)</li>
+      <li><b>Area scoring</b> (the Chinese way): your score is the number of your stones on the board plus the empty crossings that only your stones surround. White also gets <b>komi</b>, extra points to make up for Black moving first (7 on 9×9, 7.5 on 13×13 and 19×19 by default; 0.5 with handicap stones). Higher total wins.</li>
+      <li>You can also <b>resign</b> at any time.</li>
+    </ul>
+    <h3>Board sizes</h3>
+    <table class="rt">
+      <tr><th>Size</th><th>Good for</th></tr>
+      <tr><td>5×5, 7×7</td><td>Learning captures and eyes in a few minutes.</td></tr>
+      <tr><td>9×9</td><td>A real game in 10 to 20 minutes. The best size against the computer.</td></tr>
+      <tr><td>13×13</td><td>Middle size: more room for fighting and territory.</td></tr>
+      <tr><td>19×19</td><td>The full classic board. Games take an hour or more.</td></tr>
+    </table>
+    <h3>Handicap</h3>
+    <p>If one player is much stronger, the weaker player takes Black and starts with 2 to 9 stones already on the board (on the marked star points); White then plays first. Handicap stones can be used on 9×9, 13×13 and 19×19 boards.</p>
+    <h3>A few tips</h3>
+    <ul>
+      <li>Take the <b>corners first</b>, then the sides, then the middle: corners are the easiest places to make territory.</li>
+      <li>Connect your stones; cut the enemy's. Stones with few liberties are weak.</li>
+      <li>Do not fill in your own territory. Make <b>two eyes</b> to keep a group alive.</li>
+      <li>When your opponent plays next to your stone, do not just follow: think about where the game is biggest.</li>
+    </ul>
+    <h3>How to use this game</h3>
+    <ul>
+      <li><b>Mouse:</b> click an empty crossing to play. <b>Phone or touch:</b> press and drag; the stone appears a little <i>above</i> your finger so you can see it; let go, then press <b>Place stone</b>. (There is a switch in Settings to do the same with a mouse.)</li>
+      <li>Settings: board size, handicap, your colour, the computer's level, komi, board and stone styles, coordinates, last-move marker.</li>
+      <li><b>Hint</b> thinks for a moment and shows a good point. <b>Undo</b> takes back your move and the computer's reply. A small line under the board shows the computer's own estimate of who is ahead.</li>
+      <li><b>How the computer thinks:</b> it plays thousands of quick random games from the position and picks the move that did best (Monte Carlo tree search). It plays a decent game on 9×9, but it is a casual opponent on 13×13 and still weak on 19×19.</li>
+      <li>Not included: Japanese (territory) scoring, seki handling in the dead-stone guess (you can fix it by tapping), and online play.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">⚫ Go (圍棋 weiqi, 囲碁 igo, 바둑 baduk). Area scoring, positional superko, handicap stones and five board sizes. The computer thinks by playing out thousands of quick random games from the position (Monte Carlo tree search). Drawings, sounds, rules code and the computer player are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Go: the board, the rules, scoring and the computer player. No drawing in here.
+   The board is a flat array with a border: (n+2) x (n+2), 0 empty, 1 black, 2 white, 3 edge. A point is y*(n+2)+x, x and y counted from 1. */
+const GO_E = 0, GO_B = 1, GO_W = 2, GO_X = 3;
+const _goZ = {};
+function goZob(W) {
+  if (_goZ[W]) return _goZ[W]; let s = 123456789 + W; const r = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return s | 0; };
+  const mk = () => [0, 1, 2].map(() => Int32Array.from({ length: W * W }, r)); return (_goZ[W] = { a: mk(), b: mk() });
+}
+function goNew(n) {
+  const W = n + 2, S = { n, W, b: new Int8Array(W * W), ko: -1, turn: GO_B, caps: [0, 0, 0], pass: 0, last: -1, h1: 0, h2: 0, moves: 0,
+    m: new Int32Array(W * W), lm: new Int32Array(W * W), st: 0, stk: new Int16Array(W * W), gl: new Int16Array(W * W), gn: 0, E: new Int16Array(n * n), Ei: new Int16Array(W * W).fill(-1), En: 0, own: new Int8Array(W * W), Z: goZob(W) };
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) { const p = y * W + x; if (x === 0 || y === 0 || x === W - 1 || y === W - 1) S.b[p] = GO_X; else { S.Ei[p] = S.En; S.E[S.En++] = p; } }
+  return S;
+}
+const goPt = (S, x, y) => (y + 1) * S.W + (x + 1);          // x, y from 0
+const goXY = (S, p) => [p % S.W - 1, Math.floor(p / S.W) - 1];
+function goCopy(d, s) { d.b.set(s.b); d.E.set(s.E); d.Ei.set(s.Ei); d.En = s.En; d.ko = s.ko; d.turn = s.turn; d.caps[0] = s.caps[0]; d.caps[1] = s.caps[1]; d.caps[2] = s.caps[2]; d.pass = s.pass; d.last = s.last; d.h1 = s.h1; d.h2 = s.h2; d.moves = s.moves; return d; }
+function goClone(s) { return goCopy(goNew(s.n), s); }
+const goKey = S => S.h1 + ',' + S.h2;
+function goGroup(S, p) {          // fills S.gl with the group at p, returns its number of liberties
+  const b = S.b, W = S.W, col = b[p], stk = S.stk, m = S.m, lm = S.lm, st = ++S.st; let sp = 0, gn = 0, libs = 0;
+  stk[sp++] = p; m[p] = st;
+  while (sp) {
+    const q = stk[--sp]; S.gl[gn++] = q;
+    for (let k = 0; k < 4; k++) {
+      const r = q + (k === 0 ? 1 : k === 1 ? -1 : k === 2 ? W : -W), v = b[r];
+      if (v === 0) { if (lm[r] !== st) { lm[r] = st; libs++; } } else if (v === col && m[r] !== st) { m[r] = st; stk[sp++] = r; }
+    }
+  }
+  S.gn = gn; return libs;
+}
+function goRemove(S) {            // takes the group just found by goGroup off the board
+  const c = S.b[S.gl[0]], z1 = S.Z.a[c], z2 = S.Z.b[c];
+  for (let i = 0; i < S.gn; i++) { const q = S.gl[i]; S.b[q] = 0; S.Ei[q] = S.En; S.E[S.En++] = q; S.h1 ^= z1[q]; S.h2 ^= z2[q]; }
+}
+function goLegal(S, p, c) {        // can colour c play at p (empty, not the ko point, not suicide)?
+  const b = S.b, W = S.W; if (b[p] !== 0 || p === S.ko) return false;
+  for (let k = 0; k < 4; k++) {
+    const r = p + (k === 0 ? 1 : k === 1 ? -1 : k === 2 ? W : -W), v = b[r];
+    if (v === 0) return true;
+    if (v === c) { if (goGroup(S, r) >= 2) return true; } else if (v === 3 - c) { if (goGroup(S, r) === 1) return true; }
+  }
+  return false;
+}
+function goPlay(S, p, c) {         // plays (p = -1 is a pass); false and nothing changed if it is illegal. Ko: only the simple ko.
+  if (p < 0) { S.ko = -1; S.pass++; S.turn = 3 - c; S.last = -1; S.moves++; return true; }
+  const b = S.b, W = S.W, o = 3 - c; if (b[p] !== 0 || p === S.ko) return false;
+  b[p] = c; let cap = 0, capPt = -1;
+  for (let k = 0; k < 4; k++) {
+    const r = p + (k === 0 ? 1 : k === 1 ? -1 : k === 2 ? W : -W);
+    if (b[r] === o && goGroup(S, r) === 0) { cap += S.gn; if (S.gn === 1) capPt = S.gl[0]; goRemove(S); }
+  }
+  const libs = goGroup(S, p);
+  if (libs === 0) { b[p] = 0; return false; }   // suicide (can only happen when nothing was captured)
+  S.ko = cap === 1 && S.gn === 1 && libs === 1 ? capPt : -1;
+  const i = S.Ei[p], last = S.E[--S.En]; S.E[i] = last; S.Ei[last] = i; S.Ei[p] = -1;
+  S.h1 ^= S.Z.a[c][p]; S.h2 ^= S.Z.b[c][p]; S.turn = o; S.pass = 0; S.last = p; S.caps[c] += cap; S.moves++; return true;
+}
+function goTry(S, p, c, seen) {    // game level: returns the new position, or null if illegal (including repeating an earlier position: positional superko)
+  const T = goClone(S); if (!goPlay(T, p, c)) return null; if (p >= 0 && seen && seen.has(goKey(T))) return null; return T;
+}
+function goIsEye(S, p, c) {        // an empty point surrounded by colour c (a real eye candidate)
+  const b = S.b, W = S.W; let v = b[p + 1], edge = 0, bad = 0;
+  if (v !== c && v !== GO_X) return false; if (v === GO_X) edge = 1;
+  v = b[p - 1]; if (v !== c && v !== GO_X) return false; if (v === GO_X) edge = 1;
+  v = b[p + W]; if (v !== c && v !== GO_X) return false; if (v === GO_X) edge = 1;
+  v = b[p - W]; if (v !== c && v !== GO_X) return false; if (v === GO_X) edge = 1;
+  v = b[p + W + 1]; if (v !== GO_X && v !== c) bad++; v = b[p + W - 1]; if (v !== GO_X && v !== c) bad++;
+  v = b[p - W + 1]; if (v !== GO_X && v !== c) bad++; v = b[p - W - 1]; if (v !== GO_X && v !== c) bad++;
+  return edge ? bad === 0 : bad <= 1;
+}
+function goArea(S, dead) {         // area scoring: stones plus empty regions that touch only one colour. dead = optional Uint8Array marking dead stones (they count as empty).
+  const b = S.b, W = S.W, own = S.own, stk = S.stk, lst = S.gl, N = W * W; own.fill(0); const seen = S.m, st = ++S.st; let bl = 0, wh = 0;
+  for (let p = 0; p < N; p++) {
+    const v = b[p]; if (v === GO_X) continue;
+    if ((v === GO_B || v === GO_W) && !(dead && dead[p])) { own[p] = v; if (v === GO_B) bl++; else wh++; continue; }
+    if (seen[p] === st) continue;
+    let sp = 0, cnt = 0, touchB = 0, touchW = 0; stk[sp++] = p; seen[p] = st;
+    while (sp) {
+      const q = stk[--sp]; lst[cnt++] = q;
+      for (let k = 0; k < 4; k++) {
+        const r = q + (k === 0 ? 1 : k === 1 ? -1 : k === 2 ? W : -W), t = b[r];
+        if (t === GO_X) continue;
+        if ((t === GO_B || t === GO_W) && !(dead && dead[r])) { if (t === GO_B) touchB = 1; else touchW = 1; }
+        else if (seen[r] !== st) { seen[r] = st; stk[sp++] = r; }
+      }
+    }
+    const o = touchB && !touchW ? GO_B : touchW && !touchB ? GO_W : 0; if (o) { for (let i = 0; i < cnt; i++) own[lst[i]] = o; if (o === GO_B) bl += cnt; else wh += cnt; }
+  }
+  return { black: bl, white: wh, diff: bl - wh };
+}
+function goHandicap(n, k) {         // the standard star-point stones for a handicap of k (2..9); [] if the board is too small
+  if (k < 2) return []; const lo = n >= 13 ? 3 : 2, hi = n - 1 - lo, mid = (n - 1) >> 1;
+  if (n < 9 || (n % 2 === 0)) return []; const P = { ll: [lo, lo], ur: [hi, hi], lr: [hi, lo], ul: [lo, hi], c: [mid, mid], l: [lo, mid], r: [hi, mid], t: [mid, hi], bt: [mid, lo] };
+  const sets = { 2: ['ll', 'ur'], 3: ['ll', 'ur', 'lr'], 4: ['ll', 'ur', 'lr', 'ul'], 5: ['ll', 'ur', 'lr', 'ul', 'c'], 6: ['ll', 'ur', 'lr', 'ul', 'l', 'r'], 7: ['ll', 'ur', 'lr', 'ul', 'l', 'r', 'c'], 8: ['ll', 'ur', 'lr', 'ul', 'l', 'r', 't', 'bt'], 9: ['ll', 'ur', 'lr', 'ul', 'l', 'r', 't', 'bt', 'c'] };
+  return (sets[Math.min(9, k)] || []).map(k => P[k]);
+}
+function goDeadGroups(S, own, thresh) {   // given ownership numbers per point (+1 black .. -1 white), list the groups that look dead
+  const dead = new Uint8Array(S.W * S.W), seen = new Uint8Array(S.W * S.W);
+  for (let p = 0; p < S.W * S.W; p++) {
+    const v = S.b[p]; if ((v !== GO_B && v !== GO_W) || seen[p]) continue; goGroup(S, p); let sum = 0; const g = [];
+    for (let i = 0; i < S.gn; i++) { g.push(S.gl[i]); seen[S.gl[i]] = 1; sum += own[S.gl[i]]; }
+    const mean = sum / g.length; if ((v === GO_B && mean < -thresh) || (v === GO_W && mean > thresh)) for (const q of g) dead[q] = 1;
+  }
+  return dead;
+}
+
+/* ----- the computer: random playouts and a search tree (Monte Carlo tree search) ----- */
+function goRand(S, c, rnd) {        // a random legal move that does not fill the mover's own eye, or -1
+  const En = S.En; if (!En) return -1; const k = Math.floor(rnd() * En);
+  for (let i = 0; i < En; i++) { const p = S.E[(k + i) % En]; if (p === S.ko || goIsEye(S, p, c)) continue; if (goLegal(S, p, c)) return p; }
+  return -1;
+}
+function goLiberty1(S) { const W = S.W; for (let i = 0; i < S.gn; i++) { const q = S.gl[i]; for (let k = 0; k < 4; k++) { const r = q + (k === 0 ? 1 : k === 1 ? -1 : k === 2 ? W : -W); if (S.b[r] === 0) return r; } } return -1; }
+function goHeur(S, last, c) {       // capture a group the last move put in atari, or save one of ours it put in atari
+  const b = S.b, W = S.W;
+  if (b[last] === 3 - c && goGroup(S, last) === 1) { const q = goLiberty1(S); if (q >= 0 && goLegal(S, q, c)) return q; }
+  for (let k = 0; k < 4; k++) { const r = last + (k === 0 ? 1 : k === 1 ? -1 : k === 2 ? W : -W); if (b[r] === c && goGroup(S, r) === 1) { const q = goLiberty1(S); if (q >= 0 && goLegal(S, q, c) && !goIsEye(S, q, c)) return q; } }
+  return -1;
+}
+function goPlayout(S, rnd, maxMoves) {   // plays on with both sides until two passes; returns the area difference (black - white)
+  let c = S.turn, last = S.last, passes = S.pass, mv = 0;
+  while (passes < 2 && mv < maxMoves) {
+    let p = -1; if (last >= 0 && rnd() < .85) p = goHeur(S, last, c); if (p < 0) p = goRand(S, c, rnd);
+    if (p < 0 || !goPlay(S, p, c)) { goPlay(S, -1, c); passes++; last = -1; } else { passes = 0; last = p; }
+    c = 3 - c; mv++;
+  }
+  return goArea(S).diff;
+}
+function goNear(S, p) { const b = S.b, W = S.W; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const v = b[p + dy * W + dx]; if (v === GO_B || v === GO_W) return true; } return false; }
+function goCands(S, c, rnd) {        // the moves the search will consider
+  const out = [], n = S.n, W = S.W;
+  if (S.moves === 0 && !S.caps[1] && n >= 9 && S.En === n * n) { for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const d = Math.min(x, y, n - 1 - x, n - 1 - y); if (d >= 2 && d <= 3 || (n % 2 && x === (n >> 1) && y === (n >> 1))) out.push(goPt(S, x, y)); } }
+  else { const near = n >= 13; for (let i = 0; i < S.En; i++) { const p = S.E[i]; if (p === S.ko || goIsEye(S, p, c)) continue; if (near && !goNear(S, p)) continue; if (goLegal(S, p, c)) out.push(p); } }
+  if (S.pass >= 1 || !out.length || S.moves > .9 * n * n) out.push(-1);
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
+}
+function goSearch(S0, komi, rnd) {   // returns a search object: .run(ms) adds playouts for about ms milliseconds; .result() gives the best move
+  const sim = goNew(S0.n), maxMoves = S0.n * S0.n * 3; sim.Z = S0.Z;
+  const root = { mv: -1, pl: 3 - S0.turn, n: 0, w: 0, kids: [], un: null };
+  function iter() {
+    goCopy(sim, S0); let node = root; const path = [root];
+    for (;;) {
+      if (sim.pass >= 2) break;
+      if (node.un === null) node.un = goCands(sim, sim.turn, rnd);
+      if (node.un.length) { const mv = node.un.pop(), pl = sim.turn; if (!goPlay(sim, mv, pl)) continue; const k = { mv, pl, n: 0, w: 0, kids: [], un: null }; node.kids.push(k); path.push(k); node = k; break; }
+      if (!node.kids.length) break;
+      let best = null, bv = -1; const ln = Math.log(node.n + 1);
+      for (const k of node.kids) { const v = k.n ? k.w / k.n + .55 * Math.sqrt(ln / k.n) : 10; if (v > bv) { bv = v; best = k; } }
+      if (!goPlay(sim, best.mv, sim.turn)) { node.kids.splice(node.kids.indexOf(best), 1); continue; }
+      node = best; path.push(node);
+    }
+    const diff = (sim.pass >= 2 ? goArea(sim).diff : goPlayout(sim, rnd, maxMoves)) - komi, bw = diff > 0 ? 1 : diff === 0 ? .5 : 0;
+    for (const k of path) { k.n++; k.w += k.pl === GO_B ? bw : 1 - bw; }
+  }
+  return {
+    root, iters: 0,
+    run(ms) { const t0 = Date.now(); let i = 0; while (Date.now() - t0 < ms || i < 1) { iter(); i++; this.iters++; } return i; },
+    runN(k) { for (let i = 0; i < k; i++) { iter(); this.iters++; } },
+    result() { const ks = root.kids.slice().sort((a, b) => b.n - a.n); const t = ks[0]; return { move: t ? t.mv : -1, win: t ? t.w / Math.max(1, t.n) : .5, kids: ks.map(k => ({ mv: k.mv, n: k.n, win: k.w / Math.max(1, k.n) })), iters: this.iters }; }
+  };
+}
+function goOwnership(S0, K, rnd) {   // from this position, play K random games to the end and average who owns each point (+1 black .. -1 white)
+  const sim = goNew(S0.n), acc = new Float64Array(S0.W * S0.W); sim.Z = S0.Z;
+  for (let i = 0; i < K; i++) { goCopy(sim, S0); sim.pass = 0; goPlayout(sim, rnd, S0.n * S0.n * 3); for (let p = 0; p < acc.length; p++) acc[p] += sim.own[p] === GO_B ? 1 : sim.own[p] === GO_W ? -1 : 0; }
+  for (let p = 0; p < acc.length; p++) acc[p] /= K; return acc;
+}
+
+/* Go. go.js has the rules, scoring and the computer player (checked on its own); this file is the board, the input, the marking of dead stones and the game flow. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches);
+const S0 = store('kevinhyhau.go.v1', { dark: true, sound: true, opp: 'cpu', size: 9, handicap: 0, colour: 'black', level: 'normal', komi: 'auto', confirm: coarse, coords: true, marker: true, board: 'wood', stones: 'glossy', wins: 0, losses: 0, draws: 0 }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+let cfg = '';
+const cfgKey = () => [st.handicap, st.colour, st.komi].join('|');
+settings([
+  { id: 'level', label: 'Computer level', type: 'select', options: [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard (thinks longer)']], def: 'normal' },
+  { id: 'colour', label: 'You play', type: 'select', options: [['black', 'Black (first)'], ['white', 'White']], def: 'black' },
+  { id: 'handicap', label: 'Handicap stones (9×9 and bigger)', type: 'select', options: [[0, 'None'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9']], def: 0 },
+  { id: 'komi', label: 'Komi (points for White)', type: 'select', options: [['auto', 'Automatic for the board size'], ['0.5', '0.5'], ['5.5', '5.5'], ['6.5', '6.5'], ['7', '7'], ['7.5', '7.5']], def: 'auto' },
+  { id: 'confirm', label: 'Confirm each move with a button (always on for touch)', type: 'check', def: coarse },
+  { id: 'coords', label: 'Show coordinates', type: 'check', def: true },
+  { id: 'marker', label: 'Mark the last move', type: 'check', def: true },
+  { id: 'board', label: 'Board style', type: 'select', options: [['wood', 'Wood'], ['bamboo', 'Light wood'], ['paper', 'Paper'], ['night', 'Night']], def: 'wood' },
+  { id: 'stones', label: 'Stone style', type: 'select', options: [['glossy', 'Glossy'], ['flat', 'Flat'], ['mono', 'Diagram']], def: 'glossy' },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { st.handicap = +st.handicap; const k = cfgKey(); S0.save(); if (k !== cfg) newGame(); });
+
+let PAD = 36; const setPad = k => { PAD = { 5: 76, 7: 62, 9: 54, 13: 44, 19: 36 }[k] || 40; };   // margin big enough that edge stones never touch the coordinates
+const W = 600, cv = $('cv'), C = KIT.canvas(cv, W, W, 2), ctx = C.ctx;
+const BOARDS = {
+  wood:   { bg: '#e0b45c', line: '#3a2a10', frame: '#5a3a14', coord: '#3a2a10' },
+  bamboo: { bg: '#f0d08c', line: '#4a3a18', frame: '#8a6a30', coord: '#4a3a18' },
+  paper:  { bg: '#fbf6e8', line: '#222222', frame: '#cfc6ac', coord: '#555555' },
+  night:  { bg: '#27303f', line: '#7d8ba6', frame: '#10151f', coord: '#9aa8c4' }
+};
+let deadVer = 0, n = 9, S = null, seen = new Set(), keys = [], hist = [], me = 1, phase = 'play', dead = null, cursor = -1, thinking = false, search = null, token = 0, hintMv = null, hintT = 0, komi = 7, marker = -1, lastPassMsg = '', tClock = 0, own = null, resignArm = 0, over = false, est = null, pending = null;
+const cpu = () => st.opp === 'cpu';
+const NAME = ['', 'Black', 'White'];
+const cell = () => (W - 2 * PAD) / (n - 1);
+const ptXY = p => { const [x, y] = goXY(S, p); return [PAD + x * cell(), PAD + y * cell()]; };
+const pname = c => !cpu() ? NAME[c] : c === me ? 'You' : 'The computer';
+const setMsg = t => { $('msg').textContent = t; };
+const komiFor = () => st.komi !== 'auto' ? +st.komi : (+st.handicap >= 2 && n >= 9) ? .5 : ({ 5: .5, 7: 5.5, 9: 7, 13: 7.5, 19: 7.5 }[n] || 7);
+const coordName = p => { const [x, y] = goXY(S, p); return 'ABCDEFGHJKLMNOPQRST'[x] + (n - y); };
+
+/* ---------- starting ---------- */
+function newGame() {
+  token++; if (search) search = null; thinking = false; O.hideAll(); n = st.size; setPad(n); st.handicap = +st.handicap; cfg = cfgKey();
+  S = goNew(n); const hc = n >= 9 ? st.handicap : 0;
+  for (const [x, y] of goHandicap(n, hc)) goPlay(S, goPt(S, x, y), 1);
+  S.ko = -1; S.pass = 0; S.moves = 0; S.caps = [0, 0, 0]; S.last = -1; S.turn = goHandicap(n, hc).length ? 2 : 1;
+  komi = komiFor(); seen = new Set([goKey(S)]); keys = [goKey(S)]; hist = []; phase = 'play'; dead = null; cursor = -1; hintMv = null; marker = -1; over = false; est = null; own = null; lastPassMsg = '';
+  me = cpu() ? (st.colour === 'white' ? 2 : 1) : 1; bars(); showBars(); hud();
+  if (cpu() && S.turn !== me) aiMove(); else setMsg(prompt());
+}
+function prompt() { const h = hc() ? ' Handicap: Black has ' + hc() + ' stones, White plays first.' : ''; return (S.moves === 0 ? 'Go! ' + pname(S.turn) + (cpu() && S.turn === me ? ' play' : ' to play') + '.' + h + (st.confirm || coarse ? ' Drag to aim, then press Place stone.' : ' Click a point to play.') : (cpu() ? 'Your move.' : NAME[S.turn] + ' to play.')); }
+const hc = () => n >= 9 ? +st.handicap : 0;
+function bars() {
+  $('sizeBar').innerHTML = [5, 7, 9, 13, 19].map(k => '<button class="btn sm' + (n === k ? ' on' : '') + '" data-act="size" data-k="' + k + '" type="button">' + k + '×' + k + '</button>').join('');
+  $('oppBar').innerHTML = [['cpu', '🤖 vs computer'], ['two', '👥 2 players']].map(([k, t]) => '<button class="btn sm' + (st.opp === k ? ' on' : '') + '" data-act="opp" data-k="' + k + '" type="button">' + t + '</button>').join('');
+}
+function showBars() { $('scoreBar').style.display = phase === 'mark' ? 'flex' : 'none'; $('placeBar').style.display = (phase === 'play' && cursor >= 0 && confirmMode() && canAct()) ? 'flex' : 'none'; }
+const confirmMode = () => st.confirm || coarse;
+const canAct = () => phase === 'play' && !over && !thinking && (!cpu() || S.turn === me);
+function hud() {
+  $('s1').textContent = over ? 'Game over' : phase === 'mark' ? 'Scoring' : (cpu() ? (S.turn === me ? 'You' : 'Computer') : NAME[S.turn]) + ' (' + (S.turn === 1 ? '⚫' : '⚪') + ')';
+  if (phase === 'mark' && dead) { const a = goArea(S, dead); $('l2').textContent = 'BLACK AREA'; $('l3').textContent = 'WHITE + KOMI'; $('s2').textContent = a.black; $('s3').textContent = (a.white + komi); }
+  else { $('l2').textContent = cpu() ? (me === 1 ? 'YOU ⚫' : 'COMPUTER ⚫') : 'BLACK ⚫'; $('l3').textContent = cpu() ? (me === 2 ? 'YOU ⚪' : 'COMPUTER ⚪') : 'WHITE ⚪'; $('s2').textContent = 'took ' + S.caps[1]; $('s3').textContent = 'took ' + S.caps[2]; }
+  $('s4').textContent = S.moves; $('recLine').textContent = cpu() ? 'Record against the computer: ' + st.wins + ' won, ' + st.losses + ' lost, ' + st.draws + ' drawn · Komi ' + komi : 'Two players on one screen · Komi ' + komi;
+  $('estLine').textContent = est != null ? 'Computer’s estimate: Black ' + Math.round(est * 100) + '%, White ' + Math.round((1 - est) * 100) + '%' : '';
+  $('resignBtn').textContent = resignArm > 0 ? '🏳 Sure?' : '🏳 Resign';
+}
+
+/* ---------- playing a move ---------- */
+function why(p) { if (S.b[p] !== 0) return 'That point is taken.'; if (p === S.ko) return 'Ko: you cannot retake at once. Play elsewhere first.'; if (!goLegal(S, p, S.turn)) return 'Not allowed: that stone would have no liberties (suicide).'; return 'Not allowed: that would repeat an earlier position.'; }
+function commit(T, p) {
+  const c = S.turn, caps = T.caps[c] - S.caps[c]; hist.push({ S, keysLen: keys.length, marker, est }); S = T; seen.add(goKey(S)); keys.push(goKey(S)); marker = p; cursor = -1; hintMv = null; resignArm = 0;
+  if (p >= 0) { A.beep(150, .04, 'square', .1); A.noise && A.noise(.03, .12); if (caps) { A.noise(.1, .2); A.beep(110, .12, 'sine', .12, .05); } }
+  hud();
+  if (S.pass >= 2) { enterMark(); return; }
+  const who = pname(c), mv = p < 0 ? ' passed.' : ' played ' + coordName(p) + (caps ? ' and captured ' + caps + (caps === 1 ? ' stone.' : ' stones.') : '.');
+  lastPassMsg = who + mv;
+  if (cpu() && S.turn !== me) { setMsg(lastPassMsg + ' …'); aiMove(); } else setMsg(lastPassMsg + (p < 0 ? ' Pass too to end the game, or play on.' : cpu() ? ' Your move.' : ' ' + NAME[S.turn] + ' to play.'));
+  showBars();
+}
+function playAt(p) {
+  if (!canAct()) return; const T = goTry(S, p, S.turn, seen); if (!T) { setMsg(why(p)); A.beep(120, .08, 'sawtooth', .06); return; } commit(T, p);
+}
+function doPass() { if (!canAct()) return; const T = goClone(S); goPlay(T, -1, S.turn); commit(T, -1); }
+
+/* ---------- the computer ---------- */
+const BUDGET = { easy: 450, normal: 2400, hard: 6000 };
+function budget() { return BUDGET[st.level] * (n >= 19 ? 1.7 : n >= 13 ? 1.25 : n <= 7 ? .6 : 1); }
+function runSearch(forHint, done) {
+  const my = ++token; thinking = true; const sr = goSearch(S, komi, Math.random), t0 = Date.now(), total = forHint ? 1500 : budget(); search = sr; showBars();
+  const slice = () => {
+    if (my !== token) return; sr.run(24); const el = Date.now() - t0;
+    if (el < total && !(st.level === 'easy' && !forHint && sr.iters >= 140)) { if (!forHint) setMsg((lastPassMsg ? lastPassMsg + ' ' : '') + 'The computer is thinking… ' + sr.iters + ' practice games'); setTimeout(slice, 0); return; }
+    thinking = false; search = null; done(sr.result());
+  };
+  setTimeout(slice, 30);
+}
+function aiMove() {
+  runSearch(false, r => {
+    est = S.turn === 1 ? r.win : 1 - r.win; let pick = r.kids[0];
+    if (S.pass >= 1) { const pk = r.kids.find(k => k.mv === -1); if (pk && pk.win >= r.kids[0].win - .03) pick = pk; }
+    else if (st.level === 'easy' && r.kids.length > 1 && Math.random() < .35) pick = r.kids[Math.min(r.kids.length - 1, 1 + Math.floor(Math.random() * 2))];
+    const order = [pick, ...r.kids.filter(k => k !== pick)];
+    for (const k of order) { const T = goTry(S, k.mv, S.turn, seen); if (T) { commit(T, k.mv); return; } }
+    const T = goClone(S); goPlay(T, -1, S.turn); commit(T, -1);
+  });
+}
+function hint() {
+  if (!canAct() || thinking) return; setMsg('Thinking of a hint…');
+  runSearch(true, r => { const best = r.kids[0]; hintMv = best ? best.mv : -1; hintT = 4; est = S.turn === 1 ? r.win : 1 - r.win; hud(); setMsg(hintMv < 0 ? 'Hint: passing looks fine here.' : 'Hint: the blue ring (' + coordName(hintMv) + ') looks like a good point.'); showBars(); });
+}
+
+/* ---------- scoring ---------- */
+function enterMark() {
+  phase = 'mark'; dead = new Uint8Array(S.W * S.W); deadVer++; cursor = -1; hintMv = null; setMsg('Both passed. Working out which stones are dead…'); showBars(); hud();
+  const my = ++token;
+  setTimeout(() => {
+    if (my !== token || phase !== 'mark') return; const K = n >= 19 ? 120 : n >= 13 ? 250 : 600, o = goOwnership(S, K, Math.random);
+    dead = goDeadGroups(S, o, .5); deadVer++; setMsg('Dead stones are marked ✕. Tap a group to mark or unmark it, then press “Done, score it”.'); hud();
+  }, 40);
+}
+function toggleDead(p) {
+  if (S.b[p] !== GO_B && S.b[p] !== GO_W) return; goGroup(S, p); const flag = dead[p] ? 0 : 1; for (let i = 0; i < S.gn; i++) dead[S.gl[i]] = flag; deadVer++; A.beep(300, .03, 'sine', .06); hud();
+}
+function finishScore() {
+  if (phase !== 'mark') return; const a = goArea(S, dead), diff = a.diff - komi; phase = 'over'; over = true; own = S.own.slice(); showBars();
+  const w = diff > 0 ? 1 : diff < 0 ? 2 : 0, bs = a.black, ws = a.white + komi;
+  endGame(w, 'Black ' + bs + ' – White ' + a.white + ' + ' + komi + ' komi = ' + ws + '. ' + (w ? NAME[w] + ' wins by ' + Math.abs(diff) + '.' : 'A draw.'));
+}
+function endGame(w, why) {
+  over = true; let h;
+  if (!w) { h = 'A draw'; if (cpu()) st.draws++; } else if (cpu()) { h = w === me ? 'You win! 🎉' : 'The computer wins'; if (w === me) st.wins++; else st.losses++; } else h = NAME[w] + ' wins! 🎉';
+  S0.save(); hud(); $('endH').textContent = h; $('endP').textContent = why; setMsg(h + ' ' + why);
+  if (w && (!cpu() || w === me)) { A.beep(660, .1, 'triangle', .12); A.beep(880, .1, 'triangle', .12, .1); A.beep(1320, .2, 'triangle', .12, .2); } else A.slide && A.slide(400, 120, .5, 'sawtooth', .08);
+  setTimeout(() => { if (over) O.show('ovEnd'); }, 600);
+}
+function resign() {
+  if (over || phase === 'mark') return; if (resignArm <= 0) { resignArm = 1; hud(); setTimeout(() => { resignArm = 0; hud(); }, 3000); return; }
+  token++; thinking = false; search = null; const loser = cpu() ? me : S.turn; phase = 'over'; endGame(3 - loser, (loser === me && cpu() ? 'You' : pname(loser)) + ' resigned.');
+}
+function resume() { if (phase !== 'mark') return; token++; phase = 'play'; dead = null; const T = goClone(S); T.pass = 0; S = T; showBars(); hud(); if (cpu() && S.turn !== me) aiMove(); else setMsg('Play continues. ' + (cpu() ? 'Your move.' : NAME[S.turn] + ' to play.')); }
+function undo() {
+  if (!hist.length) return; token++; thinking = false; search = null; over = false; O.hideAll(); phase = 'play'; dead = null; own = null;
+  let h; do { h = hist.pop(); S = h.S; keys.length = h.keysLen; marker = h.marker; est = h.est; } while (cpu() && hist.length && S.turn !== me);
+  seen = new Set(keys); cursor = -1; hintMv = null; hud(); showBars(); if (cpu() && S.turn !== me) aiMove(); else setMsg('Took back. ' + prompt());
+}
+
+/* ---------- input ---------- */
+function nearest(pos) {
+  const c = cell(), x = Math.round((pos.x - PAD) / c), y = Math.round((pos.y - PAD) / c); if (x < 0 || y < 0 || x >= n || y >= n) return -1;
+  const cx = PAD + x * c, cy = PAD + y * c; if (Math.hypot(pos.x - cx, pos.y - cy) > c * .75) return -1; return goPt(S, x, y);
+}
+let down = null;
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture && cv.setPointerCapture(e.pointerId); const pos = C.pos(e), touch = e.pointerType === 'touch' || e.pointerType === 'pen'; down = { touch };
+  if (phase === 'mark') { const p = nearest(pos); if (p >= 0) toggleDead(p); down = null; return; }
+  if (!canAct()) { down = null; return; }
+  const aim = touch ? { x: pos.x, y: pos.y - 40 } : pos, p = nearest(aim); down.p = p; if (touch || confirmMode()) { cursor = p; showBars(); } else cursor = p;
+});
+cv.addEventListener('pointermove', e => {
+  const pos = C.pos(e); if (!down) { if (e.pointerType === 'mouse' && canAct() && phase === 'play') cursor = nearest(pos); return; }
+  if (!canAct() || phase !== 'play') return; const aim = down.touch ? { x: pos.x, y: pos.y - 40 } : pos, p = nearest(aim); if (p >= 0 || down.touch) { cursor = p; down.p = p; }
+});
+cv.addEventListener('pointerup', e => {
+  if (!down) return; const d = down; down = null; if (!canAct() || phase !== 'play') return;
+  if (confirmMode() || d.touch) { showBars(); if (cursor >= 0) setMsg('Aiming at ' + coordName(cursor) + '. Press “Place stone”, or drag to aim again.'); return; }
+  if (d.p >= 0) playAt(d.p);
+});
+cv.addEventListener('pointercancel', () => { down = null; });
+cv.addEventListener('pointerleave', e => { if (!down && e.pointerType === 'mouse') cursor = -1; });
+function place() { if (cursor >= 0) { const p = cursor; playAt(p); } }
+ui.actions(document.body, {
+  restart: newGame, pass: doPass, undo, hint, resign, resume, scoredone: finishScore, place, closeov: () => O.hide('ovEnd'),
+  size: b => { st.size = +b.dataset.k; S0.save(); newGame(); }, opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); }
+});
+window.addEventListener('keydown', e => { if (/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; if (e.key === 'p') doPass(); else if (e.key === 'u') undo(); else if (e.key === 'Enter') place(); });
+
+/* ---------- drawing ---------- */
+const STAR = { 5: [[2, 2]], 7: [[2, 2], [2, 4], [4, 2], [4, 4]], 9: [[2, 2], [2, 6], [6, 2], [6, 6], [4, 4]], 13: [[3, 3], [3, 9], [9, 3], [9, 9], [6, 6]], 19: [[3, 3], [3, 9], [3, 15], [9, 3], [9, 9], [9, 15], [15, 3], [15, 9], [15, 15]] };
+function stone(g, x, y, r, c, alpha, deadMark) {
+  const style = st.stones; g.save(); g.globalAlpha = alpha == null ? 1 : alpha;
+  if (style === 'glossy') {
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + r * .08, y + r * .12, r, 0, 7); g.fill();
+    const gr = g.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r); if (c === 1) { gr.addColorStop(0, '#6a6a72'); gr.addColorStop(.5, '#1d1d22'); gr.addColorStop(1, '#050507'); } else { gr.addColorStop(0, '#ffffff'); gr.addColorStop(.7, '#e6e6e0'); gr.addColorStop(1, '#b9b9b2'); }
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  } else if (style === 'flat') { g.fillStyle = c === 1 ? '#15151a' : '#f4f4ee'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.strokeStyle = st.board === 'night' && c === 1 ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.45)'; g.lineWidth = 1.2; g.stroke(); }
+  else { g.fillStyle = c === 1 ? '#000' : '#fff'; g.beginPath(); g.arc(x, y, r * .92, 0, 7); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1.6; g.stroke(); }
+  g.restore();
+  if (deadMark) { g.save(); g.strokeStyle = c === 1 ? '#ff6b6b' : '#d62828'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(x - r * .5, y - r * .5); g.lineTo(x + r * .5, y + r * .5); g.moveTo(x + r * .5, y - r * .5); g.lineTo(x - r * .5, y + r * .5); g.stroke(); g.restore(); }
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / W, 0, 0); if (!S) return; const B = BOARDS[st.board] || BOARDS.wood, c = cell(), r = Math.min(c * .47, PAD - 22);
+  g.fillStyle = B.frame; g.beginPath(); g.roundRect ? g.roundRect(0, 0, W, W, 14) : g.rect(0, 0, W, W); g.fill();
+  g.fillStyle = B.bg; g.fillRect(8, 8, W - 16, W - 16);
+  if (st.board === 'wood' || st.board === 'bamboo') { g.strokeStyle = 'rgba(120,80,20,.10)'; g.lineWidth = 2; for (let i = 0; i < 26; i++) { g.beginPath(); const y = 8 + i * (W - 16) / 26 + Math.sin(i * 1.7) * 3; g.moveTo(8, y); g.bezierCurveTo(W * .3, y + 6, W * .6, y - 6, W - 8, y + 2); g.stroke(); } }
+  g.strokeStyle = B.line; g.lineWidth = n > 13 ? 1.1 : 1.5; for (let i = 0; i < n; i++) { g.beginPath(); g.moveTo(PAD, PAD + i * c); g.lineTo(PAD + (n - 1) * c, PAD + i * c); g.moveTo(PAD + i * c, PAD); g.lineTo(PAD + i * c, PAD + (n - 1) * c); g.stroke(); }
+  g.lineWidth = 2.2; g.strokeRect(PAD, PAD, (n - 1) * c, (n - 1) * c);
+  g.fillStyle = B.line; for (const [x, y] of STAR[n] || []) { g.beginPath(); g.arc(PAD + x * c, PAD + y * c, Math.max(2.5, c * .09), 0, 7); g.fill(); }
+  if (st.coords) { g.fillStyle = B.coord; g.font = 'bold ' + Math.max(9, Math.min(13, Math.round(c * .45))) + 'px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; for (let i = 0; i < n; i++) { const L = 'ABCDEFGHJKLMNOPQRST'[i]; const o = 17; g.fillText(L, PAD + i * c, o); g.fillText(L, PAD + i * c, W - o); g.fillText(String(n - i), o, PAD + i * c); g.fillText(String(n - i), W - o, PAD + i * c); } }
+  const mark = phase === 'mark' || phase === 'over';
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const p = goPt(S, x, y), v = S.b[p], px = PAD + x * c, py = PAD + y * c, isDead = mark && dead && dead[p];
+    if (v === GO_B || v === GO_W) stone(g, px, py, r, v, isDead ? .45 : 1, isDead);
+    if (mark) { const ow = phase === 'over' && own ? own[p] : (dead ? areaOwn(p) : 0); if (ow && (v === 0 || isDead)) { g.fillStyle = ow === 1 ? '#000' : '#fff'; g.globalAlpha = .85; const s = c * .2; g.fillRect(px - s, py - s, 2 * s, 2 * s); g.strokeStyle = '#000'; g.globalAlpha = .6; g.lineWidth = 1; g.strokeRect(px - s, py - s, 2 * s, 2 * s); g.globalAlpha = 1; } }
+  }
+  if (st.marker && marker >= 0 && S.b[marker]) { const [x, y] = ptXY(marker); g.strokeStyle = S.b[marker] === 1 ? '#fff' : '#000'; g.lineWidth = 2.4; g.beginPath(); g.arc(x, y, r * .45, 0, 7); g.stroke(); }
+  if (S.ko >= 0 && phase === 'play') { const [x, y] = ptXY(S.ko), s = c * .17; g.strokeStyle = '#d62828'; g.lineWidth = 2.4; g.strokeRect(x - s, y - s, 2 * s, 2 * s); }
+  if (cursor >= 0 && canAct() && S.b[cursor] === 0) { const [x, y] = ptXY(cursor), ok = goLegal(S, cursor, S.turn); if (ok) stone(g, x, y, r, S.turn, .55); else { g.strokeStyle = '#d62828'; g.lineWidth = 3; g.beginPath(); g.moveTo(x - r * .5, y - r * .5); g.lineTo(x + r * .5, y + r * .5); g.moveTo(x + r * .5, y - r * .5); g.lineTo(x - r * .5, y + r * .5); g.stroke(); } if (down && down.touch) { g.strokeStyle = 'rgba(80,160,255,.9)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(PAD, y); g.lineTo(PAD + (n - 1) * c, y); g.moveTo(x, PAD); g.lineTo(x, PAD + (n - 1) * c); g.stroke(); } }
+  if (hintMv != null && hintMv >= 0 && hintT > 0) { const [x, y] = ptXY(hintMv), pulse = .5 + .5 * Math.sin(tClock * 7); g.strokeStyle = 'rgba(40,150,255,' + (.6 + .4 * pulse) + ')'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, r + 2, 0, 7); g.stroke(); }
+  if (thinking && search) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(8, W - 14, (W - 16) * Math.min(1, (search.iters % 400) / 400), 4); }
+}
+function areaOwn(p) { // territory preview while marking: ask goArea (kept in S.own)
+  if (!areaOwn.cache || areaOwn.cache.v !== deadVer || areaOwn.cache.t !== S) { const T = goClone(S); goArea(T, dead); areaOwn.cache = { v: deadVer, t: S, own: T.own.slice() }; } return areaOwn.cache.own[p];
+}
+function update(dt) { tClock += dt; if (hintT > 0) { hintT -= dt; if (hintT <= 0) hintMv = null; } }
+KIT.loop(update, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get n() { return n; }, get phase() { return phase; }, get over() { return over; }, get thinking() { return thinking; }, get dead() { return dead; }, get komi() { return komi; }, get me() { return me; }, get cursor() { return cursor; }, st, newGame, undo, playAt, doPass, finishScore, resume, hint,
+  xy: (x, y) => { const c = cell(), r = cv.getBoundingClientRect(); return [r.left + (PAD + x * c) / W * r.width, r.top + (PAD + y * c) / W * r.height]; },
+  pt: (x, y) => goPt(S, x, y), setBoard(rows, turn) { S = goNew(rows.length); n = rows.length; setPad(n); rows.forEach((r, y) => [...r].forEach((ch, x) => { if (ch === 'X' || ch === 'O') { const p = goPt(S, x, y); S.b[p] = ch === 'X' ? 1 : 2; const i = S.Ei[p], l = S.E[--S.En]; S.E[i] = l; S.Ei[l] = i; S.Ei[p] = -1; } })); S.turn = turn || 1; st.opp = 'two'; seen = new Set([goKey(S)]); keys = [goKey(S)]; hist = []; phase = 'play'; over = false; token++; thinking = false; komi = 0.5; bars(); hud(); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

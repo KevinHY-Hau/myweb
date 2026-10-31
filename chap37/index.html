@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 37 · Jungle Chess 斗獸棋</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f4d2b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jungle">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:1.4em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:520px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:4/5;border-radius:12px;touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+.rt{border-collapse:collapse;width:100%;margin:6px 0;font-size:13.5px}
+.rt th,.rt td{border:1px solid var(--line);padding:4px 7px;text-align:left;vertical-align:top}
+.rt th{white-space:nowrap;background:rgba(255,255,255,.06);color:var(--muted);font-size:12px}
+.rt td:first-child{text-align:center;font-weight:800;color:var(--accent-light);width:44px}
+.zh{margin-top:12px}.zh summary{cursor:pointer;font-weight:700;color:var(--accent-light)}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Jungle Chess 斗獸棋</h2>
+  <p>Chapter 37 · The classic animal board game: capture with rank, swim with the rat, jump the river with the lion and tiger, and reach the enemy den</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small id="l1">TURN</small><b id="s1">Red</b></div>
+    <div class="tstat"><small id="l2">RED</small><b id="s2">8</b></div>
+    <div class="tstat"><small id="l3">BLUE</small><b id="s3">8</b></div>
+    <div class="tstat"><small id="l4">MOVES</small><b id="s4">0</b></div>
+  </div>
+  <div class="tmsg" id="msg">Your move</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="Jungle chess board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win!</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+  </div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 Rules of Jungle Chess (斗獸棋)</h2>
+    <p><b>Goal.</b> Move one of your pieces into the other side's <b>den</b> (穴), or capture every enemy piece, or leave the other side with no legal move. Red starts at the bottom and moves first.</p>
+    <h3>The pieces (8 each)</h3>
+    <p>A higher number beats a lower number. The number is shown on each piece.</p>
+    <table class="rt">
+      <tr><th>Rank</th><th>Animal</th><th>中文</th><th>Special</th></tr>
+      <tr><td>8</td><td>🐘 Elephant</td><td>象</td><td>Strongest, but <b>a rat can capture it</b>. It cannot capture a rat.</td></tr>
+      <tr><td>7</td><td>🦁 Lion</td><td>獅</td><td><b>Jumps</b> across the river.</td></tr>
+      <tr><td>6</td><td>🐯 Tiger</td><td>虎</td><td><b>Jumps</b> across the river.</td></tr>
+      <tr><td>5</td><td>🐆 Leopard</td><td>豹</td><td></td></tr>
+      <tr><td>4</td><td>🐺 Wolf</td><td>狼</td><td></td></tr>
+      <tr><td>3</td><td>🐶 Dog</td><td>狗</td><td></td></tr>
+      <tr><td>2</td><td>🐱 Cat</td><td>貓</td><td></td></tr>
+      <tr><td>1</td><td>🐭 Rat</td><td>鼠</td><td>Weakest, but it <b>swims</b> in the river and <b>captures the elephant</b>.</td></tr>
+    </table>
+    <h3>Moving</h3>
+    <ul>
+      <li>Each turn move one piece <b>one square</b> up, down, left or right (never diagonally). You must move; you cannot pass.</li>
+      <li>You may not move onto a square with one of your own pieces, and you may <b>never enter your own den</b>.</li>
+    </ul>
+    <h3>Capturing</h3>
+    <ul>
+      <li>Move onto an enemy piece to capture it. A piece captures an enemy of <b>equal or lower rank</b>.</li>
+      <li><b>Exception:</b> the <b>rat</b> may capture the <b>elephant</b>, and the elephant may <b>not</b> capture the rat.</li>
+    </ul>
+    <h3>The river (the two blue lakes)</h3>
+    <ul>
+      <li>Only the <b>rat</b> may enter the water. Other animals cannot step in.</li>
+      <li>A rat <b>in the water</b> cannot capture a piece on land, and a piece on land cannot capture a rat in the water. A rat in the water <b>can</b> capture another rat in the water. A rat on land and a rat in the water cannot capture each other.</li>
+      <li>A rat in the water cannot capture the elephant. To capture the elephant the rat must be on land.</li>
+    </ul>
+    <h3>Jumping (lion and tiger only)</h3>
+    <ul>
+      <li>From the bank, a lion or tiger can <b>jump straight across the river</b>: over the 2 squares of water sideways, or the 3 squares of water lengthwise, landing on the first land square on the other side. It may capture there if the usual rules allow.</li>
+      <li>The jump is <b>blocked</b> if any rat (yours or the enemy's) is in the water squares it would jump over.</li>
+    </ul>
+    <h3>Traps (阱)</h3>
+    <ul>
+      <li>The three squares around each den are that side's <b>traps</b>. If an <b>enemy</b> piece stands on one of your traps, its rank becomes <b>0</b> and <b>any of your pieces can capture it</b> (even your rat can capture an enemy elephant, and your elephant can capture an enemy rat).</li>
+      <li>Your own pieces are not weakened on your own traps. A piece that steps off the trap gets its rank back.</li>
+    </ul>
+    <h3>Den (穴)</h3>
+    <ul><li>Moving any piece into the <b>enemy den</b> wins the game at once. Defend your own den by keeping strong pieces near it and by capturing intruders in your traps.</li></ul>
+    <h3>Draw</h3>
+    <ul><li>If 50 moves each go by with no capture, the game is a draw (this is a house rule so a game cannot go on forever).</li></ul>
+    <h3>How to use this game</h3>
+    <ul>
+      <li>Tap one of your pieces; the squares it can go to are shown (green = move, red = capture, gold with an arc = jump). Tap a square to move.</li>
+      <li>Settings let you change the computer's level, which side you play, and how pieces are labelled (animal picture, Chinese character or both).</li>
+      <li><b>Hint</b> shows a good move. <b>Undo</b> takes back your last move (and the computer's reply).</li>
+    </ul>
+    <details class="zh"><summary>中文規則 (Chinese rules)</summary>
+      <p><b>目標：</b>把任何一隻棋子走進對方的獸穴就獲勝；吃光對方所有棋子，或令對方無棋可走，也算獲勝。紅方在下方，先行。</p>
+      <p><b>棋子大小：</b>象 > 獅 > 虎 > 豹 > 狼 > 狗 > 貓 > 鼠。大的可以吃同級或較小的棋子。<b>鼠可以吃象，象不可以吃鼠。</b></p>
+      <p><b>走法：</b>每回合走一格，上下左右，不可斜走。不可走入自己的獸穴。</p>
+      <p><b>河：</b>只有鼠可以下水。水中的鼠不能吃岸上的棋子，岸上的棋子也不能吃水中的鼠；水中的鼠可以吃水中的鼠。鼠在水中不能吃象。</p>
+      <p><b>跳河：</b>獅和虎可以從河岸直線跳過河（橫向跳過兩格水，直向跳過三格水），落在對岸，可吃對岸的棋子。如果河中有鼠（不論哪一方）擋住，就不能跳。</p>
+      <p><b>陷阱：</b>獸穴旁邊的三格是陷阱。敵方棋子走進你的陷阱，就失去等級（等級變為 0），你的任何棋子都可以吃掉它。</p>
+      <p><b>和局：</b>雙方各 50 步內都沒有吃子，判和局。</p>
+    </details>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🐘 Jungle Chess (斗獸棋, Dou Shou Qi) with the standard rules: ranks, river, jumps, traps and dens. Play the computer (three levels) or a friend. The computer thinks ahead with a search (minimax with alpha-beta). Drawings, sounds, rules and code are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Jungle Chess (Dou Shou Qi): the rules and the computer player, with no drawing so it can be tested on its own (tools/rulecheck.js).
+   Board: 9 rows x 7 columns, square index = row * 7 + col. Side 1 ("Red") starts at the bottom, side -1 ("Blue") at the top. Red moves first.
+   A piece on the board is side * rank. Ranks: 1 Rat, 2 Cat, 3 Dog, 4 Wolf, 5 Leopard, 6 Tiger, 7 Lion, 8 Elephant.
+   Terrain: JG_T = 0 land, 1 river, 2 trap, 3 den. JG_O says whose trap or den it is. */
+const JG_NAMES = ['', 'Rat', 'Cat', 'Dog', 'Wolf', 'Leopard', 'Tiger', 'Lion', 'Elephant'], JG_CH = ['', '鼠', '貓', '狗', '狼', '豹', '虎', '獅', '象'], JG_EMO = ['', '🐭', '🐱', '🐶', '🐺', '🐆', '🐯', '🦁', '🐘'];
+const JG_ROWS = 9, JG_COLS = 7, JG_T = new Int8Array(63), JG_O = new Int8Array(63);
+(function () {
+  for (let r = 3; r <= 5; r++) for (const c of [1, 2, 4, 5]) JG_T[r * 7 + c] = 1;
+  for (const [r, c] of [[0, 2], [0, 4], [1, 3]]) { JG_T[r * 7 + c] = 2; JG_O[r * 7 + c] = -1; }
+  for (const [r, c] of [[8, 2], [8, 4], [7, 3]]) { JG_T[r * 7 + c] = 2; JG_O[r * 7 + c] = 1; }
+  JG_T[3] = 3; JG_O[3] = -1; JG_T[8 * 7 + 3] = 3; JG_O[8 * 7 + 3] = 1;
+})();
+const JG_START = [[0, 0, 7], [0, 6, 6], [1, 1, 3], [1, 5, 2], [2, 0, 1], [2, 2, 5], [2, 4, 4], [2, 6, 8]];       // Blue's pieces (top); Red's are the same turned half way round
+function jgNew() {
+  const b = new Int8Array(63); for (const [r, c, k] of JG_START) { b[r * 7 + c] = -k; b[(8 - r) * 7 + (6 - c)] = k; }
+  return { b, turn: 1, half: 0, win: 0 };
+}
+const jgClone = S => ({ b: S.b.slice(), turn: S.turn, half: S.half, win: S.win });
+const jgSign = p => p > 0 ? 1 : p < 0 ? -1 : 0;
+/* can the piece on square a capture the piece on square d? (the move itself must already be a legal step or jump) */
+function jgCan(b, a, d) {
+  const pa = b[a], pd = b[d], ra = Math.abs(pa), rd = Math.abs(pd), aw = JG_T[a] === 1, dw = JG_T[d] === 1;
+  if (aw !== dw) return false;                                        // a rat in the water and a piece on land cannot capture each other
+  const trapped = JG_T[d] === 2 && JG_O[d] !== jgSign(pd);             // an enemy piece standing in a trap next to MY den has no rank
+  if (trapped) return true;
+  if (ra === 1 && rd === 8) return true; if (ra === 8 && rd === 1) return false;
+  return ra >= rd;
+}
+const JG_D = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+function jgMoves(S) {
+  const b = S.b, turn = S.turn, out = [];
+  for (let i = 0; i < 63; i++) {
+    const p = b[i]; if (!p || jgSign(p) !== turn) continue; const a = Math.abs(p), r = (i / 7) | 0, c = i % 7;
+    for (const [dr, dc] of JG_D) {
+      const r2 = r + dr, c2 = c + dc; if (r2 < 0 || r2 > 8 || c2 < 0 || c2 > 6) continue; const t = r2 * 7 + c2;
+      if (JG_T[t] === 3 && JG_O[t] === turn) continue;                    // you may not enter your own den
+      if (JG_T[t] === 1) {
+        if (a === 1) { const q = b[t]; if (q === 0) out.push({ f: i, t, cap: false }); else if (jgSign(q) === -turn && jgCan(b, i, t)) out.push({ f: i, t, cap: true }); }
+        else if (a === 6 || a === 7) {                                    // tiger and lion jump over the river, if no rat is in the way
+          let rr = r2, cc = c2, blocked = false; while (rr >= 0 && rr <= 8 && cc >= 0 && cc <= 6 && JG_T[rr * 7 + cc] === 1) { if (b[rr * 7 + cc] !== 0) blocked = true; rr += dr; cc += dc; }
+          if (blocked || rr < 0 || rr > 8 || cc < 0 || cc > 6) continue; const t2 = rr * 7 + cc, q = b[t2];
+          if (q === 0) out.push({ f: i, t: t2, cap: false, jump: true }); else if (jgSign(q) === -turn && jgCan(b, i, t2)) out.push({ f: i, t: t2, cap: true, jump: true });
+        }
+        continue;
+      }
+      const q = b[t]; if (q === 0) out.push({ f: i, t, cap: false }); else if (jgSign(q) === -turn && jgCan(b, i, t)) out.push({ f: i, t, cap: true });
+    }
+  }
+  return out;
+}
+function jgMake(S, m) {
+  const b = S.b, u = { cap: b[m.t], half: S.half, win: S.win }; b[m.t] = b[m.f]; b[m.f] = 0;
+  S.win = (JG_T[m.t] === 3 && JG_O[m.t] !== S.turn) ? S.turn : 0; S.turn = -S.turn; S.half = m.cap ? 0 : S.half + 1; return u;
+}
+function jgUnmake(S, m, u) { const b = S.b; b[m.f] = b[m.t]; b[m.t] = u.cap; S.turn = -S.turn; S.half = u.half; S.win = u.win; }
+
+/* ---------- the computer player ---------- */
+const JG_V = [0, 30, 16, 24, 34, 48, 70, 80, 72], JG_W = [0, 2, 2.5, 2, 2, 2, 2.6, 2.6, 1.6];
+function jgEval(S) {                       // from the point of view of the side to move
+  const b = S.b; let s = 0;
+  for (let i = 0; i < 63; i++) {
+    const p = b[i]; if (!p) continue; const a = Math.abs(p), sg = p > 0 ? 1 : -1, r = (i / 7) | 0, c = i % 7, dr = sg > 0 ? r : 8 - r, dist = dr + Math.abs(c - 3);     // distance to the enemy den
+    let v = JG_V[a] + Math.max(0, 11 - dist) * JG_W[a]; if (JG_T[i] === 2 && JG_O[i] !== sg) v -= JG_V[a] * .8; if (JG_T[i] === 1) v += 2;
+    s += sg * v;
+  }
+  return s * S.turn;
+}
+/* opt: {ms, maxDepth, exact} -> {move, score, depth, moves, scores} */
+function jgSearch(S0, opt) {
+  const S = jgClone(S0), t0 = performance.now(); let nodes = 0, timeout = false;
+  const order = mv => mv.sort((x, y) => (y.cap ? 100 + JG_V[Math.abs(S.b[y.t])] : 0) - (x.cap ? 100 + JG_V[Math.abs(S.b[x.t])] : 0));
+  function q(alpha, beta, ply, qd) {
+    if ((++nodes & 255) === 0 && performance.now() - t0 > opt.ms) timeout = true; if (timeout) return 0;
+    if (S.win) return -20000 + ply; const stand = jgEval(S); if (qd <= 0 || S.half >= 100) return stand; if (stand >= beta) return stand; if (stand > alpha) alpha = stand;
+    const mv = order(jgMoves(S).filter(m => m.cap)); for (const m of mv) { const u = jgMake(S, m), v = -q(-beta, -alpha, ply + 1, qd - 1); jgUnmake(S, m, u); if (timeout) return 0; if (v >= beta) return v; if (v > alpha) alpha = v; }
+    return alpha;
+  }
+  function nm(d, alpha, beta, ply) {
+    if ((++nodes & 255) === 0 && performance.now() - t0 > opt.ms) timeout = true; if (timeout) return 0;
+    if (S.win) return -20000 + ply; if (S.half >= 100) return 0; if (d <= 0) return q(alpha, beta, ply, 3);
+    const mv = order(jgMoves(S)); if (!mv.length) return -20000 + ply; let best = -1e9;
+    for (const m of mv) { const u = jgMake(S, m), v = -nm(d - 1, -beta, -alpha, ply + 1); jgUnmake(S, m, u); if (timeout) return 0; if (v > best) best = v; if (best > alpha) alpha = best; if (alpha >= beta) break; }
+    return best;
+  }
+  let root = order(jgMoves(S)); if (!root.length) return null;
+  let best = { move: root[0], score: 0, depth: 0, moves: root.slice(), scores: root.map(() => 0) };
+  for (let d = 1; d <= opt.maxDepth; d++) {
+    let alpha = -1e9, bm = null; const scores = [];
+    for (const m of root) {
+      const u = jgMake(S, m), v = -nm(d - 1, -1e9, opt.exact ? 1e9 : -alpha, 1); jgUnmake(S, m, u); if (timeout) break; scores.push(v);
+      if (!bm || v > bm.v) bm = { m, v }; if (v > alpha) alpha = v;
+    }
+    if (timeout) break; best = { move: bm.m, score: bm.v, depth: d, moves: root.slice(), scores: scores.slice() };
+    const ord = root.map((m, i) => [m, scores[i]]).sort((x, y) => y[1] - x[1]); root = ord.map(x => x[0]); if (Math.abs(bm.v) > 15000) break;
+  }
+  return best;
+}
+
+/* Jungle Chess. rules.js has the rules and the computer player (tested on its own); this file is the board, the input, the animation and the game flow.
+   A move is {f: from square, t: to square, cap: is it a capture, jump: did it jump the river}. Squares are row * 7 + col, 9 rows by 7 columns. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.junglechess.v1', { dark: true, sound: true, opp: 'cpu', side: 'red', level: 'normal', labels: 'both', help: true, wins: 0, losses: 0, draws: 0 }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+let lastSide = st.side;
+settings([
+  { id: 'level', label: 'Computer level', type: 'select', options: [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard (thinks longer)']], def: 'normal' },
+  { id: 'side', label: 'I play', type: 'select', options: [['red', 'Red (bottom, moves first)'], ['blue', 'Blue (moves second)']], def: 'red' },
+  { id: 'labels', label: 'Piece labels', type: 'select', options: [['both', 'Animal + Chinese character'], ['emoji', 'Animal picture'], ['chinese', 'Chinese character']], def: 'both' },
+  { id: 'help', label: 'Show which pieces can move', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { const ch = lastSide !== st.side; S0.save(); if (ch) newGame(); });
+
+const W = 560, H = 700, CS = 70, X0 = 35, Y0 = 35;
+const cv = $('cv'), C = KIT.canvas(cv, W, H, 2), ctx = C.ctx;
+const COLS = { 1: ['#e0524d', '#a82a2a', 'Red'], '-1': ['#4d8be0', '#2a58a8', 'Blue'] };
+let S = null, hist = [], me = 1, LM = [], sel = -1, anim = null, over = false, thinking = false, hintM = null, hintT = 0, last = null, tClock = 0, movesPlayed = 0, token = 0, note = '';
+const flip = () => st.opp === 'cpu' && me === -1, sideName = s => COLS[s][2];
+function sqXY(i) { const r = (i / 7) | 0, c = i % 7, f = flip(), dr = f ? 8 - r : r, dc = f ? 6 - c : c; return [X0 + (dc + .5) * CS, Y0 + (dr + .5) * CS]; }
+function xyToIdx(x, y) { const dc = Math.floor((x - X0) / CS), dr = Math.floor((y - Y0) / CS); if (dc < 0 || dr < 0 || dc > 6 || dr > 8) return -1; const f = flip(); return (f ? 8 - dr : dr) * 7 + (f ? 6 - dc : dc); }
+const setMsg = t => { $('msg').textContent = t; };
+const sgn = p => p > 0 ? 1 : -1, pname = p => JG_NAMES[Math.abs(p)];
+
+/* ---------- starting and ending ---------- */
+function newGame() {
+  token++; O.hideAll(); S = jgNew(); hist = []; anim = null; over = false; thinking = false; hintM = null; last = null; sel = -1; movesPlayed = 0; note = '';
+  me = st.opp === 'cpu' ? (st.side === 'blue' ? -1 : 1) : 0; lastSide = st.side; bars(); nextTurn();
+}
+const count = s => S.b.filter(p => p && sgn(p) === s).length;
+function hud() {
+  $('l2').textContent = st.opp === 'cpu' ? (me === 1 ? 'YOU (RED)' : 'COMPUTER (RED)') : 'RED'; $('l3').textContent = st.opp === 'cpu' ? (me === -1 ? 'YOU (BLUE)' : 'COMPUTER (BLUE)') : 'BLUE';
+  $('s1').textContent = over ? 'Game over' : st.opp === 'cpu' ? (S.turn === me ? 'You' : 'Computer') : sideName(S.turn); $('s2').textContent = count(1); $('s3').textContent = count(-1); $('s4').textContent = movesPlayed;
+  $('recLine').textContent = st.opp === 'cpu' ? 'Record against the computer: ' + st.wins + ' won, ' + st.losses + ' lost, ' + st.draws + ' drawn' : 'Two players on one screen';
+}
+function bars() {
+  $('oppBar').innerHTML = [['cpu', '🤖 vs computer'], ['two', '👥 2 players']].map(([k, t]) => '<button class="btn sm' + (st.opp === k ? ' on' : '') + '" data-act="opp" data-k="' + k + '" type="button">' + t + '</button>').join('');
+}
+function nextTurn() {
+  if (over) return; hud();
+  if (S.win) return finish(S.win, sideName(S.win) + ' reached the den!');
+  LM = jgMoves(S);
+  if (!LM.length) return finish(-S.turn, sideName(S.turn) + ' has no move left.');
+  if (S.half >= 100) return finish(0, '50 moves each without a capture.');
+  sel = -1;
+  if (st.opp === 'cpu' && S.turn !== me) { setMsg((note ? note + ' ' : '') + 'The computer is thinking…'); think(); }
+  else setMsg((note ? note + ' ' : '') + (st.opp === 'cpu' ? 'Your move' : sideName(S.turn) + ' to move'));
+}
+function finish(w, why) {
+  over = true; let h;
+  if (w === 0) { h = 'It\'s a draw'; if (st.opp === 'cpu') st.draws++; }
+  else if (st.opp === 'cpu') { h = w === me ? 'You win! 🎉' : 'The computer wins'; if (w === me) st.wins++; else st.losses++; }
+  else h = sideName(w) + ' wins! 🎉';
+  S0.save(); hud(); $('endH').textContent = h; $('endP').textContent = why; setMsg(h);
+  if (w !== 0 && (st.opp === 'two' || w === me)) { A.beep(660, .1, 'triangle', .12); A.beep(880, .1, 'triangle', .12, .1); A.beep(1320, .2, 'triangle', .12, .2); } else A.slide(400, 120, .5, 'sawtooth', .08);
+  setTimeout(() => { if (over) O.show('ovEnd'); }, 700);
+}
+
+/* ---------- playing a move ---------- */
+function playMove(m) {
+  token++; hintM = null; hist.push({ b: S.b.slice(), turn: S.turn, half: S.half, last, mp: movesPlayed, note }); sel = -1;
+  const p = S.b[m.f], q = S.b[m.t]; note = sideName(S.turn) + ' ' + pname(p) + (m.cap ? ' captured ' + sideName(-S.turn) + ' ' + pname(q) + '.' : m.jump ? ' jumped the river.' : '.');
+  anim = { m, piece: p, from: sqXY(m.f), to: sqXY(m.t), t: 0, cap: false };
+}
+function finishAnim() {
+  const m = anim.m; jgMake(S, m); anim = null; last = { f: m.f, to: m.t }; movesPlayed++;
+  if (m.cap) { A.noise(.08, .16); A.beep(160, .1, 'square', .07); } else if (m.jump) { A.slide(300, 700, .18, 'sine', .08); } else A.beep(320, .05, 'triangle', .1);
+  nextTurn();
+}
+function think() {
+  thinking = true; const my = token, lvl = st.level, snap = jgClone(S);
+  setTimeout(() => {
+    if (my !== token || over) { thinking = false; return; }
+    const opt = lvl === 'easy' ? { ms: 150, maxDepth: 2, exact: true } : lvl === 'normal' ? { ms: 600, maxDepth: 7 } : { ms: 1600, maxDepth: 14 };
+    const r = jgSearch(snap, opt); thinking = false; if (my !== token || over || !r) return; let m = r.move;
+    if (lvl === 'easy') { const best = Math.max(...r.scores), pool = r.moves.filter((_, i) => r.scores[i] >= best - 25); m = Math.random() < .2 ? r.moves[Math.floor(Math.random() * r.moves.length)] : pool[Math.floor(Math.random() * pool.length)]; }
+    playMove(m);
+  }, 350);
+}
+function undo() {
+  if (anim || !hist.length) return; token++; thinking = false; let j = hist.length - 1;
+  if (st.opp === 'cpu') { while (j >= 0 && hist[j].turn !== me) j--; if (j < 0) return; }
+  const h = hist[j]; hist.length = j; S.b = Int8Array.from(h.b); S.turn = h.turn; S.half = h.half; S.win = 0; last = h.last; movesPlayed = h.mp; note = h.note || ''; over = false; O.hideAll(); anim = null; sel = -1; hintM = null; nextTurn();
+}
+function hint() {
+  if (over || anim || (st.opp === 'cpu' && S.turn !== me)) return; setMsg('Thinking of a hint…');
+  setTimeout(() => { const r = jgSearch(jgClone(S), { ms: 600, maxDepth: 8 }); if (!r) return; hintM = r.move; hintT = 3; setMsg('Hint: the blue ring is the piece, the ring on the square is where to go.'); }, 30);
+}
+
+/* ---------- input ---------- */
+const canAct = () => !over && !anim && !thinking && (st.opp === 'two' || S.turn === me);
+cv.addEventListener('pointerdown', e => {
+  if (!canAct()) return; const p = C.pos(e), i = xyToIdx(p.x, p.y); if (i < 0) return; hintM = null;
+  if (sel >= 0) { const m = LM.find(m => m.f === sel && m.t === i); if (m) { playMove(m); return; } }
+  if (S.b[i] && sgn(S.b[i]) === S.turn) {
+    if (LM.some(m => m.f === i)) { sel = i; A.beep(520, .03, 'sine', .05); return; }
+    setMsg('The ' + pname(S.b[i]) + ' has nowhere to go right now.'); sel = -1; return;
+  }
+  sel = -1;
+});
+window.addEventListener('keydown', e => { if (e.code === 'Escape') sel = -1; else if (e.code === 'KeyU') undo(); });
+ui.actions(document.body, {
+  restart: newGame, undo, hint, closeov: () => O.hide('ovEnd'),
+  opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); }
+});
+
+/* ---------- drawing ---------- */
+function drawTerrain(g) {
+  const pulse = tClock;
+  g.fillStyle = '#16301d'; g.beginPath(); g.roundRect ? g.roundRect(0, 0, W, H, 18) : g.rect(0, 0, W, H); g.fill();
+  for (let i = 0; i < 63; i++) {
+    const [cx, cy] = sqXY(i), x = cx - CS / 2, y = cy - CS / 2, r = (i / 7) | 0, c = i % 7, T = JG_T[i], own = JG_O[i];
+    if (T === 1) {
+      g.fillStyle = '#3f95d0'; g.fillRect(x, y, CS, CS); g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 2;
+      for (let k = 0; k < 3; k++) { const yy = y + 16 + k * 20, ph = Math.sin(pulse * 1.5 + c + k) * 3; g.beginPath(); g.moveTo(x + 8, yy); g.quadraticCurveTo(x + 22, yy - 6 + ph, x + 35, yy); g.quadraticCurveTo(x + 48, yy + 6 - ph, x + 62, yy); g.stroke(); }
+    } else {
+      g.fillStyle = (r + c) % 2 ? '#8dbd68' : '#9cc977'; g.fillRect(x, y, CS, CS);
+      if (T === 2) { const col = COLS[own][0]; g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(x + 4, y + 4, CS - 8, CS - 8); g.strokeStyle = col; g.lineWidth = 3; g.setLineDash([7, 5]); g.strokeRect(x + 6, y + 6, CS - 12, CS - 12); g.setLineDash([]); g.fillStyle = col; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('阱', x + CS - 14, y + CS - 13); }
+      if (T === 3) { const col = COLS[own]; g.fillStyle = col[1]; g.fillRect(x + 3, y + 3, CS - 6, CS - 6); g.fillStyle = '#1a1210'; g.beginPath(); g.moveTo(x + 17, y + CS - 8); g.lineTo(x + 17, y + 34); g.arc(x + CS / 2, y + 34, 18, Math.PI, 0); g.lineTo(x + CS - 17, y + CS - 8); g.closePath(); g.fill(); g.fillStyle = '#ffe9b0'; g.font = 'bold 14px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('穴', x + CS / 2, y + 12); }
+    }
+  }
+  g.strokeStyle = 'rgba(0,0,0,.28)'; g.lineWidth = 1; for (let k = 0; k <= 7; k++) { g.beginPath(); g.moveTo(X0 + k * CS, Y0); g.lineTo(X0 + k * CS, Y0 + 9 * CS); g.stroke(); } for (let k = 0; k <= 9; k++) { g.beginPath(); g.moveTo(X0, Y0 + k * CS); g.lineTo(X0 + 7 * CS, Y0 + k * CS); g.stroke(); }
+  g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 3; g.strokeRect(X0, Y0, 7 * CS, 9 * CS);
+}
+function drawPiece(g, x, y, p, alpha, trapped) {
+  const s = sgn(p), a = Math.abs(p), col = COLS[s], R = 29; g.save(); if (alpha != null) g.globalAlpha = alpha;
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + 2, y + 4, R, 0, 7); g.fill();
+  const gr = g.createRadialGradient(x - 9, y - 11, 3, x, y, R); gr.addColorStop(0, col[0]); gr.addColorStop(1, col[1]); g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill();
+  g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, R - 1, 0, 7); g.stroke();
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, R - 6, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.0)';
+  const lab = st.labels; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (lab === 'emoji') { g.font = '30px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.fillStyle = '#000'; g.fillText(JG_EMO[a], x, y + 2); }
+  else if (lab === 'chinese') { g.font = 'bold 32px "Noto Serif CJK TC","PingFang TC","Microsoft JhengHei",serif'; g.fillStyle = col[1]; g.fillText(JG_CH[a], x, y + 1); }
+  else { g.font = '26px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.fillStyle = '#000'; g.fillText(JG_EMO[a], x, y - 4); g.font = 'bold 14px "Noto Serif CJK TC","PingFang TC","Microsoft JhengHei",serif'; g.fillStyle = col[1]; g.fillText(JG_CH[a], x, y + 16); }
+  g.fillStyle = trapped ? '#222' : col[1]; g.beginPath(); g.arc(x - 21, y - 21, 10, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = '#fff'; g.font = 'bold 12px sans-serif'; g.fillText(trapped ? '0' : a, x - 21, y - 20.5);
+  g.restore();
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0); if (!S) return; drawTerrain(g);
+  const pulse = .5 + .5 * Math.sin(tClock * 6), movers = new Set(); if (canAct() && st.help) LM.forEach(m => movers.add(m.f));
+  if (last) for (const i of [last.f, last.to]) { const [x, y] = sqXY(i); g.fillStyle = 'rgba(255,230,80,.3)'; g.fillRect(x - CS / 2, y - CS / 2, CS, CS); }
+  for (let i = 0; i < 63; i++) {
+    const p = S.b[i]; if (!p) continue; if (anim && i === anim.m.f) continue; if (anim && anim.cap && i === anim.m.t) continue; const [x, y] = sqXY(i);
+    if (movers.has(i) && i !== sel) { g.strokeStyle = 'rgba(255,240,120,' + (.45 + .45 * pulse) + ')'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 33, 0, 7); g.stroke(); }
+    if (i === sel) { g.strokeStyle = '#ffd23f'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, 34, 0, 7); g.stroke(); }
+    drawPiece(g, x, y, p, 1, JG_T[i] === 2 && JG_O[i] !== sgn(p));
+  }
+  if (sel >= 0) {
+    const [fx, fy] = sqXY(sel);
+    for (const m of LM) { if (m.f !== sel) continue; const [x, y] = sqXY(m.t); if (m.jump) { g.strokeStyle = 'rgba(255,200,40,.9)'; g.lineWidth = 3; g.setLineDash([6, 6]); g.beginPath(); g.moveTo(fx, fy); g.quadraticCurveTo((fx + x) / 2, (fy + y) / 2 - 40, x, y); g.stroke(); g.setLineDash([]); }
+      g.fillStyle = m.cap ? 'rgba(255,70,70,.9)' : m.jump ? 'rgba(255,200,40,.95)' : 'rgba(60,200,100,.9)'; g.beginPath(); g.arc(x, y, m.cap ? 13 + pulse * 2 : 10 + pulse * 2, 0, 7); g.fill(); if (m.cap) { g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); } }
+  }
+  if (hintM && hintT > 0) { const [x, y] = sqXY(hintM.f), [x2, y2] = sqXY(hintM.t); g.strokeStyle = 'rgba(80,220,255,' + (.6 + .4 * pulse) + ')'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, 35, 0, 7); g.stroke(); g.beginPath(); g.arc(x2, y2, 30, 0, 7); g.stroke(); }
+  if (anim) {
+    const a = anim, u = Math.min(1, a.t), x = a.from[0] + (a.to[0] - a.from[0]) * u, y = a.from[1] + (a.to[1] - a.from[1]) * u, hop = a.m.jump ? Math.sin(u * Math.PI) * 45 : Math.sin(u * Math.PI) * 6;
+    drawPiece(g, x, y - hop, a.piece, 1, false);
+  }
+}
+function update(dt) {
+  tClock += dt; if (hintT > 0) { hintT -= dt; if (hintT <= 0) hintM = null; }
+  if (anim) { anim.t += dt / (anim.m.jump ? .4 : .2); if (anim.t > .85) anim.cap = true; if (anim.t >= 1) finishAnim(); }
+}
+KIT.loop(update, draw).start();
+
+/* ---------- start ---------- */
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get LM() { return LM; }, get over() { return over; }, get anim() { return anim; }, get thinking() { return thinking; }, st, newGame, undo, playMove, hint,
+  xy: i => { const p = sqXY(i), r = cv.getBoundingClientRect(); return [r.left + p[0] / W * r.width, r.top + p[1] / H * r.height]; }, get me() { return me; },
+  setBoard(list, turn) { S = { b: new Int8Array(63), turn: turn || 1, half: 0, win: 0 }; for (const [r, c, p] of list) S.b[r * 7 + c] = p; hist = []; over = false; anim = null; thinking = false; token++; me = 1; st.opp = 'two'; LM = jgMoves(S); hud(); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

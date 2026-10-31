@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 61 · Morris</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5a3410">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Morris">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:16px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tstat i{display:block;font-style:normal;font-size:9.5px;line-height:1.2;color:var(--muted);min-height:2.4em}
+.tmsg{min-height:1.6em;font-weight:700;font-size:15px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:520px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;background:#c8903f}
+.spellinfo{min-height:2.8em;text-align:center;font-size:13px;color:var(--muted);max-width:520px;margin:0 auto}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.btn.big{font-size:18px;padding:.7rem 1.6rem}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+.learn{display:flex;flex-direction:column;gap:8px;align-items:center;max-width:92%;text-align:center}
+.learn canvas{width:min(160px,40vw);height:min(160px,40vw);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.4)}.learn p{margin:0;font-size:12.5px;line-height:1.38}
+.dots{display:flex;gap:6px}.dots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3)}.dots i.on{background:var(--accent)}
+#ovLearn{gap:6px}#ovLearn h3{margin:0;font-size:clamp(20px,5.2vw,28px)}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Morris</h2>
+  <p>Chapter 61 · Nine Men's Morris, the old game of mills: place nine stones, slide them, fly when you are down to three, and take a stone every time you make three in a row. Play the computer at four levels or a friend on one screen</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap acwrap">
+  <div class="thead">
+    <div class="tstat"><small>WHITE ●</small><b id="s1">9</b><i id="s1b"></i></div>
+    <div class="tstat"><small>TO MOVE</small><b id="s2">White</b><i id="s2b">&nbsp;</i></div>
+    <div class="tstat"><small>BLACK ●</small><b id="s3">9</b><i id="s3b"></i></div>
+    <div class="tstat"><small>MOVES</small><b id="s4">0</b><i>draw at 200</i></div>
+  </div>
+  <div class="tmsg" id="msg">Your move</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="Nine Men's Morris board"></canvas>
+    <div class="ov" id="ovLearn"><h3>Morris in 5 steps</h3>
+      <div class="learn"><canvas id="mini" width="220" height="220"></canvas><p id="miniP"></p><div class="dots" id="miniDots"></div></div>
+      <div class="tbar"><button class="btn" data-act="lback" id="lBack" type="button">◀ Back</button><button class="btn primary big" data-act="lnext" id="lNext" type="button">Next ▶</button></div></div>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win!</h3><p id="endP"></p><div class="tbar"><button class="btn primary big" data-act="newgame" type="button">Play again</button><button class="btn" data-act="undo" type="button">Take back last move</button></div></div>
+  </div>
+  <div class="spellinfo" id="info">Placing: tap an empty point.</div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" id="bUndo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" id="bHint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="newgame" type="button">🔄 New game</button>
+    <button class="btn sm" data-act="learn" type="button">❓ How to play</button>
+  </div>
+  <div class="tbar"><span class="kl">Play:</span><span id="vsBar"></span></div>
+  <div class="tbar" id="sideRow"><span class="kl">You are:</span><span id="sideBar"></span></div>
+  <div class="tbar" id="lvRow"><span class="kl">Computer:</span><span id="lvBar"></span></div>
+  <div class="tbar"><span class="kl">Stones:</span><span id="pcBar"></span></div>
+  <div class="tbar"><span class="kl">Flying:</span><span id="flyBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to play Nine Men's Morris</h2>
+    <p>One of the oldest board games still played: two players, a board of three squares inside each other, and nine stones each. <b>Make rows of three (mills) to capture the other player's stones.</b></p>
+    <h3>The three phases</h3>
+    <ul>
+      <li><b>1. Placing.</b> White starts. Players take turns putting one stone on any empty point of the 24 points, until all 9 each are down.</li>
+      <li><b>2. Sliding.</b> Now each turn you slide one of your stones along a line to a neighbouring empty point. No jumping.</li>
+      <li><b>3. Flying.</b> If you are down to exactly <b>3 stones</b>, you may fly: move any stone to any empty point. (You can turn this off in the Flying row.)</li>
+    </ul>
+    <h3>Mills and winning</h3>
+    <ul>
+      <li>Three of your stones in a straight line (a side of a square, or a line across the middle) is a <b>mill</b>. When you <b>close</b> a mill, by placing or sliding, you remove one enemy stone.</li>
+      <li>You may not take a stone that is inside an enemy mill, unless all the enemy's stones on the board are in mills.</li>
+      <li>You <b>win</b> when the enemy has <b>only 2 stones</b> left (counting stones still in hand), or when the enemy <b>cannot move</b>.</li>
+      <li>It is a <b>draw</b> if the same position comes up three times, or after 200 moves (a removal counts as a move) with no winner.</li>
+    </ul>
+    <h3>Tips</h3>
+    <ul>
+      <li><b>Mobility beats greed in the placing phase.</b> A stone on a crossing point (the middle of a side of the middle square has 4 neighbours) can go more places than one in a corner. Trying to make mills too early often leaves your stones stuck.</li>
+      <li><b>Block as you build.</b> If the enemy has two in a row with the third point empty, put a stone there (or be ready to take a stone from the row).</li>
+      <li><b>The running mill:</b> slide a stone out of a mill and back in, again and again. Every time it closes you take a stone. A <b>double mill</b> (one stone that swings between two mills) is the deadliest shape.</li>
+      <li>Blocking the enemy so they have no move is a win. Count their free neighbours before you spread out.</li>
+      <li>💡 Hint suggests a move (the computer thinks about 6 moves ahead). ↩ Undo takes back your last turn and the computer's reply.</li>
+    </ul>
+    <h3>Where it comes from</h3>
+    <ul>
+      <li>Boards like this are scratched into stone in many parts of the world, and the game was played across Europe for hundreds of years, which is why it has many names (Mill, Merels, Morabaraba, Cowboy checkers). Nobody can say exactly how old it is.</li>
+      <li>It is a <b>solved game</b>: in 1993-96 Ralph Gasser's computer search showed that with perfect play from both sides it is a <b>draw</b>. So the winner is the player who makes the first mistake.</li>
+      <li>This page uses the standard rules above. Some families play a few details differently (for example, whether flying exists or whether you can remove from a mill), so check the rules in your house.</li>
+    </ul>
+    <p>The computer is a plain look-ahead search (it tries moves, then the replies, then the replies to those, as deep as time allows) with a hand-made score for stones, mills and freedom to move. Master looks about 8 moves ahead on a fast machine. It is not a perfect player.</p>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">⚪ Nine Men's Morris is a traditional game with no single inventor. The rules here are the standard ones, and the same rules engine was checked move by move against the Python engine of the Game Learner (about 120,000 positions, no differences). The computer player is my own alpha-beta search with a hand-made score, so it is decent but not a perfect player (the game is a draw with perfect play, so a perfect computer would never lose). The levels were tuned by playing them against each other, not by experts. Not included: online play, saved games.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Morris rules + computer player (global MR). No screen code here, so the same file is checked against the Python engine of the Game Learner.
+   Points 0-7 outer square, 8-15 middle, 16-23 inner; each counted clockwise from the top-left corner (corner, middle of side, corner...).
+   An action is a number: 0-23 place on that point, 24+from*24+to move (or fly), 600+p remove the enemy piece on p.
+   Players are 1 (White, moves first) and 2 (Black). After a mill the same player moves again, and that second action is the removal. */
+const MR = (() => {
+  const MILLS = [[0, 1, 2], [2, 3, 4], [4, 5, 6], [6, 7, 0], [8, 9, 10], [10, 11, 12], [12, 13, 14], [14, 15, 8], [16, 17, 18], [18, 19, 20], [20, 21, 22], [22, 23, 16], [1, 9, 17], [3, 11, 19], [5, 13, 21], [7, 15, 23]];
+  const ADJ = Array.from({ length: 24 }, () => []);
+  for (let r = 0; r < 3; r++) for (let k = 0; k < 8; k++) {
+    ADJ[r * 8 + k].push(r * 8 + (k + 1) % 8, r * 8 + (k + 7) % 8);
+    if (k % 2 === 1 && r < 2) { ADJ[r * 8 + k].push((r + 1) * 8 + k); ADJ[(r + 1) * 8 + k].push(r * 8 + k); }
+  }
+  const MILLS_OF = Array.from({ length: 24 }, () => []);
+  MILLS.forEach((m, i) => m.forEach(p => MILLS_OF[p].push(i)));
+  const COORD = []; for (let r = 0; r < 3; r++) { const d = 3 - r; for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]]) COORD.push([3 + dx * d, 3 + dy * d]); }
+  const DEF = { pieces: 9, flying: true, maxPly: 200 };
+  const WIN = 100000;
+  function newGame(cfg) {
+    const c = Object.assign({}, DEF, cfg || {});
+    return { b: new Int8Array(24), turn: 1, h: [0, c.pieces, c.pieces], n: [0, 0, 0], pend: false, ply: 0, winner: null, why: '', c, last: null };
+  }
+  function clone(S) { return { b: S.b.slice(), turn: S.turn, h: S.h.slice(), n: S.n.slice(), pend: S.pend, ply: S.ply, winner: S.winner, why: S.why, c: S.c, last: S.last }; }
+  const millAt = (b, p, c) => { for (const i of MILLS_OF[p]) { const m = MILLS[i]; if (b[m[0]] === c && b[m[1]] === c && b[m[2]] === c) return true; } return false; };
+  const inMill = (b, p) => millAt(b, p, b[p]);
+  const total = (S, c) => S.n[c] + S.h[c];
+  function hasMove(S) {
+    const me = S.turn, b = S.b; if (S.h[me] > 0) return true; if (S.c.flying && S.n[me] === 3) return true;
+    for (let p = 0; p < 24; p++) if (b[p] === me) for (const e of ADJ[p]) if (b[e] === 0) return true;
+    return false;
+  }
+  function removable(S) {
+    const foe = 3 - S.turn, b = S.b, all = [], free = [];
+    for (let p = 0; p < 24; p++) if (b[p] === foe) { all.push(p); if (!inMill(b, p)) free.push(p); }
+    return free.length ? free : all;
+  }
+  function moves(S) {
+    if (S.winner !== null) return [];
+    const me = S.turn, b = S.b, out = [];
+    if (S.pend) { for (const p of removable(S)) out.push(600 + p); return out; }
+    if (S.h[me] > 0) { for (let p = 0; p < 24; p++) if (b[p] === 0) out.push(p); return out; }
+    const fly = S.c.flying && S.n[me] === 3;
+    for (let a = 0; a < 24; a++) if (b[a] === me) {
+      if (fly) { for (let e = 0; e < 24; e++) if (b[e] === 0) out.push(24 + a * 24 + e); }
+      else for (const e of ADJ[a]) if (b[e] === 0) out.push(24 + a * 24 + e);
+    }
+    return out;
+  }
+  /* make an action; returns a record that unmake() needs. Same rules, in the same order, as step() in the Python Morris. */
+  function make(S, a) {
+    const b = S.b, me = S.turn, opp = 3 - me, u = { a, turn: me, pend: S.pend, winner: S.winner, why: S.why, ply: S.ply, last: S.last, rem: 0 };
+    S.ply++;
+    if (a >= 600) {
+      const p = a - 600; u.rem = b[p]; b[p] = 0; S.n[opp]--; S.pend = false; S.last = { kind: 'remove', at: p, side: me, v: u.rem };
+      if (total(S, opp) < 3) { S.winner = me; S.why = 'reduced'; }
+    } else {
+      let p;
+      if (a < 24) { p = a; b[p] = me; S.n[me]++; S.h[me]--; S.last = { kind: 'place', to: p, side: me }; }
+      else { const f = ((a - 24) / 24) | 0; p = (a - 24) % 24; b[f] = 0; b[p] = me; S.last = { kind: 'move', from: f, to: p, side: me }; }
+      S.pend = millAt(b, p, me); if (S.pend) S.last.mill = true;
+    }
+    if (S.winner === null) {
+      if (!S.pend) {
+        S.turn = opp;
+        if (S.ply >= S.c.maxPly) { S.winner = 0; S.why = 'limit'; }
+        else if (!hasMove(S)) { S.winner = me; S.why = 'blocked'; }
+      }
+    } else S.turn = opp;
+    return u;
+  }
+  function unmake(S, u) {
+    const b = S.b, me = u.turn, opp = 3 - me, a = u.a;
+    if (a >= 600) { b[a - 600] = u.rem; S.n[opp]++; }
+    else if (a < 24) { b[a] = 0; S.n[me]--; S.h[me]++; }
+    else { const f = ((a - 24) / 24) | 0, p = (a - 24) % 24; b[p] = 0; b[f] = me; }
+    S.turn = me; S.pend = u.pend; S.winner = u.winner; S.why = u.why; S.ply = u.ply; S.last = u.last;
+  }
+  const apply = (S, a) => { make(S, a); return S; };
+  const phase = S => S.h[S.turn] > 0 ? 'place' : (S.c.flying && S.n[S.turn] === 3 ? 'fly' : 'slide');
+  function millLines(S) { const out = []; MILLS.forEach((m, i) => { const c = S.b[m[0]]; if (c && S.b[m[1]] === c && S.b[m[2]] === c) out.push({ line: m, side: c }); }); return out; }
+  const key = S => { let k = S.turn + ':' + S.h[1] + S.h[2] + (S.pend ? 'r' : '') + ':'; for (let i = 0; i < 24; i++) k += S.b[i]; return k; };
+
+  /* ---------------- evaluation: how good is this position for the player to move? ---------------- */
+  const NB = ADJ.map(a => a.length);     // 2 = corner, 3 = side middle, 4 = middle ring's side middle
+  function evalFor(S, me) {
+    const opp = 3 - me, b = S.b; let sc = 100 * (total(S, me) - total(S, opp));
+    let myPairs = 0, opPairs = 0, myBlk = 0, opBlk = 0, pos = 0, myMob = 0, opMob = 0;
+    for (const m of MILLS) {
+      let x = 0, y = 0, e = 0; for (const p of m) { if (b[p] === me) x++; else if (b[p] === opp) y++; else e++; }
+      if (x === 2 && e === 1) myPairs++; else if (y === 2 && e === 1) opPairs++;
+    }
+    for (let p = 0; p < 24; p++) {
+      const v = b[p]; if (!v) continue; let free = 0; for (const e of ADJ[p]) if (b[e] === 0) free++;
+      if (v === me) { pos += NB[p]; myMob += free; if (!free) myBlk++; } else { pos -= NB[p]; opMob += free; if (!free) opBlk++; }
+    }
+    const placing = S.h[1] + S.h[2] > 0;
+    sc += (placing ? 14 : 9) * (myPairs - opPairs) + (placing ? 2 : 1) * pos * 1 + (placing ? 0 : 7) * (opBlk - myBlk) + (placing ? 1 : 3) * (myMob - opMob);
+    if (S.pend && S.turn === me) sc += 70; else if (S.pend) sc -= 70;           // a removal is waiting
+    return sc;
+  }
+
+  /* ---------------- search: alpha-beta, iterative deepening, a time limit ---------------- */
+  let deadline = 0, nodes = 0, stop = false;
+  function orderMoves(S, ms) {
+    const me = S.turn, opp = 3 - me, b = S.b, sc = new Array(ms.length);
+    for (let i = 0; i < ms.length; i++) {
+      const a = ms[i]; let s = 0;
+      if (a >= 600) { const p = a - 600; for (const li of MILLS_OF[p]) { const m = MILLS[li]; let x = 0, e = 0; for (const q of m) { if (b[q] === opp) x++; else if (b[q] === 0) e++; } if (x === 2 && e === 1) s += 60; if (x >= 2) s += 15; } s += NB[p]; }
+      else { const p = a < 24 ? a : (a - 24) % 24, f = a < 24 ? -1 : ((a - 24) / 24) | 0;
+        for (const li of MILLS_OF[p]) { const m = MILLS[li]; let x = 0, y = 0, e = 0; for (const q of m) { if (q === p || q === f) { if (q === p) continue; } const v = q === f ? 0 : b[q]; if (v === me) x++; else if (v === opp) y++; else e++; } if (x === 2) s += 1000; if (y === 2) s += 300; if (x === 1 && e === 1) s += 20; }
+        s += NB[p] * 3; if (f >= 0) { for (const li of MILLS_OF[f]) { const m = MILLS[li]; if (b[m[0]] === me && b[m[1]] === me && b[m[2]] === me) s += 400; } } }
+      sc[i] = s;
+    }
+    const idx = ms.map((_, i) => i).sort((x, y) => sc[y] - sc[x]); return idx.map(i => ms[i]);
+  }
+  function ab(S, d, al, be, pl) {
+    if (S.winner !== null) return S.winner === 0 ? 0 : (S.winner === S.turn ? WIN - pl : -(WIN - pl));
+    if (d <= 0) return evalFor(S, S.turn);
+    if ((++nodes & 1023) === 0 && Date.now() > deadline) stop = true; if (stop) return 0;
+    const ms = orderMoves(S, moves(S)); if (!ms.length) return -(WIN - pl); let best = -Infinity;
+    for (const a of ms) {
+      const u = make(S, a), same = S.turn === u.turn, dd = a >= 600 ? d : d - 1;
+      const v = same ? ab(S, dd, al, be, pl + 1) : -ab(S, dd, -be, -al, pl + 1); unmake(S, u);
+      if (stop) return 0; if (v > best) best = v; if (v > al) al = v; if (al >= be) break;
+    }
+    return best;
+  }
+  /* search(S, maxDepth, ms, noise, avoid): best move for the player to move. avoid = {key:count}: positions already seen twice (do not repeat if there is another way).
+     returns { move, score, depth, nodes, list } */
+  function search(S0, maxDepth, ms, noise, avoid) {
+    const S = clone(S0), all = moves(S); if (!all.length) return null; if (all.length === 1) return { move: all[0], score: 0, depth: 0, nodes: 0, list: [] };
+    deadline = Date.now() + ms; nodes = 0; stop = false; let order = orderMoves(S, all), res = null;
+    for (let d = 1; d <= maxDepth; d++) {
+      const scores = []; let al = -Infinity, bestM = order[0], ok = true;
+      for (const a of order) {
+        const u = make(S, a), same = S.turn === u.turn, dd = a >= 600 ? d : d - 1;
+        let v = same ? ab(S, dd, al, Infinity, 1) : -ab(S, dd, -Infinity, -al, 1);
+        if (!stop && avoid && !S.pend && S.winner === null && avoid[key(S)] >= 2) v -= 400;           // avoid a third repeat unless it is the only way
+        unmake(S, u); if (stop) { ok = false; break; }
+        scores.push([a, v]); if (v > al) { al = v; bestM = a; }
+      }
+      if (!ok) break;
+      scores.sort((x, y) => y[1] - x[1]); order = scores.map(x => x[0]); res = { move: bestM, score: al, depth: d, nodes, list: scores };
+      if (Math.abs(al) > WIN - 200) break;
+      if (Date.now() > deadline) break;
+    }
+    if (!res) res = { move: order[0], score: 0, depth: 0, nodes, list: [] };
+    if (noise > 0 && res.list.length > 1) {            // weaker levels: sometimes pick a worse move among the near-best
+      let bm = res.list[0][0], bs = -Infinity; for (const [a, v] of res.list) { const w = v + Math.random() * noise * 3 - noise * 1.5; if (w > bs) { bs = w; bm = a; } } res.move = bm;
+    }
+    return res;
+  }
+  const text = (a) => a >= 600 ? 'remove the piece on ' + (a - 600) : a < 24 ? 'place on ' + a : 'move ' + ((a - 24) / 24 | 0) + ' to ' + ((a - 24) % 24);
+  return { MILLS, ADJ, COORD, MILLS_OF, DEF, WIN, newGame, clone, moves, make, unmake, apply, millAt, inMill, removable, phase, millLines, key, total, evalFor, search, text, hasMove };
+})();
+if (typeof module !== 'undefined') module.exports = MR;
+
+/* Morris screen: draws the board and stones, takes taps, runs the computer player (morrissim.js does all the rules and the search), plays sounds. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.morris.v1', { dark: true, sound: true, anim: true, dots: true, vs: 'ai', human: 1, level: 'normal', pieces: 9, fly: true, learned: false, w: 0, l: 0, d: 0 }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovLearn', 'ovEnd']);
+settings([{ id: 'anim', label: 'Animations', type: 'check', def: true }, { id: 'sound', label: 'Sound', type: 'check', def: true }, { id: 'dots', label: 'Show where a stone can go', type: 'check', def: true }], st, $('panel'), () => S0.save());
+const cv = $('cv'), C = KIT.canvas(cv, 600, 600, 2), ctx = C.ctx, W = 600;
+const LEVELS = { easy: { d: 2, ms: 150, noise: 80, name: 'Easy' }, normal: { d: 3, ms: 500, noise: 12, name: 'Normal' }, hard: { d: 5, ms: 1500, noise: 2, name: 'Hard' }, master: { d: 10, ms: 4000, noise: 1, name: 'Master' } };
+const NAME = ['', 'White', 'Black'];
+let S = null, stack = [], seen = {}, sel = -1, targets = [], hint = null, busy = false, anims = [], thinking = false, token = 0, note = '', flash = [];
+const isAI = side => st.vs === 'ai' && side !== st.human;
+/* ---------- drawing ---------- */
+const geo = w => { const pad = w * .083, cs = (w - 2 * pad) / 6; return { pad, cs, X: i => pad + MR.COORD[i][0] * cs, Y: i => pad + MR.COORD[i][1] * cs }; };
+function stone(c, x, y, r, side, alpha, scale) {
+  c.save(); c.globalAlpha = alpha == null ? 1 : alpha; c.translate(x, y); if (scale != null) c.scale(scale, scale);
+  c.beginPath(); c.ellipse(r * .08, r * .22, r * 1.02, r * .95, 0, 0, 6.283); c.fillStyle = 'rgba(0,0,0,.28)'; c.fill();
+  const g = c.createRadialGradient(-r * .35, -r * .4, r * .1, 0, 0, r * 1.05);
+  if (side === 1) { g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#cfc8b4'); } else { g.addColorStop(0, '#6a6a72'); g.addColorStop(1, '#101014'); }
+  c.beginPath(); c.arc(0, 0, r, 0, 6.283); c.fillStyle = g; c.fill(); c.lineWidth = Math.max(1, r * .08); c.strokeStyle = side === 1 ? '#8c8470' : '#000'; c.stroke();
+  c.beginPath(); c.arc(0, 0, r * .62, 0, 6.283); c.strokeStyle = side === 1 ? 'rgba(120,110,90,.35)' : 'rgba(255,255,255,.14)'; c.lineWidth = Math.max(1, r * .05); c.stroke();
+  c.restore();
+}
+/* spec = {b, marks:{sel, dots, rem, last, hint}, skip:Set}  w = pixel size */
+function drawBoard(c, spec, w, now) {
+  const { pad, cs, X, Y } = geo(w), b = spec.b, m = spec.marks || {}, skip = spec.skip || new Set(), t = (now || 0) / 1000;
+  const bg = c.createLinearGradient(0, 0, w, w); bg.addColorStop(0, '#e0b36a'); bg.addColorStop(1, '#b97f38'); c.fillStyle = bg; c.beginPath(); c.roundRect ? c.roundRect(0, 0, w, w, w * .035) : c.rect(0, 0, w, w); c.fill();
+  c.strokeStyle = 'rgba(90,50,10,.10)'; c.lineWidth = Math.max(1, w * .003); for (let i = 1; i < 14; i++) { c.beginPath(); c.moveTo(0, w * i / 14); c.bezierCurveTo(w * .3, w * i / 14 + w * .012, w * .7, w * i / 14 - w * .012, w, w * i / 14); c.stroke(); }
+  c.strokeStyle = '#4a2c0e'; c.lineWidth = Math.max(1.5, w * .009); c.lineCap = 'round'; c.beginPath();
+  for (let r = 0; r < 3; r++) { c.moveTo(X(r * 8), Y(r * 8)); for (let k = 1; k <= 8; k++) c.lineTo(X(r * 8 + k % 8), Y(r * 8 + k % 8)); }
+  for (let k = 1; k < 8; k += 2) { c.moveTo(X(k), Y(k)); c.lineTo(X(16 + k), Y(16 + k)); } c.stroke();
+  for (const ml of MR.millLines({ b })) { if (ml.line.some(p => skip.has(p))) continue; c.strokeStyle = ml.side === 1 ? 'rgba(255,236,150,.95)' : 'rgba(255,170,60,.9)'; c.lineWidth = w * .02; c.beginPath(); c.moveTo(X(ml.line[0]), Y(ml.line[0])); c.lineTo(X(ml.line[1]), Y(ml.line[1])); c.lineTo(X(ml.line[2]), Y(ml.line[2])); c.stroke(); }
+  for (let i = 0; i < 24; i++) if (!b[i]) { c.fillStyle = '#4a2c0e'; c.beginPath(); c.arc(X(i), Y(i), w * .0125, 0, 6.283); c.fill(); }
+  if (m.last) { c.lineWidth = w * .007; if (m.last.from != null) { c.strokeStyle = 'rgba(40,110,200,.7)'; c.beginPath(); c.arc(X(m.last.from), Y(m.last.from), cs * .17, 0, 6.283); c.stroke(); } if (m.last.to != null && b[m.last.to]) { c.strokeStyle = 'rgba(40,110,200,.85)'; c.beginPath(); c.arc(X(m.last.to), Y(m.last.to), cs * .43, 0, 6.283); c.stroke(); } if (m.last.at != null) { c.strokeStyle = 'rgba(200,40,40,.7)'; c.beginPath(); c.arc(X(m.last.at), Y(m.last.at), cs * .16, 0, 6.283); c.stroke(); } }
+  for (let i = 0; i < 24; i++) if (b[i] && !skip.has(i)) stone(c, X(i), Y(i), cs * .36, b[i]);
+  if (m.sel != null && m.sel >= 0) { c.strokeStyle = '#f59e0b'; c.lineWidth = w * .011; c.beginPath(); c.arc(X(m.sel), Y(m.sel), cs * .45, 0, 6.283); c.stroke(); }
+  for (const p of m.dots || []) { c.fillStyle = 'rgba(30,170,90,.85)'; c.beginPath(); c.arc(X(p), Y(p), cs * .15, 0, 6.283); c.fill(); c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = w * .004; c.stroke(); }
+  if (m.rem && m.rem.length) { const k = .5 + .5 * Math.sin(t * 6); for (const p of m.rem) { c.strokeStyle = 'rgba(220,40,40,' + (.55 + k * .4) + ')'; c.lineWidth = w * .012; c.beginPath(); c.arc(X(p), Y(p), cs * (.46 + k * .03), 0, 6.283); c.stroke(); c.fillStyle = 'rgba(220,40,40,.12)'; c.fill(); } }
+  if (m.hint) { const k = .5 + .5 * Math.sin(t * 6); c.strokeStyle = 'rgba(14,165,233,' + (.5 + k * .5) + ')'; c.lineWidth = w * .012; for (const p of [m.hint.a, m.hint.b]) if (p != null && p >= 0) { c.beginPath(); c.arc(X(p), Y(p), cs * (.46 + k * .04), 0, 6.283); c.stroke(); } }
+}
+function frame(now) {
+  ctx.clearRect(0, 0, W, W); if (!S) return;
+  const { cs, X, Y } = geo(W), skip = new Set(), mov = [], dying = [], fx = [], drop = [];
+  for (const a of anims) { const p = Math.max(0, Math.min(1, (now - a.t0) / a.dur)); a.p = p; if (a.kind === 'move') { skip.add(a.to); mov.push(a); } else if (a.kind === 'place') { skip.add(a.to); drop.push(a); } else if (a.kind === 'die') dying.push(a); else fx.push(a); }
+  const rem = S.pend && !S.over && !isAI(S.turn) ? MR.removable(S) : null;
+  drawBoard(ctx, { b: S.b, skip, marks: { sel, dots: st.dots ? targets : [], rem, last: S.last && !anims.length ? S.last : null, hint } }, W, now);
+  for (const a of drop) { const e = a.p < 1 ? 1 + Math.sin(a.p * Math.PI) * .35 * (1 - a.p) - (1 - a.p) * .6 : 1; stone(ctx, X(a.to), Y(a.to) - (1 - a.p) * 22, cs * .36, a.v, Math.min(1, a.p * 3), Math.max(.2, e)); }
+  for (const a of dying) { const p = a.p; stone(ctx, X(a.at), Y(a.at), cs * .36, a.v, 1 - p, 1 + p * .35); ctx.strokeStyle = 'rgba(220,40,40,' + (1 - p) + ')'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(X(a.at), Y(a.at), cs * (.3 + p * .55), 0, 6.283); ctx.stroke(); }
+  for (const a of mov) { const e = a.p * a.p * (3 - 2 * a.p), x = X(a.from) + (X(a.to) - X(a.from)) * e, y = Y(a.from) + (Y(a.to) - Y(a.from)) * e - (a.fly ? Math.sin(a.p * Math.PI) * cs * .9 : 0); stone(ctx, x, y, cs * .36 * (a.fly ? 1 + Math.sin(a.p * Math.PI) * .25 : 1), a.v); }
+  for (const a of fx) { const p = a.p; if (a.fx === 'mill') { ctx.save(); ctx.globalAlpha = 1 - p; ctx.strokeStyle = '#fde047'; ctx.shadowColor = '#facc15'; ctx.shadowBlur = 18; ctx.lineWidth = 6 + p * 10; ctx.beginPath(); ctx.moveTo(X(a.line[0]), Y(a.line[0])); ctx.lineTo(X(a.line[1]), Y(a.line[1])); ctx.lineTo(X(a.line[2]), Y(a.line[2])); ctx.stroke(); ctx.restore(); } }
+  const before = anims.length; anims = anims.filter(a => now - a.t0 < a.dur); if (before && !anims.length) afterAnim();
+}
+KIT.loop(null, () => frame(performance.now())).start();
+/* ---------- flow ---------- */
+function newGame() {
+  token++; S = MR.newGame({ pieces: st.pieces, flying: st.fly }); stack = []; seen = {}; sel = -1; targets = []; hint = null; anims = []; busy = false; thinking = false; note = ''; O.hide('ovEnd'); setBars(); status(); hud(); startTurn();
+}
+function snapshot() { stack.push({ S: MR.clone(S), seen: Object.assign({}, seen) }); if (stack.length > 400) stack.shift(); }
+function startTurn() { if (!S || S.over) return; if (isAI(S.turn) && !busy) aiAct(); else { status(); hud(); } }
+function playMove(a) {
+  snapshot(); const side = S.turn, pre = S.b.slice(), u = MR.make(S, a); hint = null; sel = -1; targets = [];
+  S.over = S.winner !== null;
+  if (!S.pend && S.winner === null && S.h[1] + S.h[2] === 0) { const k = MR.key(S); seen[k] = (seen[k] || 0) + 1; if (seen[k] >= 3) { S.winner = 0; S.why = 'repeat'; S.over = true; } }
+  const T0 = performance.now(), L = S.last; note = '';
+  if (a >= 600) { note = NAME[side] + ' removed a ' + NAME[3 - side] + ' piece.'; if (st.anim) anims.push({ kind: 'die', at: a - 600, v: u.rem, t0: T0, dur: 380 }); A.noise(.12, .2); A.beep(200, .12, 'square', .08, .06); }
+  else {
+    const to = L.to; if (L.kind === 'place') { if (st.anim) anims.push({ kind: 'place', to, v: side, t0: T0, dur: 260 }); A.beep(side === 1 ? 560 : 420, .06, 'triangle', .12); }
+    else { const fly = S.c.flying && pre.reduce((n, v) => n + (v === side), 0) === 3 && S.h[side] === 0; if (st.anim) anims.push({ kind: 'move', from: L.from, to, v: side, t0: T0, dur: fly ? 420 : 240, fly }); fly ? A.slide(400, 900, .25, 'sine', .1) : A.slide(300, 480, .12, 'triangle', .1); }
+    if (S.pend) { const lines = MR.millLines(S).filter(m => m.line.includes(to) && m.side === side); if (st.anim) for (const m of lines) anims.push({ kind: 'fx', fx: 'mill', line: m.line, t0: T0 + 180, dur: 700 }); note = NAME[side] + ' made a MILL!'; A.beep(660, .1, 'triangle', .1, .12); A.beep(880, .1, 'triangle', .1, .22); A.beep(1100, .16, 'triangle', .1, .32); }
+  }
+  if (st.anim && anims.length) busy = true;
+  hud(); status(); if (S.over) { finish(); return; } if (!busy) afterAnim();
+}
+function afterAnim() { busy = false; hud(); status(); if (S.over) return; if (isAI(S.turn)) setTimeout(aiAct, st.anim ? 200 : 10); }
+function aiAct() {
+  if (!S || S.over || thinking || busy || !isAI(S.turn)) return; thinking = true; const tk = token; status(); const L = LEVELS[st.level];
+  setTimeout(() => { if (tk !== token) { thinking = false; return; } const r = MR.search(S, L.d, L.ms, L.noise, seen); thinking = false; if (tk !== token || S.over) return; if (r && r.move != null) playMove(r.move); }, st.anim ? 380 : 30);
+}
+function finish() {
+  const w = S.winner, other = 3 - w; let h, p;
+  const why = S.why === 'reduced' ? NAME[w] + ' left ' + NAME[other] + ' with only 2 pieces.' : S.why === 'blocked' ? NAME[other] + ' cannot move.' : S.why === 'repeat' ? 'The same position came up three times.' : S.c.maxPly + ' moves were played without a winner.';
+  if (w === 0) { h = 'Draw'; p = why; st.d++; A.beep(400, .2, 'sine', .1); }
+  else if (st.vs === 'ai') { const me = w === st.human; h = me ? '🎉 You win!' : 'The computer wins'; st[me ? 'w' : 'l']++; p = why; me ? (A.beep(660, .12, 'triangle', .1), A.beep(880, .12, 'triangle', .1, .12), A.beep(1100, .2, 'triangle', .1, .24)) : A.slide(300, 100, .5, 'sawtooth', .1); }
+  else { h = NAME[w] + ' wins!'; p = why; A.beep(660, .12, 'triangle', .1); }
+  S0.save(); $('endH').textContent = h; $('endP').textContent = p; setTimeout(() => { if (S.over) O.show('ovEnd'); }, st.anim ? 900 : 100); hud();
+}
+function hud() {
+  const stat = (c, id) => { $(id).textContent = MR.total(S, c); $(id + 'b').innerHTML = S.n[c] + ' on board<br>' + S.h[c] + ' in hand'; };
+  stat(1, 's1'); stat(2, 's3'); $('s2').textContent = S.over ? 'Over' : NAME[S.turn]; $('s2b').textContent = S.over || st.vs !== 'ai' ? '\u00a0' : isAI(S.turn) ? 'computer' : 'you'; $('s4').textContent = S.ply + ' / ' + S.c.maxPly;
+  $('recLine').textContent = st.vs === 'ai' ? 'Against the computer: ' + st.w + ' won · ' + st.l + ' lost · ' + st.d + ' drawn' : 'Two players on one screen';
+  $('bUndo').disabled = !stack.length || (busy && !S.over); $('bHint').disabled = S.over || busy || thinking || isAI(S.turn);
+  const ph = S.over ? '' : MR.phase(S), pl = S.turn;
+  $('info').textContent = S.over ? '' : S.pend ? 'You made a mill: tap one of the red-ringed ' + NAME[3 - pl] + ' pieces to remove it.' : ph === 'place' ? 'Placing: tap an empty point to put a stone (' + S.h[pl] + ' left in hand).' : ph === 'fly' ? 'Only 3 stones left, so you can FLY: tap a stone, then ANY empty point.' : 'Sliding: tap a stone, then a neighbouring empty point (along a line).';
+  if (note) $('info').textContent = note + '  ' + $('info').textContent;
+}
+function status() {
+  let t; if (S.over) t = S.winner ? NAME[S.winner] + ' wins' : 'Draw'; else if (thinking || (isAI(S.turn) && !S.over)) t = 'Computer is thinking…'; else if (st.vs === 'two') t = NAME[S.turn] + (S.pend ? ': remove a piece' : ': your move'); else t = S.pend ? 'Mill! Remove a piece' : 'Your move (' + NAME[S.turn] + ')';
+  $('msg').textContent = t;
+}
+/* ---------- input ---------- */
+function pointAt(e) { const p = C.pos(e), { cs, X, Y } = geo(W); let best = -1, bd = 1e9; for (let i = 0; i < 24; i++) { const d = Math.hypot(p.x - X(i), p.y - Y(i)); if (d < bd) { bd = d; best = i; } } return bd < cs * .5 ? best : -1; }
+function select(i) { sel = i; targets = []; hint = null; if (i >= 0) { for (const m of MR.moves(S)) if (m >= 24 && m < 600 && ((m - 24) / 24 | 0) === i) targets.push((m - 24) % 24); A.beep(700, .03, 'square', .05); } }
+cv.addEventListener('pointerdown', e => {
+  if (!S || busy || S.over || thinking || isAI(S.turn)) return; const i = pointAt(e); if (i < 0) return; const L = MR.moves(S), pl = S.turn;
+  if (S.pend) { if (L.includes(600 + i)) playMove(600 + i); else { note = ''; $('info').textContent = S.b[i] === pl ? 'Those are your own stones. Tap a red-ringed ' + NAME[3 - pl] + ' piece.' : 'Tap a ' + NAME[3 - pl] + ' piece with a red ring (pieces inside a mill are protected unless all are).'; } return; }
+  if (S.h[pl] > 0) { if (L.includes(i)) playMove(i); else { $('info').textContent = 'That point is taken. Tap an empty point.'; } return; }
+  if (sel >= 0 && L.includes(24 + sel * 24 + i)) { playMove(24 + sel * 24 + i); return; }
+  if (S.b[i] === pl) { select(sel === i ? -1 : i); if (sel >= 0 && !targets.length) $('info').textContent = 'That stone is stuck: all its neighbours are taken. Try another.'; else hud(); return; }
+  if (sel >= 0) { select(-1); $('info').textContent = 'You can only slide along a line to a neighbouring empty point.'; }
+});
+function undo() {
+  if (!stack.length || (busy && !S.over)) return; token++; thinking = false; anims = []; busy = false; O.hide('ovEnd');
+  let s = stack.pop(); if (st.vs === 'ai') { while (stack.length && (isAI(s.S.turn) || s.S.pend)) s = stack.pop(); } else while (stack.length && s.S.pend) s = stack.pop();
+  S = s.S; seen = s.seen; S.over = false; sel = -1; targets = []; hint = null; note = 'Took back.'; status(); hud(); if (isAI(S.turn)) aiAct();
+}
+function doHint() {
+  if (!S || S.over || busy || thinking || isAI(S.turn)) return; const r = MR.search(S, 6, 1200, 0, seen);
+  if (r && r.move != null) { const m = r.move; hint = m >= 600 ? { a: m - 600, b: null } : m < 24 ? { a: m, b: null } : { a: (m - 24) / 24 | 0, b: (m - 24) % 24 }; sel = -1; targets = []; $('info').textContent = 'Hint: ' + (m >= 600 ? 'remove the piece on the pulsing ring' : m < 24 ? 'place on the pulsing ring' : 'slide from one pulsing ring to the other') + '.'; }
+}
+/* ---------- bars ---------- */
+function setBars() {
+  const bar = (id, items, key, act) => { $(id).innerHTML = items.map(i => '<button class="btn sm' + (String(st[key]) === String(i[0]) ? ' on' : '') + '" data-act="' + act + '" data-v="' + i[0] + '" type="button">' + i[1] + '</button>').join(''); };
+  bar('vsBar', [['ai', 'Computer'], ['two', 'Two players']], 'vs', 'vs'); bar('sideBar', [[1, 'White (first)'], [2, 'Black (second)']], 'human', 'side');
+  bar('lvBar', Object.keys(LEVELS).map(k => [k, LEVELS[k].name]), 'level', 'level'); bar('pcBar', [[9, '9 each (classic)'], [6, '6 each (quicker)']], 'pieces', 'pieces'); bar('flyBar', [[true, 'Flying on (classic)'], [false, 'Flying off']], 'fly', 'fly');
+  $('sideRow').style.display = $('lvRow').style.display = st.vs === 'ai' ? '' : 'none';
+}
+/* ---------- the little teaching boards ---------- */
+let lstep = 0;
+const B = o => { const b = new Int8Array(24); for (const k in o) b[k] = o[k]; return b; };
+const LESSONS = [
+  { t: '<b>1. Place.</b> The board has 24 points. White and Black take turns putting one stone on any empty point, 9 each. Nothing moves until all the stones are down.', spec: () => ({ b: B({ 1: 1, 11: 2, 9: 1, 14: 2, 21: 1 }), marks: { last: { to: 21 } } }) },
+  { t: '<b>2. Make a mill.</b> Three of your stones in a straight line (along a side, or across through the middle) is a <b>mill</b>. Here White places on the green point to close the line 1-9-17.', spec: () => ({ b: B({ 1: 1, 9: 1, 3: 2, 12: 2, 6: 2 }), marks: { dots: [17] } }) },
+  { t: '<b>3. Take a piece.</b> When you close a mill, remove one enemy stone (red rings). Stones already in an enemy mill are safe, unless every stone is in a mill.', spec: () => ({ b: B({ 1: 1, 9: 1, 17: 1, 3: 2, 12: 2, 6: 2, 20: 2 }), marks: { rem: [3, 12, 6, 20] } }) },
+  { t: '<b>4. Slide.</b> When all stones are down, each turn you slide one stone along a line to a neighbouring empty point. Open a mill by sliding out, then slide back in to take another piece.', spec: () => ({ b: B({ 1: 1, 9: 1, 17: 1, 10: 2, 19: 2, 13: 2, 5: 1 }), marks: { sel: 9, dots: [8] } }) },
+  { t: '<b>5. Fly and win.</b> Down to 3 stones, you may <b>fly</b> to any empty point. You win when the enemy has only 2 stones left, or cannot move at all.', spec: () => ({ b: B({ 0: 1, 12: 1, 21: 1, 1: 2, 2: 2, 4: 2, 10: 2, 16: 2, 19: 2 }), marks: { sel: 12, dots: [3, 5, 6, 7, 8, 9, 11, 13, 14, 15, 17, 18, 20, 22, 23] } }) }
+];
+function lesson() {
+  const L = LESSONS[lstep], c = $('mini').getContext('2d'); c.clearRect(0, 0, 220, 220); drawBoard(c, L.spec(), 220, 0); $('miniP').innerHTML = L.t;
+  $('miniDots').innerHTML = LESSONS.map((_, i) => '<i class="' + (i === lstep ? 'on' : '') + '"></i>').join(''); $('lBack').style.visibility = lstep ? '' : 'hidden'; $('lNext').textContent = lstep === LESSONS.length - 1 ? "Let's play" : 'Next ▶';
+}
+function showLearn() { lstep = 0; lesson(); O.show('ovLearn'); }
+ui.actions(document.body, {
+  newgame: newGame, undo, hint: doHint, learn: showLearn, lback: () => { if (lstep) { lstep--; lesson(); } }, lnext: () => { if (lstep < LESSONS.length - 1) { lstep++; lesson(); } else { O.hide('ovLearn'); st.learned = true; S0.save(); } },
+  vs: b => { st.vs = b.dataset.v; S0.save(); newGame(); }, side: b => { st.human = +b.dataset.v; S0.save(); newGame(); },
+  level: b => { st.level = b.dataset.v; S0.save(); setBars(); }, pieces: b => { st.pieces = +b.dataset.v; S0.save(); newGame(); }, fly: b => { st.fly = b.dataset.v === 'true'; S0.save(); newGame(); }
+});
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame(); if (!st.learned) showLearn();
+KIT.hook({ get S() { return S; }, st, newGame, playMove, get busy() { return busy; }, get thinking() { return thinking; }, undo, get stack() { return stack; }, get anims() { return anims; }, MR });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

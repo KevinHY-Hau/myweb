@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 33 · Colour Match</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ColourMatch">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.tbarw{position:relative;height:12px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;overflow:visible}
+.tbarw i{display:block;height:100%;width:60%;background:#43a047;border-radius:6px;transition:background .2s}
+.tbarw i.low{background:#e53935}
+#plus{position:absolute;right:4px;top:-20px;font-weight:800;font-size:15px;opacity:0;color:#69f0ae;transition:opacity .6s,transform .6s}
+#plus.show{opacity:1;transform:translateY(-6px);transition:none}
+#plus.bad{color:#ff5252}
+.trow{display:flex;gap:12px;align-items:center}
+.sw-wrap{display:flex;flex-direction:column;gap:2px;flex:none}
+.sw-wrap small{font-size:10px;letter-spacing:.06em;font-weight:700;color:var(--muted)}
+.swatch{width:84px;height:56px;border-radius:10px;border:3px solid var(--fg);background:#888}
+.tmsg{flex:1;min-height:1.4em;font-weight:700;font-size:14px}
+.tboardwrap{position:relative;width:min(100%,calc(100vh - 330px),560px);min-width:260px;margin:0 auto}
+.board{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:var(--gap,2px);aspect-ratio:1;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.cell{border:0;padding:0;margin:0;border-radius:3px;cursor:pointer;min-width:0;min-height:0;transition:transform .08s}
+.cell:active{transform:scale(.9)}
+.cell.ok{outline:3px solid #fff;z-index:2;animation:ok .35s}
+.cell.bad{animation:bad .3s}
+.cell.ring{outline:3px solid #fff;outline-offset:1px;z-index:2;animation:ring 1s infinite}
+@keyframes ok{0%{transform:scale(1)}50%{transform:scale(1.5)}100%{transform:scale(1)}}
+@keyframes bad{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+@keyframes ring{50%{outline-color:#000}}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Colour Match</h2>
+  <p>Chapter 33 · Find the one square that matches the colour on show, hidden among a grid of near-identical shades. 60 seconds, plus 5 for every find</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>FOUND</small><b id="s1">0</b></div>
+    <div class="tstat"><small>TIME</small><b id="s2">60</b></div>
+    <div class="tstat"><small>BEST</small><b id="s3">0</b></div>
+    <div class="tstat"><small>MISSES</small><b id="s4">0</b></div>
+  </div>
+  <div class="tbarw"><i id="tbar"></i><span id="plus"></span></div>
+  <div class="trow">
+    <div class="sw-wrap"><small id="swLbl">FIND THIS COLOUR</small><div class="swatch" id="swatch"></div></div>
+    <div class="tmsg" id="msg">Press Start</div>
+  </div>
+  <div class="tboardwrap">
+    <div class="board" id="board" aria-label="Colour grid"></div>
+    <div class="ov" id="ovStart"><h3>Colour Match</h3><p id="startP"></p><button class="btn primary" data-act="start" type="button">Start (60 s)</button></div>
+    <div class="ov" id="ovEnd"><h3 id="endH">Time up!</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="again" type="button">Play again</button><button class="btn" data-act="hide" type="button">Look at the board</button></div></div>
+    <div class="ov" id="ovPause"><h3>Paused</h3><button class="btn primary" data-act="pause" type="button">Resume</button></div>
+  </div>
+  <div class="tbar"><span class="kl">Grid:</span><span id="sizes"></span></div>
+  <div class="tbar"><span class="kl">Mode:</span><span id="modes"></span></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="pause" type="button">⏸ Pause</button>
+    <button class="btn sm" data-act="again" type="button">🔄 Restart</button>
+  </div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">How to play: a colour is shown in the box. The grid is full of shades that look almost the same, and <b>exactly one square is that colour</b>. Tap it. Each find adds <b>5 seconds</b> (the clock never goes above 100) and the next round gets <b>harder</b>: the shades get closer. A wrong tap costs time (you can change that in the settings). Pick the grid size: 12×12, 10×10, 8×8 or 6×6 (bigger = more to search, smaller = easier). <b>Odd one out</b> mode has no target: every square is the same colour except one that is slightly different. Your best score is saved for each grid size and mode. At the end the missed square is ringed so you can see it.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎨 A colour-eye game. The colours, difficulty curve, sounds and code are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Colour Match. Each round: one random "family" of colours (a base hue, saturation and lightness). Every square gets a random shade from that family.
+   Match mode: one shade is the target, shown in the box; every other square is forced to be at least `minD` away from it (distance in RGB), so exactly one square matches.
+   Odd-one-out mode: all squares are the same colour and one is a little lighter or darker. Each find makes the family tighter and minD smaller, so it gets harder. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S = store('kevinhyhau.colormatch.v1', { dark: true, sound: true, size: '12', mode: 'match', pen: '3', hi: {}, games: 0, totalFound: 0 }), st = S.st;
+if (!st.hi || typeof st.hi !== 'object') st.hi = {};
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovStart', 'ovEnd', 'ovPause']);
+settings([
+  { id: 'pen', label: 'Time lost for a wrong tap', type: 'select', options: [['0', 'None'], ['2', '2 seconds'], ['3', '3 seconds'], ['5', '5 seconds']], def: '3' },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); });
+
+const START = 60, ADD = 5, MAXT = 100, SIZES = [12, 10, 8, 6], MODES = { match: 'Match the colour', odd: 'Odd one out' };
+const rnd = (a, b) => a + Math.random() * (b - a), ri = (a, b) => Math.floor(rnd(a, b + 1)), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const key = () => st.size + '-' + st.mode;
+function rgb(h, s, l) { h = ((h % 360) + 360) % 360; s /= 100; l /= 100; const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))); return [f(0) * 255, f(8) * 255, f(4) * 255]; }
+const dist = (a, b) => { const x = rgb(...a), y = rgb(...b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); };
+const css = c => `hsl(${c[0].toFixed(1)} ${c[1].toFixed(1)}% ${c[2].toFixed(1)}%)`;
+
+let G = null;
+function newGame() {
+  const n = +st.size; G = { state: 'ready', n, mode: st.mode, t: START, found: 0, miss: 0, cols: [], ans: 0, lock: 0, rt: 0, T: 0, times: [], tick: START };
+  buildBoard(); round(); hud(); setMsg('Press Start'); marks(); updateStart();
+}
+function buildBoard() { const b = $('board'); b.style.setProperty('--n', G.n); b.style.setProperty('--gap', G.n >= 10 ? '2px' : G.n === 8 ? '3px' : '4px'); b.innerHTML = Array.from({ length: G.n * G.n }, (_, i) => `<button class="cell" data-i="${i}" type="button" aria-label="square ${i + 1}"></button>`).join(''); }
+function round() {
+  const N = G.n * G.n, L = G.found, base = [rnd(0, 360), rnd(45, 90), rnd(36, 64)], cols = [];
+  if (G.mode === 'match') {
+    const sc = Math.max(.35, 1 - L * .03), minD = Math.max(9, 38 - L * 1.5), sH = 28 * sc, sS = 24 * sc, sL = 22 * sc;
+    const samp = () => [base[0] + rnd(-sH, sH), clamp(base[1] + rnd(-sS, sS), 12, 96), clamp(base[2] + rnd(-sL, sL), 16, 86)], tg = samp();
+    for (let i = 0; i < N; i++) { let c, k = 0; do { c = samp(); k++; } while (dist(c, tg) < minD && k < 40); if (dist(c, tg) < minD) c = [tg[0], tg[1], clamp(tg[2] + (Math.random() < .5 ? 1 : -1) * minD / 2.4, 12, 90)]; cols.push(c); }
+    G.ans = ri(0, N - 1); cols[G.ans] = tg; G.target = tg; $('swatch').style.background = css(tg); $('swLbl').textContent = 'FIND THIS COLOUR'; G.minD = minD;
+  } else {
+    const d = Math.max(2.2, 13 - L * .5), sg = Math.random() < .5 ? 1 : -1; for (let i = 0; i < N; i++) cols.push(base);
+    G.ans = ri(0, N - 1); cols[G.ans] = [base[0] + sg * d * .6, base[1], clamp(base[2] + sg * d, 14, 88)]; G.target = base; $('swatch').style.background = css(base); $('swLbl').textContent = 'MAIN COLOUR'; G.minD = d;
+  }
+  G.cols = cols; [...$('board').children].forEach((el, i) => { el.style.background = css(cols[i]); el.className = 'cell'; }); G.rt = G.T;
+}
+function click(i) {
+  if (!G || G.state !== 'play' || G.lock > 0) return; const el = $('board').children[i]; if (!el) return;
+  if (i === G.ans) {
+    G.found++; st.totalFound++; G.times.push(G.T - G.rt); const was = G.t; G.t = Math.min(MAXT, G.t + ADD); el.classList.add('ok'); G.lock = .28; flash(G.t - was <= 0 ? 'MAX 100s' : '+' + (G.t - was) + 's', false);
+    A.beep(660, .07, 'square', .09); A.beep(990, .1, 'square', .09, .07); G.tick = Math.ceil(G.t); hud(); setMsg(G.mode === 'match' ? 'Found! Colours are getting closer…' : 'Found it!');
+  } else {
+    G.miss++; const pen = +st.pen; if (pen) { G.t -= pen; flash('-' + pen + 's', true); } el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); A.slide(220, 90, .18, 'sawtooth', .09); hud();
+    if (G.t <= 0) endGame();
+  }
+}
+function flash(txt, bad) { const p = $('plus'); p.textContent = txt; p.className = bad ? 'bad' : ''; void p.offsetWidth; p.classList.add('show'); setTimeout(() => p.classList.remove('show'), 40); }
+function step(dt) {
+  if (!G) return; if (G.lock > 0) { G.lock -= dt; if (G.lock <= 0 && G.state === 'play') round(); }
+  if (G.state !== 'play') return; G.T += dt; G.t -= dt; const c = Math.ceil(G.t);
+  if (c !== G.tick) { G.tick = c; if (c <= 10 && c > 0) A.beep(c <= 3 ? 900 : 600, .05, 'square', .05); }
+  if (G.t <= 0) endGame(); hud();
+}
+function endGame() {
+  G.t = 0; G.state = 'over'; hud(); const k = key(), hi = st.hi[k] || 0, nb = G.found > hi; if (nb) st.hi[k] = G.found; st.games++; S.save();
+  const el = $('board').children[G.ans]; if (el) el.classList.add('ring'); A.slide(500, 80, .6, 'sawtooth', .1);
+  const avg = G.times.length ? (G.times.reduce((a, b) => a + b, 0) / G.times.length).toFixed(1) : '–', acc = G.found + G.miss ? Math.round(G.found / (G.found + G.miss) * 100) : 0;
+  $('endH').textContent = G.found ? 'Time up! ' + G.found + ' found' : 'Time up!'; $('endP').textContent = G.found + ' found · ' + G.miss + ' wrong taps (' + acc + '% right) · ' + avg + 's per find on average' + (nb && G.found ? ' · new best!' : ' · best ' + Math.max(hi, G.found)); setMsg('The missing square is ringed.'); hud();
+  setTimeout(() => { if (G.state === 'over') O.show('ovEnd'); }, 900);
+}
+const setMsg = t => { const m = $('msg'); if (m.textContent !== t) m.textContent = t; };
+function hud() {
+  if (!G) return; KIT.setText($('s1'), G.found); KIT.setText($('s2'), Math.max(0, Math.ceil(G.t))); KIT.setText($('s3'), Math.max(st.hi[key()] || 0, G.found)); KIT.setText($('s4'), G.miss);
+  const bar = $('tbar'); bar.style.width = clamp(G.t / MAXT * 100, 0, 100) + '%'; bar.classList.toggle('low', G.t <= 10);
+  $('recLine').textContent = 'Best for ' + G.n + '×' + G.n + ' ' + MODES[G.mode] + ': ' + (st.hi[key()] || 0) + ' · games ' + st.games + ' · colours found ever ' + st.totalFound;
+}
+function marks() { [...$('sizes').children].forEach(b => b.classList.toggle('on', b.dataset.k === st.size)); [...$('modes').children].forEach(b => b.classList.toggle('on', b.dataset.k === st.mode)); }
+function updateStart() { $('startP').textContent = st.mode === 'match' ? 'A colour is shown. Find the one square in the ' + st.size + '×' + st.size + ' grid that matches it. 60 seconds to start, +5 seconds for every find (max 100).' : 'All squares are the same colour except one, slightly lighter or darker. Find it in the ' + st.size + '×' + st.size + ' grid. 60 seconds to start, +5 for every find (max 100).'; }
+function start() { if (!G) newGame(); if (G.state === 'ready') { G.state = 'play'; O.hide('ovStart'); setMsg(G.mode === 'match' ? 'Find the matching square!' : 'Find the odd square!'); } }
+function restart() { O.hideAll(); newGame(); G.state = 'play'; setMsg(G.mode === 'match' ? 'Find the matching square!' : 'Find the odd square!'); }
+function pause() { if (!G) return; if (G.state === 'play') { G.state = 'pause'; O.show('ovPause'); } else if (G.state === 'pause') { G.state = 'play'; O.hide('ovPause'); } }
+function set(k, v) { st[k] = v; S.save(); O.hideAll(); newGame(); O.show('ovStart'); }
+$('sizes').innerHTML = SIZES.map(n => `<button class="btn sm" data-act="size" data-k="${n}" type="button">${n}×${n}</button>`).join('');
+$('modes').innerHTML = Object.entries(MODES).map(([k, n]) => `<button class="btn sm" data-act="mode" data-k="${k}" type="button">${n}</button>`).join('');
+ui.actions(document.body, { start, pause, again: restart, hide: () => O.hide('ovEnd'), size: b => set('size', b.dataset.k), mode: b => set('mode', b.dataset.k) });
+$('board').addEventListener('pointerdown', e => { const c = e.target.closest('.cell'); if (c) { e.preventDefault(); click(+c.dataset.i); } });
+window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase(); if (k === 'p') pause(); else if ((k === 'enter' || k === ' ') && G && G.state === 'ready' && O.open('ovStart')) { e.preventDefault(); start(); } else if (k === 'enter' && G && G.state === 'over') restart(); });
+newGame(); O.show('ovStart');
+const loop = KIT.loop(dt => step(dt)); loop.onHide = () => { if (G && G.state === 'play') pause(); }; loop.start();
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+KIT.hook({ get G() { return G; }, get st() { return st; }, click, start, restart, newGame, step, set, dist, endGame });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

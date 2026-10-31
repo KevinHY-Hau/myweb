@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 54 · Outbreak</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1b2a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Outbreak">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+.obcv{aspect-ratio:1/1;cursor:default;image-rendering:pixelated;background:#111}
+.obwrap .tboardwrap{max-width:560px}
+.ctl{display:flex;justify-content:space-between;align-items:center;gap:10px;max-width:560px;margin:0 auto;width:100%;user-select:none;-webkit-user-select:none;touch-action:none}
+.stick{position:relative;width:132px;height:132px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid var(--line);flex:0 0 auto;touch-action:none}
+.knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(240,180,41,.75);border:2px solid #000;box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none}
+.btns{display:flex;flex-direction:column;gap:6px;align-items:stretch;flex:1;max-width:300px}
+.brow{display:flex;gap:6px}.brow .btn{flex:1;padding:8px 4px;font-size:15px;touch-action:none;white-space:nowrap}
+.btn.it b{font-variant-numeric:tabular-nums}
+.btn.act{background:#2a6f8c;color:#fff;border-color:transparent;flex:1.4}.btn.sw{flex:1}
+.btn.fire{background:#d03a2a;color:#fff;border-color:transparent;font-size:20px;font-weight:800;padding:14px;touch-action:none}
+.btn.fire.on{filter:brightness(1.3);transform:scale(.97)}
+.btn.dis{opacity:.45}
+.talkbox{display:flex;gap:12px;align-items:flex-start;text-align:left;max-width:92%}
+.talkbox canvas{flex:0 0 64px;width:64px;height:64px;background:rgba(255,255,255,.1);border-radius:8px;border:2px solid #000;image-rendering:pixelated}
+.talktxt b{color:var(--accent-light);font-size:15px}.talktxt p{margin:4px 0 0;font-size:15px;line-height:1.4}
+.cardp{max-width:92%;text-align:left;font-size:14px;line-height:1.5;max-height:60%;overflow:auto}.cardp p{margin:.4em 0}
+#ovCard h3{margin:.2em 0}
+@media (max-width:480px){.stick{width:116px;height:116px}.knob{width:50px;height:50px;margin:-25px 0 0 -25px}.brow .btn{font-size:14px}.talktxt p{font-size:13.5px}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Outbreak</h2>
+  <p>Chapter 54 · Survive three zombie cities. Shoot the swarm, loot houses, rescue survivors, beat the bosses and uncover the plot behind the virus</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap obwrap">
+  <div class="thead">
+    <div class="tstat"><small>CITY</small><b id="s1">Ashford</b></div>
+    <div class="tstat"><small>ZOMBIES</small><b id="s2">0/0</b></div>
+    <div class="tstat"><small>SAVED</small><b id="s3">0</b></div>
+    <div class="tstat"><small>GROUP</small><b id="s4">0/2</b></div>
+  </div>
+  <div class="tmsg" id="msg">Reach the safe house in every city</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv obcv" aria-label="Outbreak game screen"></canvas>
+    <div class="ov" id="ovTalk"><div class="talkbox"><canvas id="portrait" width="64" height="64"></canvas><div class="talktxt"><b id="talkWho">Sam</b><p id="talkText"></p></div></div><div class="tbar"><button class="btn primary" data-act="talknext" type="button" id="talkNext">Next</button></div></div>
+    <div class="ov" id="ovCard"><h3 id="cardH">Outbreak</h3><div id="cardP" class="cardp"></div><div class="tbar" id="cardBtns"></div></div>
+    <div class="ov" id="ovDead"><h3>You died</h3><p id="deadP">The dead win this round.</p><div class="tbar"><button class="btn primary" data-act="retry" type="button">Retry this city</button><button class="btn" data-act="newgame" type="button">New game</button></div></div>
+  </div>
+  <div class="ctl" id="ctl">
+    <div class="stick" id="stick" aria-label="Move stick"><div class="knob" id="knob"></div></div>
+    <div class="btns">
+      <div class="brow"><button class="btn it" id="bEat" data-hold="eat" type="button">🍖 <b>0</b></button><button class="btn it" id="bDrink" data-hold="drink" type="button">💧 <b>0</b></button><button class="btn it" id="bBand" data-hold="bandage" type="button">🩹 <b>0</b></button></div>
+      <div class="brow"><button class="btn act" id="bAct" data-hold="act" type="button">✋ Act</button><button class="btn sw" id="bSwap" data-hold="swap" type="button">🔄 Pistol</button></div>
+      <button class="btn fire" id="bFire" type="button">🔫 FIRE</button>
+    </div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" id="bPause" data-act="pause" type="button">⏸ Pause</button>
+    <button class="btn sm" data-act="retry" type="button">🔁 Restart city</button>
+    <button class="btn sm" data-act="newgame" type="button">🔄 New game</button>
+  </div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to play Outbreak</h2>
+    <p><b>The mission in every city: save all of the survivors.</b> If one of them dies, you fail.</p><p>A top-down survival shooter in the style of an old console role-playing game. Three cities, each full of zombies. In every city you must <b>beat the horde and its bosses</b> (the swarm never stops, even after the last boss), <b>find one special person</b> (or, in the last city, the antidote) and get them to the <b>safe house (a blue roof with a big red cross, a green flag and a light beam)</b>. Along the way you can rescue other survivors, loot houses and rest.</p>
+    <h3>Controls</h3>
+    <ul>
+      <li><b>Move:</b> the stick (phone) or W A S D / arrow keys. You face the way you walk.</li>
+      <li><b>Fire:</b> hold the FIRE button (or Space). While you hold it you <b>stop turning</b>, so you can walk backwards and keep shooting. <b>Auto aim</b> points your shots at the boss if one is in range, otherwise at the nearest zombie, so you can concentrate on walking (you can turn it off in the settings).</li>
+      <li><b>Act</b> (E): search a cupboard, sleep in a bed, rescue a survivor. <b>Gun</b> (Q): switch weapon. <b>🍖 💧 🩹</b> (keys 1, 2, 3): eat, drink, use a bandage.</li>
+      <li><b>Doors:</b> walk into a door to go inside, and into the mat at the bottom of the room to come out. Zombies cannot follow you in, and time for them stops while you are inside. Bleeding and starving also pause while you are indoors, but hunger and thirst keep ticking slowly.</li>
+    </ul>
+    <h3>Staying alive</h3>
+    <ul>
+      <li><b>Health</b> only comes back slowly while you are fed and watered, or from a <b>bandage</b> (+35) or <b>sleeping in a bed</b> (+55, but it costs food and water). Zombies can make you <b>bleed</b>: you lose health until you use a bandage.</li>
+      <li><b>Food and water</b> drain all the time. At zero you lose health. Eat and drink from your bag, and loot more.</li>
+      <li><b>Ammo:</b> you start with 1000 bullets. Each gun uses a different amount per shot (pistol 1, twin 2, triple 3, machine gun 1, bombs 5). Ammo is scarce: every city has the same small amount, hidden in different houses, and bosses drop a little more.</li>
+    </ul>
+    <h3>Weapons</h3>
+    <ul>
+      <li><b>Pistol:</b> one shot forward. <b>Twin shot:</b> forward and backward. <b>Triple shot:</b> three angles. <b>Machine gun:</b> very fast. <b>Bomb launcher:</b> three bombs with a big blast.</li>
+      <li>Weapons are found in the <b>armoury</b> of each city (the dark red roof with a gun on the minimap), and the first boss drops the machine gun. You keep what you find in the next cities.</li>
+    </ul>
+    <h3>Survivors</h3>
+    <ul>
+      <li>There are about <b>10 survivors in every city</b>, some waiting in the street and some hiding inside houses. Several of them know a piece of the story and will tell you when you pick them up. Walk up to a survivor and press <b>Act</b> to take them with you (maximum <b>2</b> at a time). They follow you and <b>throw a bomb in a random direction every few seconds</b>, slower than your gun. Zombies can hurt them (they heal slowly if left alone, and fully when you sleep), and <b>if a survivor dies the mission fails</b>. Survivors who are waiting are safe until you pick them up.</li>
+      <li>Walk into the safe house with them to <b>save</b> them. You get supplies for each one, and they can tell you more of the story. The story person is marked with an arrow at the edge of the screen.</li>
+    </ul>
+    <h3>Bosses</h3>
+    <ul>
+      <li>Giants appear at set points in each city. Some <b>charge</b> (watch them flash, then step aside) and some call for help. The last boss of a city comes after the whole horde is dead.</li>
+    </ul>
+    <p class="rec">Your game saves when a city starts. If you leave, “Continue” starts that city again with what you had.</p>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🧟 Outbreak is my own game, inspired by the look of old console role-playing games (small square people on a tile map). The cities, story, characters, pictures, sounds and rules code are all my own. Not included: saving mid-city, multiplayer. The story is fiction.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Outbreak, part 1: the cities. Builds a tile map (roads, blocks, houses, parks), the inside of every house, and the zombies' "flow field".
+   No drawing and no game rules here, so it can be tested from the command line. */
+const OBG = (function () {
+  const T = 32, MW = 64, MH = 64;
+  const TL = { ROAD: 0, GRASS: 1, PAVE: 2, TREE: 3, CAR: 4, FENCE: 5, ROOF: 6, WALL: 7, DOOR: 8, BORDER: 9 };
+  const SOLID = new Uint8Array(16); [TL.TREE, TL.CAR, TL.FENCE, TL.ROOF, TL.WALL, TL.BORDER].forEach(i => SOLID[i] = 1);
+  const mul = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const ri = (r, a, b) => a + Math.floor(r() * (b - a + 1)), pick = (r, a) => a[Math.floor(r() * a.length)];
+  const NAMES = ['Tom', 'Lena', 'Ravi', 'Mira', 'Nia', 'Max', 'Ivy', 'Rex', 'Zoe', 'Hana', 'Finn', 'Ada', 'Cal', 'Eli', 'Tess', 'Bo'];
+
+  /* ---- the per-city settings: size of the horde, bosses, who you meet, what is in the armoury ---- */
+  const SUPPLIES = { food: 14, water: 16, bandage: 10, ammo: 14 }; // found in houses, per city (ammo in lots of 250)
+  const CITIES = [
+    { name: 'Ashford', supplies: SUPPLIES, quota: 110, cap: 34, survivors: 9, story: 'mei', tales: [['joe', 'Old Joe'], ['ana', 'Nurse Ana'], ['kai', 'Kai']], armoury: ['twin', 'triple'], notes: [0, 1, 2],
+      bosses: [{ at: .42, id: 'brute' }, { at: 1, id: 'zero', final: true }], wave: [8, 12], runner: .12, brute: .06 },
+    { name: 'Brookhaven', supplies: SUPPLIES, quota: 160, cap: 42, survivors: 9, story: 'marcus', tales: [['yuki', 'Sgt. Yuki'], ['pia', 'Pia'], ['omar', 'Omar']], armoury: ['bomb'], notes: [3, 4, 5],
+      bosses: [{ at: .33, id: 'tank' }, { at: .66, id: 'hunter' }, { at: 1, id: 'warden', final: true }], wave: [10, 15], runner: .2, brute: .1 },
+    { name: 'Capital City', supplies: SUPPLIES, quota: 220, cap: 50, survivors: 10, story: 'antidote', tales: [['leo', 'Leo'], ['sue', 'Sue'], ['dee', 'Dee'], ['ben', 'Ben']], armoury: [], notes: [6, 7, 8],
+      bosses: [{ at: .3, id: 'soldier' }, { at: .6, id: 'tank2' }, { at: 1, id: 'director', final: true }], wave: [12, 18], runner: .26, brute: .14 }
+  ];
+  const BOSSES = {
+    brute: { name: 'The Brute', hp: 420, spd: 54, dmg: 22, sc: 2, charge: 1, col: 0 },
+    zero: { name: 'Patient Zero', hp: 900, spd: 58, dmg: 26, sc: 2.3, summon: 1, col: 1 },
+    tank: { name: 'The Tank', hp: 760, spd: 50, dmg: 28, sc: 2.2, charge: 1, col: 2 },
+    hunter: { name: 'The Hunter', hp: 520, spd: 92, dmg: 20, sc: 1.7, charge: 1, col: 3 },
+    warden: { name: 'The Warden', hp: 1350, spd: 56, dmg: 30, sc: 2.5, charge: 1, summon: 1, col: 4 },
+    soldier: { name: 'Mutant Soldier', hp: 980, spd: 64, dmg: 28, sc: 2.2, charge: 1, col: 5 },
+    tank2: { name: 'Tank Mk II', hp: 1200, spd: 54, dmg: 32, sc: 2.4, charge: 1, summon: 1, col: 2 },
+    director: { name: 'The Director', hp: 2100, spd: 62, dmg: 34, sc: 2.7, charge: 1, summon: 1, col: 6 }
+  };
+
+  /* ---- city map ---- */
+  function genCity(ci, seed) {
+    const r = mul(seed), cfg = CITIES[ci], t = new Uint8Array(MW * MH).fill(TL.GRASS), v = new Uint8Array(MW * MH), I = (x, y) => y * MW + x;
+    const set = (x, y, id, vv) => { t[I(x, y)] = id; v[I(x, y)] = vv || 0; };
+    for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { if (x < 2 || y < 2 || x >= MW - 2 || y >= MH - 2) set(x, y, TL.BORDER, ri(r, 0, 2)); else v[I(x, y)] = ri(r, 0, 3); }
+    const RD = [4, 14, 24, 34, 44, 54];
+    for (const a of RD) for (let k = 0; k < 2; k++) for (let q = 2; q < MW - 2; q++) { set(a + k, q, TL.ROAD, 0); set(q, a + k, TL.ROAD, 0); }
+    for (const a of RD) for (let q = 2; q < MW - 2; q += 2) { if (!RD.some(b => q === b || q === b + 1)) { v[I(q, a)] = 1; v[I(a, q)] = 2; } }
+    const BX = [6, 16, 26, 36, 46], houses = [], blocks = [];
+    const specials = {}; specials['2,2'] = 'safe';
+    const far = () => { for (let k = 0; k < 200; k++) { const i = ri(r, 0, 4), j = ri(r, 0, 4); if (Math.abs(i - 2) + Math.abs(j - 2) >= 3 && !specials[i + ',' + j]) return i + ',' + j; } return '0,0'; };
+    specials[far()] = 'arm'; if (ci === 2) specials['4,0'] = 'min';
+    let parks = 0; while (parks < 3) { const i = ri(r, 0, 4), j = ri(r, 0, 4), key = i + ',' + j; if (!specials[key] && Math.abs(i - 2) + Math.abs(j - 2) >= 1) { specials[key] = 'park'; parks++; } }
+    specials[far()] = specials[far()] || 'lot';
+    const nextHouseId = () => houses.length;
+    function building(x0, y0, w, kind, roofV) { // 3 rows high: two of roof and one of wall; door in the wall row, facing south
+      for (let yy = 0; yy < 2; yy++) for (let xx = 0; xx < w; xx++) set(x0 + xx, y0 + yy, TL.ROOF, roofV);
+      const dx = x0 + (w >> 1); for (let xx = 0; xx < w; xx++) set(x0 + xx, y0 + 2, xx + x0 === dx ? TL.DOOR : TL.WALL, xx % 2 === 0 ? 1 : 0);
+      const h = { id: nextHouseId(), kind, x: x0, y: y0, w, dx, dy: y0 + 2, fx: dx, fy: y0 + 3, roof: roofV, seed: ri(r, 1, 1e9), looted: 0 }; houses.push(h); return h;
+    }
+    for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) {
+      const x0 = BX[i], y0 = BX[j], sp = specials[i + ',' + j] || 'house'; blocks.push({ i, j, x0, y0, kind: sp });
+      for (let yy = 0; yy < 8; yy++) for (let xx = 0; xx < 8; xx++) if (xx === 0 || yy === 0 || xx === 7 || yy === 7) set(x0 + xx, y0 + yy, TL.PAVE, ri(r, 0, 3));
+      const top = r() < .5 ? 1 : 3; // building rows: 1..3 or 3..5 of the block
+      if (sp === 'safe') building(x0 + 1, y0 + 1, 6, 'safe', 5);
+      else if (sp === 'arm') building(x0 + 2, y0 + top, 4, 'arm', 6);
+      else if (sp === 'min') building(x0 + 1, y0 + 1, 6, 'min', 7);
+      else if (sp === 'park') { for (let yy = 1; yy < 7; yy++) for (let xx = 1; xx < 7; xx++) if ((xx + yy) % 2 === 0 && r() < .55) set(x0 + xx, y0 + yy, TL.TREE, ri(r, 0, 2)); }
+      else if (sp === 'lot') { for (let xx = 1; xx < 7; xx += 2) { set(x0 + xx, y0 + 2, TL.CAR, ri(r, 0, 5)); if (r() < .7) set(x0 + xx, y0 + 5, TL.CAR, ri(r, 0, 5)); } }
+      else if (r() < .55) { building(x0 + 1, y0 + top, 3, 'house', ri(r, 0, 4)); building(x0 + 4, y0 + top, 3, 'house', ri(r, 0, 4)); }
+      else { const w = ri(r, 4, 6); building(x0 + 1 + ri(r, 0, 6 - w), y0 + top, w, 'big', ri(r, 0, 4)); }
+      if (sp === 'house') { // trees and cars in the yard, but never on the row in front of the doors
+        for (const h of houses.filter(q => q.x >= x0 && q.x < x0 + 8 && q.y >= y0 && q.y < y0 + 8)) { void h; }
+        const keep = new Set(); houses.filter(q => q.x >= x0 && q.x < x0 + 8 && q.y >= y0 && q.y < y0 + 8).forEach(q => { for (let k = -1; k <= q.w; k++) keep.add((q.fy) * 1000 + q.x + k); });
+        for (let yy = 1; yy < 7; yy++) for (let xx = 1; xx < 7; xx++) { const x = x0 + xx, y = y0 + yy; if (t[I(x, y)] !== TL.GRASS || keep.has(y * 1000 + x)) continue; if ((x + y) % 2 === 0 && r() < .16) set(x, y, r() < .75 ? TL.TREE : TL.CAR, ri(r, 0, 5)); }
+      }
+    }
+    // abandoned cars on the roads: at most one per cross-section so one lane is always open
+    const taken = new Set(); let cars = 0, tries = 0;
+    while (cars < 46 && tries++ < 600) {
+      const a = pick(r, RD) + ri(r, 0, 1), q = ri(r, 3, MW - 4), horiz = r() < .5, key = (horiz ? 'h' : 'v') + a;
+      if (RD.some(b => q >= b - 1 && q <= b + 2)) continue; if (taken.has(key + ':' + q) || taken.has(key + ':' + (q - 1)) || taken.has(key + ':' + (q + 1))) continue;
+      const x = horiz ? q : a, y = horiz ? a : q, other = horiz ? 'h' + (a ^ 1 === a ? a : (a & 1 ? a - 1 : a + 1)) : 'v' + (a & 1 ? a - 1 : a + 1);
+      if (taken.has(other + ':' + q) || taken.has(other + ':' + (q - 1)) || taken.has(other + ':' + (q + 1))) continue;
+      taken.add(key + ':' + q); set(x, y, TL.CAR, ri(r, 0, 5)); cars++;
+    }
+    const safe = houses.find(h => h.kind === 'safe'), arm = houses.find(h => h.kind === 'arm'), min = houses.find(h => h.kind === 'min');
+    const map = { W: MW, H: MH, t, v, houses, blocks, safe, arm, min, start: { x: safe.fx, y: safe.fy }, cfg, ci };
+    // who and what is where
+    const reach = flowField(map, safe.fx, safe.fy), cand = [];
+    for (let y = 3; y < MH - 3; y++) for (let x = 3; x < MW - 3; x++) { const d = reach[I(x, y)]; if (d >= 12 && t[I(x, y)] !== TL.ROAD && (t[I(x, y)] === TL.GRASS || t[I(x, y)] === TL.PAVE)) cand.push([x, y, d]); }
+    const sv = [], used = [], farEnough = (x, y, m) => used.every(u => Math.abs(u[0] - x) + Math.abs(u[1] - y) >= m);
+    const nameList = (() => { const a = NAMES.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; })();
+    const normalHouses = houses.filter(h => h.kind === 'house' || h.kind === 'big');
+    const placeOut = (st, minD) => { for (let k = 0; k < 400; k++) { const c = pick(r, cand); if (c[2] >= minD && farEnough(c[0], c[1], 8)) { used.push(c); return { x: c[0] * T + T / 2, y: c[1] * T + T / 2 }; } } const c = pick(r, cand); return { x: c[0] * T + T / 2, y: c[1] * T + T / 2 }; };
+    const storyKind = cfg.story;
+    if (storyKind === 'mei' || storyKind === 'marcus') { const p = placeOut('s', 34); sv.push({ story: storyKind, name: storyKind === 'mei' ? 'Dr. Mei Lin' : 'Marcus Cole', x: p.x, y: p.y, house: -1 }); }
+    const nInside = Math.floor(cfg.survivors * .4), pool = normalHouses.slice().sort(() => r() - .5);
+    for (let k = 0; k < cfg.survivors; k++) {
+      const tale = cfg.tales[k] ? cfg.tales[k][0] : null, nm = cfg.tales[k] ? cfg.tales[k][1] : nameList[k];
+      if (k % 5 === 2 && k / 5 < 2 && pool.length || (k >= 3 && k < nInside + 3 && pool.length)) { const h = pool.pop(); sv.push({ story: null, tale, name: nm, house: h.id, x: 0, y: 0 }); h.hasSurvivor = true; }
+      else { const p = placeOut('o', 16); sv.push({ story: null, tale, name: nm, x: p.x, y: p.y, house: -1 }); }
+    }
+    sv.forEach((s, i) => { s.id = i; s.look = i % 6; s.state = 'wait'; s.hp = 60; s.mhp = 60; });
+    map.survivors = sv;
+    map.spawnDoctor = null;
+    // notes (lore) and loot are placed inside the houses
+    const noteHouses = normalHouses.filter(h => !h.hasSurvivor).sort(() => r() - .5); map.noteAt = {}; cfg.notes.forEach((n, k) => { if (noteHouses[k]) map.noteAt[noteHouses[k].id] = n; });
+    // supplies: the same totals in every city, shared out at random between the containers of the ordinary houses
+    const SUP = cfg.supplies, lootPool = [];
+    for (let k = 0; k < SUP.food; k++) lootPool.push({ k: 'food', n: 1 }); for (let k = 0; k < SUP.water; k++) lootPool.push({ k: 'water', n: 1 }); for (let k = 0; k < SUP.bandage; k++) lootPool.push({ k: 'bandage', n: 1 }); for (let k = 0; k < SUP.ammo; k++) lootPool.push({ k: 'ammo', n: 250 });
+    const slots = []; for (const h of normalHouses) { h.int = genInterior(h, map); for (const it of h.int.items) if (['cup', 'fridge', 'crate', 'chest', 'desk'].includes(it.k)) slots.push(it); }
+    for (const l of lootPool) pick(r, slots).loot.push(l);
+    return map;
+  }
+
+  /* ---- the inside of a house ---- */
+  function genInterior(h, map) {
+    const r = mul(h.seed), size = { house: [9, 7], big: [11, 8], arm: [11, 8], safe: [13, 9], min: [13, 9] }[h.kind], W = size[0], H = size[1];
+    const t = new Uint8Array(W * H), sg = new Uint8Array(W * H), items = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const w = y <= 1 || x === 0 || x === W - 1 || y === H - 1; t[y * W + x] = w ? 1 : 0; sg[y * W + x] = w ? 1 : 0; }
+    const ex = W >> 1; t[(H - 1) * W + ex] = 3; sg[(H - 1) * W + ex] = 0;
+    const rugX = 2 + ri(r, 0, 2); for (let y = 3; y < H - 2; y++) for (let x = rugX; x < W - rugX; x++) t[y * W + x] = 2;
+    const put = (k, x, y, loot, w) => { items.push({ k, x, y, w: w || 1, loot: loot || [], done: false }); for (let q = 0; q < (w || 1); q++) sg[y * W + x + q] = 1; };
+    const free = (x, y, w) => { for (let q = 0; q < (w || 1); q++) if (sg[y * W + x + q] || x + q >= W - 1 || x + q < 1) return false; return true; };
+    const diff = map.ci;
+    const food = () => ({ k: 'food', n: 1 }), water = () => ({ k: 'water', n: 1 }), band = () => ({ k: 'bandage', n: 1 }), ammo = n => ({ k: 'ammo', n: n || pick(r, [200, 300, 400, 500]) });
+    const lootFor = () => []; // ordinary containers start empty: genCity shares out the city's supplies afterwards
+    if (h.kind === 'safe') {
+      put('bed', 1, 2, [], 2); put('bed', W - 3, 2, [], 2); put('cache', ex - 1, 2, [food(), food(), water(), water(), band(), band(), ammo(300)], 2); put('radio', 3, 2, [], 1);
+      return { W, H, t, sg, items, ex, ey: H - 1, kind: h.kind };
+    }
+    if (h.kind === 'arm') {
+      const ws = map.cfg.armoury; let x = 2; for (const w of ws) { put('locker', x, 2, [{ k: 'weapon', id: w }, ammo(500)], 1); x += 2; }
+      for (; x < 8; x += 2) put('locker', x, 2, [ammo(500)], 1);
+      return { W, H, t, sg, items, ex, ey: H - 1, kind: h.kind };
+    }
+    if (h.kind === 'min') { put('cache', ex - 1, 2, [food(), water(), band(), band(), ammo(500)], 2); put('antidote', 2, 2, [{ k: 'antidote' }], 1); put('desk', W - 3, 2, lootFor('desk'), 2); return { W, H, t, sg, items, ex, ey: H - 1, kind: h.kind }; }
+    const kinds = ['cup', 'fridge', 'crate', 'chest', 'cup', 'crate'], tops = []; for (let x = 1; x < W - 1; x += 2) tops.push(x); tops.sort(() => r() - .5);
+    const nTop = Math.min(tops.length, h.kind === 'big' ? 4 : 3); let n = 0;
+    for (const x of tops) { if (n >= nTop) break; const w = 1; if (free(x, 2, w)) { const k = pick(r, kinds); put(k, x, 2, lootFor(k), w); n++; } }
+    if (r() < (h.kind === 'big' ? .85 : .5) || h.hasSurvivor === false) { const bx = pick(r, [1, W - 3]); if (free(bx, 4, 2)) put('bed', bx, 4, [], 2); }
+    if (map.noteAt[h.id] !== undefined) { const dx = [1, W - 2, 3, W - 4].find(x => free(x, 2, 1)); put('desk', dx === undefined ? 4 : dx, dx === undefined ? 4 : 2, [{ k: 'note', id: map.noteAt[h.id] }, ...lootFor('desk')], 1); }
+    if (!h.hasSurvivor) { const tx = ex - 1; if (free(tx, 4, 2) && r() < .6) put('table', tx, 4, [], 2); }
+    if (r() < .5 && free(W - 2, 4, 1)) put('chest', W - 2, 4, lootFor('chest'), 1);
+    if (!items.length) put('cup', 1, 2, [], 1);
+    return { W, H, t, sg, items, ex, ey: H - 1, kind: h.kind };
+  }
+
+  /* ---- zombies' map of "how far to the player": breadth-first search over walkable tiles (doors count as walls for them) ---- */
+  const walkable = (map, x, y) => x >= 0 && y >= 0 && x < map.W && y < map.H && !SOLID[map.t[y * map.W + x]] && map.t[y * map.W + x] !== TL.DOOR;
+  const DX = [1, -1, 0, 0, 1, 1, -1, -1], DY = [0, 0, 1, -1, 1, -1, 1, -1];
+  function flowField(map, tx, ty, out) {
+    const W = map.W, H = map.H, d = out || new Int16Array(W * H); d.fill(-1); if (!walkable(map, tx, ty)) { // standing on a door: start from the tile in front of it
+      if (walkable(map, tx, ty + 1)) ty++; else return d; }
+    const q = new Int32Array(W * H); let a = 0, b = 0; q[b++] = ty * W + tx; d[ty * W + tx] = 0;
+    while (a < b) { const c = q[a++], x = c % W, y = (c / W) | 0, dd = d[c];
+      for (let k = 0; k < 8; k++) { const nx = x + DX[k], ny = y + DY[k]; if (!walkable(map, nx, ny)) continue; if (k >= 4 && (!walkable(map, x + DX[k], y) || !walkable(map, x, y + DY[k]))) continue; const ni = ny * W + nx; if (d[ni] >= 0) continue; d[ni] = dd + 1; q[b++] = ni; } }
+    return d;
+  }
+  return { T, MW, MH, TL, SOLID, SUPPLIES, CITIES, BOSSES, NAMES, genCity, genInterior, flowField, walkable, DX, DY, mul };
+})();
+if (typeof module !== 'undefined') module.exports = OBG;
+
+/* Outbreak, part 2: the rules. One function, update(S, dt, input), moves everything: you, the zombies, bullets, bombs, followers, hunger.
+   It never draws. It writes what happened into S.ev (shot, hit, kill, loot, dialogue...) and game.js turns those into sounds and screens. */
+const OBS = (function () {
+  const G = (typeof module !== 'undefined') ? require('./obgen.js') : OBG;
+  const { T, TL, SOLID, CITIES, BOSSES, genCity, genInterior, flowField, walkable, DX, DY } = G;
+  const PI = Math.PI, hyp = Math.hypot;
+  const WEAPONS = {
+    pistol: { name: 'Pistol', cd: .22, cost: 1, dmg: 15, dirs: [0], spread: .02, info: 'one shot forward' },
+    twin: { name: 'Twin shot', cd: .26, cost: 2, dmg: 15, dirs: [0, PI], spread: .02, info: 'forward and backward' },
+    triple: { name: 'Triple shot', cd: .32, cost: 3, dmg: 14, dirs: [-.34, 0, .34], spread: .03, info: 'three angles' },
+    mg: { name: 'Machine gun', cd: .085, cost: 1, dmg: 9, dirs: [0], spread: .11, info: 'very fast' },
+    bomb: { name: 'Bomb launcher', cd: .95, cost: 5, dmg: 0, bomb: true, info: 'three bombs, big blast' }
+  };
+  const DIFF = { easy: { hp: .8, dmg: .7, spawn: .85, need: .8 }, normal: { hp: 1, dmg: 1, spawn: 1, need: 1 }, hard: { hp: 1.25, dmg: 1.3, spawn: 1.2, need: 1.15 } };
+  const rnd = (S, a, b) => a + S.rng() * (b - a);
+  const idx = (S, x, y) => y * S.map.W + x;
+
+  function carryDefault() { return { hp: 100, maxhp: 100, food: 100, water: 100, ammo: 1000, inv: { food: 2, water: 2, bandage: 2 }, weapons: ['pistol'], wi: 0, saved: 0, pac: true }; }
+  function obNew(o) {
+    o = o || {}; const ci = o.city || 0, cfg = CITIES[ci], seed = 1000 + ci * 77 + (o.seedAdd || 0), map = genCity(ci, seed), c = Object.assign(carryDefault(), JSON.parse(JSON.stringify(o.carry || {})));
+    const S = { ci, cfg, map, diff: DIFF[o.diff || 'normal'], diffName: o.diff || 'normal', assist: o.assist !== false, rng: G.mul(seed ^ 0x9e3779b9 ^ (o.run || 0)),
+      p: { x: map.start.x * T + T / 2, y: map.start.y * T + T / 2 + 8, hp: c.hp, maxhp: c.maxhp, food: c.food, water: c.water, ammo: c.ammo, inv: c.inv, weapons: c.weapons, wi: c.wi, fa: PI / 2, dir: 0, cd: 0, bleed: false, hurtT: 0, anim: 0, moving: false, inHouse: -1, ox: 0, oy: 0, doorCd: 0, clickT: 0, restT: 0 },
+      z: [], bullets: [], bombs: [], fx: [], pick: [], fol: [], trail: [], saved: c.saved, savedHere: [], kills: 0, spawned: 0, bossKills: 0, bossIdx: 0, finalSpawned: false, finalDead: false, bosses: [],
+      dist: new Int16Array(map.W * map.H), distT: 0, spT: 2, wvT: 28, time: 0, phase: 'play', ev: [], flags: {}, int: null, shake: 0, restCount: 0, msgT: 0, danger: 0, grid: [] };
+    S.pac = c.pac !== false; S.p.x = map.start.x * T + T / 2; S.p.y = (map.start.y + 1) * T + T / 2; S.map.survivors.forEach(s => { s.state = 'wait'; s.hp = s.mhp = 100; });
+    S.gw = Math.ceil(map.W * T / 48) + 1; for (let i = 0; i < S.gw * S.gw; i++) S.grid.push([]);
+    flowField(map, map.start.x, map.start.y, S.dist); S.ev.push({ t: 'city', ci });
+    return S;
+  }
+  const carryOf = S => ({ hp: S.p.hp, maxhp: S.p.maxhp, food: S.p.food, water: S.p.water, ammo: S.p.ammo, inv: Object.assign({}, S.p.inv), weapons: S.p.weapons.slice(), wi: S.p.wi, saved: S.saved, pac: S.pac });
+
+  /* ---- bodies and collisions ---- */
+  const solidTile = (S, tx, ty) => tx < 0 || ty < 0 || tx >= S.map.W || ty >= S.map.H || SOLID[S.map.t[ty * S.map.W + tx]] === 1;
+  const solidPl = (S, x, y) => { if (S.p.inHouse >= 0) { const I = S.int, tx = Math.floor(x / T), ty = Math.floor(y / T); return tx < 0 || ty < 0 || tx >= I.W || ty >= I.H || I.sg[ty * I.W + tx] === 1; } return solidTile(S, Math.floor(x / T), Math.floor(y / T)); };
+  const solidZ = (S, x, y) => { const tx = Math.floor(x / T), ty = Math.floor(y / T); return solidTile(S, tx, ty) || S.map.t[ty * S.map.W + tx] === TL.DOOR; };
+  const hit4 = (S, fn, x, y, h) => fn(S, x - h, y - h) || fn(S, x + h, y - h) || fn(S, x - h, y + h) || fn(S, x + h, y + h);
+  function moveBody(S, e, dx, dy, half, fn) { const nx = e.x + dx; if (!hit4(S, fn, nx, e.y, half)) e.x = nx; const ny = e.y + dy; if (!hit4(S, fn, e.x, ny, half)) e.y = ny; }
+  function lineClear(S, x0, y0, x1, y1) { const d = hyp(x1 - x0, y1 - y0), n = Math.ceil(d / 8); for (let i = 1; i < n; i++) { const t = i / n; if (solidZ(S, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)) return false; } return true; }
+
+  /* ---- zombies ---- */
+  function mkZombie(S, type, x, y, boss) {
+    const d = S.diff, B = boss ? BOSSES[boss] : null; let hp, sp, dmg, r;
+    if (B) { hp = B.hp * d.hp; sp = B.spd; dmg = B.dmg; r = 9 * B.sc; }
+    else if (type === 'run') { hp = 20 * d.hp; sp = 88 + S.rng() * 16; dmg = 6; r = 8; } else if (type === 'brute') { hp = 100 * d.hp; sp = 36 + S.rng() * 6; dmg = 15; r = 12; } else { hp = 30 * d.hp; sp = 44 + S.rng() * 16; dmg = 7; r = 9; }
+    const z = { x, y, hp, mhp: hp, sp, dmg: dmg * d.dmg, r, half: B ? 13 : 7, type: B ? 'boss' : type, boss: B, bid: boss || null, atk: 0, hurt: 0, anim: S.rng() * 6, look: Math.floor(S.rng() * 4), ch: 0, chT: B ? rnd(S, 3, 5) : 0, cdx: 0, cdy: 0, sumT: rnd(S, 6, 9), stun: 0, fx: 0, fy: 1, sum: false };
+    S.z.push(z); return z;
+  }
+  function spawnAround(S, ang, rmin, rmax, type, boss) {
+    const p = S.p;
+    for (let k = 0; k < 16; k++) {
+      const a = ang + (k ? (S.rng() - .5) * .9 : 0), d = rnd(S, rmin, rmax), x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d, tx = Math.floor(x / T), ty = Math.floor(y / T);
+      if (tx < 2 || ty < 2 || tx >= S.map.W - 2 || ty >= S.map.H - 2 || !walkable(S.map, tx, ty) || S.dist[ty * S.map.W + tx] < 0) continue;
+      if (Math.abs(x - p.x) < 250 && Math.abs(y - p.y) < 250) continue;
+      return mkZombie(S, type, tx * T + T / 2, ty * T + T / 2, boss);
+    }
+    return null;
+  }
+  const pickType = S => { const r = S.rng(), c = S.cfg, prog = S.kills / c.quota; if (prog > .12 && r < c.runner) return 'run'; if (r > 1 - c.brute) return 'brute'; return 'walk'; };
+  function spawnLogic(S, dt) {
+    const c = S.cfg, p = S.p, alive = S.z.filter(z => z.type !== 'boss').length, ease = .5 + .5 * Math.min(1, S.kills / (c.quota * .45)), cap = Math.round(c.cap * S.diff.spawn * ease);
+    S.spT -= dt; if (S.spT <= 0) { S.spT = rnd(S, .8, 1.5) / S.diff.spawn * (1.5 - .8 * Math.min(1, S.kills / (c.quota * .6))); if (alive < cap) { if (spawnAround(S, S.rng() * PI * 2, 275, 380, pickType(S))) S.spawned++; } }
+    S.wvT -= dt; if (S.wvT <= 0) { S.wvT = rnd(S, 30, 42); const n = Math.min(S.spawned < c.quota ? c.quota - S.spawned : 99, Math.round((c.wave[0] + S.rng() * (c.wave[1] - c.wave[0])) * S.diff.spawn * ease)); if (n > 0 && alive < cap + 6) { S.ev.push({ t: 'wave' }); const a0 = S.rng() * PI * 2; for (let k = 0; k < n; k++) if (spawnAround(S, a0 + k / n * PI * 2, 280, 400, pickType(S))) S.spawned++; } }
+    // bosses
+    const nb = c.bosses[S.bossIdx]; if (nb && !nb.final && S.kills >= nb.at * c.quota) { S.bossIdx++; const z = spawnAround(S, S.rng() * PI * 2, 300, 380, 'boss', nb.id); if (z) S.ev.push({ t: 'boss', id: nb.id, name: z.boss.name }); }
+    else if (nb && nb.final && !S.finalSpawned && S.kills >= c.quota) { const z = spawnAround(S, S.rng() * PI * 2, 300, 380, 'boss', nb.id); if (z) { S.finalSpawned = true; z.final = true; S.ev.push({ t: 'boss', id: nb.id, name: z.boss.name, final: true }); } }
+    void p;
+  }
+  function killZ(S, z, byBomb) {
+    z.dead = true; const p = z.type === 'boss';
+    if (p) { S.bossKills++; if (z.final) S.finalDead = true; S.ev.push({ t: 'bossdead', id: z.bid, final: !!z.final, x: z.x, y: z.y }); S.shake = .6;
+      dropAt(S, z.x - 14, z.y, 'ammo', 800); dropAt(S, z.x + 14, z.y, 'bandage', 2); dropAt(S, z.x, z.y + 14, 'food', 1); dropAt(S, z.x, z.y - 14, 'water', 1);
+      if (z.bid === 'brute') dropAt(S, z.x, z.y, 'weapon', 'mg'); }
+    else { if (!z.sum) S.kills++; const r = S.rng(); if (r < .06) dropAt(S, z.x, z.y, 'ammo', 60); else if (r < .072) dropAt(S, z.x, z.y, 'food', 1); else if (r < .084) dropAt(S, z.x, z.y, 'water', 1); else if (r < .094) dropAt(S, z.x, z.y, 'bandage', 1); }
+    S.fx.push({ k: 'splat', x: z.x, y: z.y, t: 0, d: p ? 1.2 : .6, big: p }); S.ev.push({ t: 'kill', boss: p, bomb: !!byBomb });
+  }
+  function dropAt(S, x, y, k, n) { S.pick.push({ x, y, k, n, life: 60 }); }
+  function dmgZ(S, z, d, bomb) { if (z.dead) return; z.hp -= d; z.hurt = .12; if (z.hp <= 0) killZ(S, z, bomb); }
+
+  function updZombies(S, dt) {
+    const p = S.p, inside = p.inHouse >= 0, grid = S.grid, gw = S.gw; for (const g of grid) g.length = 0;
+    for (const z of S.z) { const gx = Math.floor(z.x / 48), gy = Math.floor(z.y / 48); if (gx >= 0 && gy >= 0 && gx < gw && gy < gw) grid[gy * gw + gx].push(z); }
+    if (inside) return;
+    S.danger = 0;
+    for (const z of S.z) {
+      if (z.dead) continue; z.anim += dt; z.atk -= dt; z.hurt -= dt;
+      const dxp = p.x - z.x, dyp = p.y - z.y, dp = hyp(dxp, dyp);
+      if (dp < 200) S.danger++;
+      let sp = z.sp * (S.pac ? .8 : 1), tx = p.x, ty = p.y; // on a peace run the dead are slower and bite softer
+      if (z.stun > 0) { z.stun -= dt; continue; }
+      if (z.boss && z.boss.charge) {
+        if (z.ch === 0) { z.chT -= dt; if (z.chT <= 0 && dp < 260 && dp > 60) { z.ch = 1; z.chT = .75; z.cdx = dxp / dp; z.cdy = dyp / dp; S.ev.push({ t: 'windup' }); } }
+        else if (z.ch === 1) { z.chT -= dt; z.fx = z.cdx; z.fy = z.cdy; if (z.chT <= 0) { z.ch = 2; z.chT = .55; } continue; }
+        else { z.chT -= dt; const bx = z.x, by = z.y; moveBody(S, z, z.cdx * 250 * dt, z.cdy * 250 * dt, z.half, solidZ); if (Math.abs(z.x - bx) + Math.abs(z.y - by) < 250 * dt * .5) { z.stun = .9; z.ch = 0; z.chT = rnd(S, 4, 6); S.shake = .3; } if (z.chT <= 0) { z.ch = 0; z.chT = rnd(S, 4, 7); } }
+      }
+      if (z.boss && z.boss.summon) { z.sumT -= dt; if (z.sumT <= 0) { z.sumT = rnd(S, 7, 10); let n = 0; for (let k = 0; k < 3; k++) { const a = S.rng() * PI * 2, zz = { x: z.x + Math.cos(a) * 40, y: z.y + Math.sin(a) * 40 }; if (!solidZ(S, zz.x, zz.y) && S.z.length < 140) { const m = mkZombie(S, 'walk', zz.x, zz.y); m.sum = true; n++; } } if (n) S.ev.push({ t: 'summon' }); } }
+      if (z.ch !== 2) {
+        const ztx = Math.floor(z.x / T), zty = Math.floor(z.y / T), W = S.map.W, d0 = ztx >= 0 && zty >= 0 && ztx < W && zty < S.map.H ? S.dist[zty * W + ztx] : -1;
+        if (d0 > 2) { let best = d0, bx = -1, by = -1; for (let k = 0; k < 8; k++) { const nx = ztx + DX[k], ny = zty + DY[k]; if (nx < 0 || ny < 0 || nx >= W || ny >= S.map.H) continue; const di = S.dist[ny * W + nx]; if (di < 0 || di >= best) continue; if (k >= 4 && (!walkable(S.map, ztx + DX[k], zty) || !walkable(S.map, ztx, zty + DY[k]))) continue; best = di; bx = nx; by = ny; } if (bx >= 0) { tx = bx * T + T / 2; ty = by * T + T / 2; } }
+        const ex = tx - z.x, ey = ty - z.y, ed = hyp(ex, ey) || 1; z.fx = ex / ed; z.fy = ey / ed; if (z.ch === 1) continue;
+        let mx = ex / ed * sp * dt, my = ey / ed * sp * dt;
+        // push away from neighbours so the swarm spreads out
+        const gx = Math.floor(z.x / 48), gy = Math.floor(z.y / 48);
+        for (let ay = gy - 1; ay <= gy + 1; ay++) for (let ax = gx - 1; ax <= gx + 1; ax++) { if (ax < 0 || ay < 0 || ax >= gw || ay >= gw) continue; for (const o of grid[ay * gw + ax]) { if (o === z || o.dead) continue; const ox = z.x - o.x, oy = z.y - o.y, od = hyp(ox, oy), min = (z.r + o.r) * .8; if (od < min && od > .01) { const k = (min - od) / min * 60 * dt / od; mx += ox * k; my += oy * k; } } }
+        moveBody(S, z, mx, my, z.half, solidZ);
+      }
+      // bites
+      if (z.atk <= 0) {
+        if (dp < z.r + 8) { z.atk = z.boss ? 1 : .9; hurtPlayer(S, z.dmg * (S.pac ? .5 : 1), !!z.boss); }
+        else for (const f of S.fol) { if (f.state === 'follow' && hyp(f.x - z.x, f.y - z.y) < z.r + 8) { z.atk = .85; f.hp -= z.dmg * .8 * (S.pac ? .3 : 1); f.hurt = .3; f.hit = 0; S.ev.push({ t: 'fhurt' }); break; } }
+      }
+    }
+    S.z = S.z.filter(z => !z.dead);
+  }
+  function hurtPlayer(S, d, boss) {
+    const p = S.p; if (p.hurtT > 0 || S.phase !== 'play') return; S.cause = boss ? 'boss' : 'zombie'; p.hp -= d; p.hurtT = .3; S.ev.push({ t: 'hurt' }); S.shake = Math.max(S.shake, .15);
+    if (S.rng() < (boss ? .55 : .2)) { if (!p.bleed) S.ev.push({ t: 'bleed' }); p.bleed = true; }
+    if (p.hp <= 0) { p.hp = 0; S.phase = 'dead'; S.ev.push({ t: 'dead', cause: S.cause }); }
+  }
+
+  /* ---- shooting ---- */
+  function nearestZ(S, maxD) { let b = null, bd = maxD; for (const z of S.z) { const d = hyp(z.x - S.p.x, z.y - S.p.y) - z.r; if (d < bd) { bd = d; b = z; } } return b; }
+  function shoot(S) {
+    const p = S.p, w = WEAPONS[p.weapons[p.wi]]; if (p.ammo < w.cost) { if (p.clickT <= 0) { p.clickT = .5; S.ev.push({ t: 'empty' }); } return; }
+    p.ammo -= w.cost; p.cd = w.cd; let base = p.fa; if (S.pac) { S.pac = false; S.ev.push({ t: 'unpeace' }); } // the secret peace ending needs a run with not one shot
+    if (S.assist) { // auto aim: a boss in range first, otherwise the nearest zombie (one you can see past the walls if possible)
+      let best = null, bd = 1e9, boss = null, bb = 1e9;
+      for (const z of S.z) { const d = hyp(z.x - p.x, z.y - p.y); if (d > 350 || d < 4) continue; const vis = lineClear(S, p.x, p.y, z.x, z.y), sc = d + (vis ? 0 : 400); if (z.boss) { if (sc < bb) { bb = sc; boss = z; } } if (sc < bd) { bd = sc; best = z; } }
+      const tz = boss && bb < 350 ? boss : best; if (tz) { base = Math.atan2(tz.y - p.y, tz.x - p.x); p.fa = base; }
+    }
+    if (w.bomb) { for (const o of [-.28, 0, .28]) { const a = base + o, d = 150 + S.rng() * 60; throwBomb(S, p.x, p.y, a, d, 62, 60, 'p'); } S.ev.push({ t: 'throw' }); return; }
+    for (const o of w.dirs) { const a = base + o + (S.rng() - .5) * 2 * (w.spread || 0), sp = 560; S.bullets.push({ x: p.x + Math.cos(a) * 10, y: p.y - 4 + Math.sin(a) * 10, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, dmg: w.dmg, life: .72 }); }
+    S.fx.push({ k: 'flash', x: p.x + Math.cos(base) * 14, y: p.y - 4 + Math.sin(base) * 14, t: 0, d: .06 }); S.ev.push({ t: 'shot', w: p.weapons[p.wi] });
+  }
+  function throwBomb(S, x, y, a, d, r, dmg, own) {
+    let tx = x + Math.cos(a) * d, ty = y + Math.sin(a) * d; for (let k = 0; k < 12 && solidZ(S, tx, ty); k++) { d *= .85; tx = x + Math.cos(a) * d; ty = y + Math.sin(a) * d; }
+    S.bombs.push({ x, y, sx: x, sy: y, tx, ty, t: 0, dur: .7, r, dmg, own });
+  }
+  function explode(S, b) {
+    S.ev.push({ t: 'boom' }); S.fx.push({ k: 'boom', x: b.tx, y: b.ty, t: 0, d: .45, r: b.r }); S.shake = Math.max(S.shake, .2);
+    for (const z of S.z) { if (z.dead) continue; const d = hyp(z.x - b.tx, z.y - b.ty); if (d < b.r + z.r) dmgZ(S, z, b.dmg * (1 - .4 * d / (b.r + z.r)), true); }
+  }
+  function updBullets(S, dt) {
+    const gw = S.gw, grid = S.grid;
+    for (const b of S.bullets) {
+      const sp = hyp(b.vx, b.vy), n = Math.max(1, Math.ceil(sp * dt / 7)), sx = b.vx * dt / n, sy = b.vy * dt / n;
+      for (let i = 0; i < n && !b.dead; i++) {
+        b.x += sx; b.y += sy; if (solidZ(S, b.x, b.y)) { b.dead = true; S.fx.push({ k: 'spark', x: b.x, y: b.y, t: 0, d: .12 }); break; }
+        const gx = Math.floor(b.x / 48), gy = Math.floor(b.y / 48);
+        for (let ay = gy - 1; ay <= gy + 1 && !b.dead; ay++) for (let ax = gx - 1; ax <= gx + 1 && !b.dead; ax++) { if (ax < 0 || ay < 0 || ax >= gw || ay >= gw) continue; for (const z of grid[ay * gw + ax]) { if (z.dead) continue; if (hyp(z.x - b.x, z.y - b.y) < z.r + 3) { dmgZ(S, z, b.dmg, false); b.dead = true; S.fx.push({ k: 'hit', x: b.x, y: b.y, t: 0, d: .15 }); S.ev.push({ t: 'hit' }); break; } } }
+      }
+      b.life -= dt; if (b.life <= 0) b.dead = true;
+    }
+    S.bullets = S.bullets.filter(b => !b.dead);
+    for (const b of S.bombs) { b.t += dt; const k = Math.min(1, b.t / b.dur); b.x = b.sx + (b.tx - b.sx) * k; b.y = b.sy + (b.ty - b.sy) * k; if (b.t >= b.dur) { b.done = true; explode(S, b); } }
+    S.bombs = S.bombs.filter(b => !b.done);
+    for (const f of S.fx) f.t += dt; S.fx = S.fx.filter(f => f.t < f.d);
+  }
+
+  /* ---- followers ---- */
+  function updFollowers(S, dt) {
+    const p = S.p, tr = S.trail, last = tr[tr.length - 1];
+    if (!last || hyp(p.x - last.x, p.y - last.y) > 7) { tr.push({ x: p.x, y: p.y }); if (tr.length > 120) tr.shift(); }
+    S.fol.forEach((f, i) => {
+      f.hurt = Math.max(0, (f.hurt || 0) - dt); f.hit = (f.hit === undefined ? 99 : f.hit) + dt; if (f.hit > 4 && f.hp > 0 && f.hp < f.mhp) f.hp = Math.min(f.mhp, f.hp + 3 * dt); if (f.hp < 35 && !f.warned) { f.warned = true; S.ev.push({ t: 'danger', name: f.name }); } else if (f.hp > 60) f.warned = false; const tp = tr[Math.max(0, tr.length - 1 - (i + 1) * 7)] || p, d = hyp(tp.x - f.x, tp.y - f.y);
+      if (d > 320) { f.x = tp.x; f.y = tp.y; } else if (d > 6) { const k = Math.min(1, 104 * dt / d); f.moving = true; f.fx = (tp.x - f.x) / d; f.fy = (tp.y - f.y) / d; moveBody(S, f, (tp.x - f.x) * k, (tp.y - f.y) * k, 6, p.inHouse >= 0 ? solidPl : solidZ); } else f.moving = false;
+      f.anim = (f.anim || 0) + dt;
+      f.bt = (f.bt === undefined ? rnd(S, 2, 4) : f.bt) - dt;
+      if (f.bt <= 0 && p.inHouse < 0) { f.bt = rnd(S, 3.2, 5); if (!S.pac && S.z.some(z => hyp(z.x - f.x, z.y - f.y) < 300)) { throwBomb(S, f.x, f.y, S.rng() * PI * 2, rnd(S, 80, 150), 50, 34, 'f'); S.ev.push({ t: 'fthrow' }); } }
+    });
+    for (const f of S.fol.slice()) if (f.hp <= 0) { f.state = 'dead'; S.fol.splice(S.fol.indexOf(f), 1); S.ev.push({ t: 'lost', name: f.name }); if (S.phase === 'play') { S.phase = 'dead'; S.cause = 'lost'; S.lostName = f.name; S.ev.push({ t: 'dead', cause: 'lost', name: f.name }); } }
+  }
+
+  /* ---- doors, rooms, looting ---- */
+  const houseById = (S, id) => S.map.houses[id];
+  function placeFollowersNear(S, x, y) { S.fol.forEach((f, i) => { f.x = x + (i ? 14 : -14); f.y = y + 8 + i * 6; }); S.trail.length = 0; S.trail.push({ x, y }); }
+  function enterHouse(S, h) {
+    const p = S.p; p.ox = h.fx * T + T / 2; p.oy = h.fy * T + T / 2; p.inHouse = h.id; if (!h.int) h.int = genInterior(h, S.map); S.int = h.int; const I = h.int;
+    p.x = I.ex * T + T / 2; p.y = (I.ey - 1) * T + T / 2; p.doorCd = .5; placeFollowersNear(S, p.x, p.y - 4); p.fa = -PI / 2; p.dir = 1;
+    for (const s of S.map.survivors) if (s.house === h.id && s.state === 'wait') { s.x = (I.W >> 1) * T + T / 2; s.y = 4 * T + T / 2; }
+    S.ev.push({ t: 'enter', kind: h.kind });
+    if (h.kind === 'safe' && S.fol.length) {
+      for (const f of S.fol.slice()) { f.state = 'saved'; S.saved++; S.savedHere.push(f); p.ammo += 250; p.inv.food++; p.inv.water++; p.inv.bandage++; S.ev.push({ t: 'saved', name: f.name, story: f.story }); if (f.story) { S.flags.storySaved = true; S.ev.push({ t: 'storySaved', who: f.story }); } }
+      S.fol.length = 0;
+    }
+  }
+  function leaveHouse(S) { const p = S.p; p.inHouse = -1; p.x = p.ox; p.y = p.oy + 6; p.doorCd = .7; placeFollowersNear(S, p.x, p.y); S.distT = 0; S.ev.push({ t: 'leave' }); }
+  function loot(S, it) {
+    const p = S.p, got = []; it.done = true;
+    for (const l of it.loot) {
+      if (l.k === 'ammo') { p.ammo += l.n; got.push(l.n + ' ammo'); } else if (l.k === 'food') { p.inv.food += l.n; got.push(l.n + ' food'); } else if (l.k === 'water') { p.inv.water += l.n; got.push(l.n + ' water'); } else if (l.k === 'bandage') { p.inv.bandage += l.n; got.push(l.n + ' bandage'); }
+      else if (l.k === 'weapon') { if (!p.weapons.includes(l.id)) { p.weapons.push(l.id); p.wi = p.weapons.length - 1; } got.push(WEAPONS[l.id].name); S.ev.push({ t: 'weapon', id: l.id }); }
+      else if (l.k === 'note') S.ev.push({ t: 'note', id: l.id }); else if (l.k === 'antidote') { S.flags.antidote = true; got.push('the ANTIDOTE'); S.ev.push({ t: 'antidote' }); }
+    }
+    S.ev.push({ t: 'loot', text: got.length ? 'Found ' + got.join(', ') + '.' : 'Nothing useful.', got: got.length }); return got;
+  }
+  function doAct(S) {
+    const p = S.p;
+    if (p.inHouse < 0) {
+      let b = null, bd = 44; for (const s of S.map.survivors) if (s.state === 'wait' && s.house < 0) { const d = hyp(s.x - p.x, s.y - p.y); if (d < bd) { bd = d; b = s; } }
+      if (b) return recruit(S, b); S.ev.push({ t: 'msg', text: 'Nothing here. Walk into a door to go inside.' }); return;
+    }
+    const I = S.int, h = houseById(S, p.inHouse); let best = null, bd = 50;
+    for (const it of I.items) { const cx = (it.x + it.w / 2) * T, cy = (it.y + .5) * T, d = hyp(cx - p.x, cy - p.y); if (d < bd) { bd = d; best = it; } }
+    for (const s of S.map.survivors) if (s.state === 'wait' && s.house === p.inHouse) { const d = hyp(s.x - p.x, s.y - p.y); if (d < bd) { bd = d; best = s; } }
+    if (!best) { S.ev.push({ t: 'msg', text: 'Stand next to something and press Act.' }); return; }
+    if (best.name !== undefined && best.k === undefined) return recruit(S, best);
+    if (best.k === 'bed') return rest(S, h);
+    if (best.k === 'radio') { S.ev.push({ t: 'radio' }); return; }
+    if (best.k === 'table') { S.ev.push({ t: 'msg', text: 'A dusty table.' }); return; }
+    if (best.done) { S.ev.push({ t: 'msg', text: 'Already searched.' }); return; }
+    loot(S, best); if (I.items.every(q => q.done || !q.loot.length)) h.looted = 1;
+  }
+  function recruit(S, s) {
+    if (S.fol.length >= 2) { S.ev.push({ t: 'msg', text: 'Your group is full (2). Take them to the safe house first.' }); return; }
+    s.state = 'follow'; s.hp = s.mhp; s.hit = 99; s.house = s.house; s.x = s.x; S.fol.push(s); s.bt = rnd(S, 2, 4); s.look = s.look || 0;
+    S.ev.push({ t: 'recruit', name: s.name, story: s.story, tale: s.tale || null });
+  }
+  function rest(S, h) {
+    const p = S.p; if (p.hp >= p.maxhp - 1 && !p.bleed && S.fol.every(f => f.hp >= f.mhp)) { S.ev.push({ t: 'msg', text: 'You feel fully rested.' }); return; }
+    if (p.food < 15 || p.water < 15) { S.ev.push({ t: 'msg', text: 'Too hungry or thirsty to sleep. Eat and drink first.' }); return; }
+    p.hp = Math.min(p.maxhp, p.hp + 55); p.food = Math.max(0, p.food - 12 * S.diff.need); p.water = Math.max(0, p.water - 14 * S.diff.need); p.bleed = false; S.fol.forEach(f => f.hp = f.mhp); S.restCount++; S.ev.push({ t: 'rest' }); void h;
+  }
+  function useItem(S, k) {
+    const p = S.p;
+    if (k === 'eat') { if (p.inv.food > 0 && p.food < 96) { p.inv.food--; p.food = Math.min(100, p.food + 40); S.ev.push({ t: 'eat' }); } else S.ev.push({ t: 'msg', text: p.inv.food ? 'You are not hungry.' : 'No food.' }); }
+    else if (k === 'drink') { if (p.inv.water > 0 && p.water < 96) { p.inv.water--; p.water = Math.min(100, p.water + 40); S.ev.push({ t: 'drink' }); } else S.ev.push({ t: 'msg', text: p.inv.water ? 'You are not thirsty.' : 'No water.' }); }
+    else if (k === 'bandage') { if (p.inv.bandage > 0 && (p.hp < p.maxhp - 1 || p.bleed)) { p.inv.bandage--; p.hp = Math.min(p.maxhp, p.hp + 35); p.bleed = false; S.ev.push({ t: 'heal' }); } else S.ev.push({ t: 'msg', text: p.inv.bandage ? 'You are not hurt.' : 'No bandages.' }); }
+  }
+
+  /* ---- the main step ---- */
+  function update(S, dt, inp) {
+    inp = inp || {}; if (S.phase !== 'play') { for (const f of S.fx) f.t += dt; return; }
+    const p = S.p, inside = p.inHouse >= 0; S.time += dt; p.cd -= dt; p.hurtT -= dt; p.clickT -= dt; p.doorCd -= dt; S.shake = Math.max(0, S.shake - dt);
+    for (const a of (inp.acts || [])) {
+      if (a === 'act') doAct(S); else if (a === 'swap') { p.wi = (p.wi + 1) % p.weapons.length; S.ev.push({ t: 'swap', id: p.weapons[p.wi] }); } else if (a === 'eat' || a === 'drink' || a === 'bandage') useItem(S, a);
+      else if (a.indexOf('w:') === 0) { const i = +a.slice(2); if (i < p.weapons.length) p.wi = i; }
+    }
+    // moving
+    let mx = inp.mx || 0, my = inp.my || 0; const ml = hyp(mx, my); if (ml > 1) { mx /= ml; my /= ml; }
+    p.moving = ml > .15; const spd = 112 * (p.food <= 0 || p.water <= 0 ? .8 : 1);
+    if (p.moving) { moveBody(S, p, mx * spd * dt, my * spd * dt, 7, solidPl); p.anim += dt * 8; if (!inp.fire) { p.fa = Math.round(Math.atan2(my, mx) / (PI / 4)) * (PI / 4); } if (Math.abs(my) > Math.abs(mx) * .7 && my !== 0) p.dir = my < 0 ? 1 : 0; else p.dir = 2; p.sx = mx < -.1 ? -1 : mx > .1 ? 1 : (p.sx || 1); }
+    if (inp.fire && !p.moving) { /* keep facing */ }
+    if (inp.fire && p.cd <= 0) shoot(S);
+    // needs
+    const N = S.diff.need * (inside ? .5 : 1); p.food = Math.max(0, p.food - .17 * N * dt); p.water = Math.max(0, p.water - .22 * N * dt);
+    if (!inside) { if (p.food <= 0 || p.water <= 0) { p.hp -= 1.3 * dt; S.cause = p.food <= 0 ? 'hunger' : 'thirst'; } if (p.bleed) { p.hp -= .9 * dt; S.cause = 'bleeding'; } }
+    if (!p.bleed && !inside && p.food > 50 && p.water > 50 && p.hp < p.maxhp) p.hp = Math.min(p.maxhp, p.hp + .5 * dt);
+    if (p.hp <= 0 && S.phase === 'play') { p.hp = 0; S.phase = 'dead'; S.ev.push({ t: 'dead', cause: S.cause }); return; }
+    if (inside) {
+      const I = S.int, tx = Math.floor(p.x / T), ty = Math.floor(p.y / T);
+      if (p.doorCd <= 0 && tx === I.ex && ty >= I.ey) leaveHouse(S);
+      updFollowers(S, dt); for (const f of S.fx) f.t += dt; S.fx = S.fx.filter(f => f.t < f.d); updBullets(S, dt); return;
+    }
+    // flow field to the player
+    S.distT -= dt; if (S.distT <= 0) { S.distT = .22; flowField(S.map, Math.floor(p.x / T), Math.floor(p.y / T), S.dist); }
+    spawnLogic(S, dt); updZombies(S, dt); updBullets(S, dt); updFollowers(S, dt);
+    for (const k of S.pick) k.life -= dt; S.pick = S.pick.filter(k => {
+      if (hyp(k.x - p.x, k.y - p.y) < 18) { if (k.k === 'ammo') p.ammo += k.n; else if (k.k === 'weapon') { if (!p.weapons.includes(k.n)) { p.weapons.push(k.n); p.wi = p.weapons.length - 1; S.ev.push({ t: 'weapon', id: k.n }); } else p.ammo += 500; } else p.inv[k.k] += k.n; S.ev.push({ t: 'pick', k: k.k }); return false; } return k.life > 0;
+    });
+    // doors
+    const ftx = Math.floor(p.x / T), fty = Math.floor((p.y + 6) / T);
+    if (p.doorCd <= 0 && S.map.t[fty * S.map.W + ftx] === TL.DOOR) { const h = S.map.houses.find(q => q.dx === ftx && q.dy === fty); if (h) enterHouse(S, h); }
+    // city cleared? every survivor saved, the last boss dead, and in the last city the antidote taken
+    const left = S.map.survivors.filter(s => s.state !== 'saved').length, antOk = S.cfg.story !== 'antidote' || !!S.flags.antidote;
+    // the secret peace ending: not one shot fired, so no boss ever came; save everyone (and take the antidote in the last city) and the city is cleared
+    if (S.pac && !S.cleared && left === 0 && antOk) { S.cleared = true; S.phase = 'clear'; S.ev.push({ t: 'clear', peace: true }); }
+    else if (S.finalDead && !S.cleared) {
+      if (left === 0 && antOk) { S.cleared = true; S.phase = 'clear'; S.ev.push({ t: 'clear' }); }
+      else if (S.flags.hintN !== left + (antOk ? 0 : 100)) { S.flags.hintN = left + (antOk ? 0 : 100); S.ev.push({ t: 'msg', text: 'The boss is down, but the swarm keeps coming! ' + (left ? 'Save the ' + left + ' remaining survivor' + (left > 1 ? 's' : '') + '!' : 'Now find the antidote in the Ministry!') }); }
+    } else if (left === 0 && antOk && S.finalDead && !S.cleared) { S.cleared = true; S.phase = 'clear'; S.ev.push({ t: 'clear' }); }
+  }
+  /* what pressing Act would do right now (for the button label) */
+  function nearAct(S) {
+    const p = S.p;
+    if (p.inHouse < 0) { for (const s of S.map.survivors) if (s.state === 'wait' && s.house < 0 && hyp(s.x - p.x, s.y - p.y) < 44) return { label: 'Rescue ' + s.name, x: s.x, y: s.y - 30 }; return null; }
+    let best = null, bd = 50, lab = '';
+    for (const it of S.int.items) { const cx = (it.x + it.w / 2) * T, cy = (it.y + .5) * T, d = hyp(cx - p.x, cy - p.y); if (d < bd) { bd = d; best = { x: cx, y: cy - 22 }; lab = it.k === 'bed' ? 'Sleep' : it.k === 'radio' ? 'Radio' : it.k === 'table' ? '' : it.done ? '' : it.k === 'antidote' ? 'Take antidote' : 'Search'; } }
+    for (const s of S.map.survivors) if (s.state === 'wait' && s.house === p.inHouse) { const d = hyp(s.x - p.x, s.y - p.y); if (d < bd) { bd = d; best = { x: s.x, y: s.y - 30 }; lab = 'Rescue ' + s.name; } }
+    return best && lab ? { label: lab, x: best.x, y: best.y } : null;
+  }
+  /* what to do next, and where it is (for the arrow and the map) */
+  function objective(S) {
+    const m = S.map, cfg = S.cfg, zl = Math.max(0, cfg.quota - S.kills), tot = m.survivors.length, got = m.survivors.filter(s => s.state === 'saved').length, safeT = { x: m.safe.fx * T + T / 2, y: m.safe.fy * T + T / 2 };
+    let text, tgt = null; const head = 'Save everyone: ' + got + '/' + tot + '. ';
+    const fol = S.fol[0];
+    if (S.fol.length) { text = head + 'Take ' + S.fol.map(f => f.name).join(' and ') + ' to the safe house'; tgt = safeT; }
+    else {
+      const wait = m.survivors.filter(s => s.state === 'wait' && (s.house < 0 || true)); let best = null, bd = 1e9;
+      for (const s of wait) { const d = s.house >= 0 ? hyp(m.houses[s.house].fx * T - S.p.x, m.houses[s.house].fy * T - S.p.y) : hyp(s.x - S.p.x, s.y - S.p.y); if (d < bd) { bd = d; best = s; } }
+      if (best && S.p.inHouse < 0) { text = head + 'Find ' + (best.story ? best.name : 'the next survivor'); tgt = best.house >= 0 ? { x: m.houses[best.house].fx * T + T / 2, y: m.houses[best.house].fy * T + T / 2 } : { x: best.x, y: best.y }; }
+      else if (best) text = head + 'Look around for survivors';
+      else if (cfg.story === 'antidote' && !S.flags.antidote) { text = 'Everyone is safe. Find the antidote in the Ministry'; if (m.min) tgt = { x: m.min.fx * T + T / 2, y: m.min.fy * T + T / 2 }; }
+      else if (S.pac) text = 'Everyone is safe' + (cfg.story === 'antidote' ? ' and you have the antidote' : '') + '. Step outside!';
+      else text = S.finalDead ? 'Done!' : (zl > 0 ? 'Everyone is safe. Clear the city: ' + zl + ' zombies left' : 'Everyone is safe. Kill the boss!');
+    }
+    void fol; return { text, tgt };
+  }
+  return { WEAPONS, DIFF, nearAct, obNew, carryOf, update, objective, carryDefault, solidPl, solidZ, enterHouse, leaveHouse, mkZombie, dmgZ, loot, doAct, useItem };
+})();
+if (typeof module !== 'undefined') module.exports = OBS;
+
+/* Outbreak, part 3: the pictures. Everything is drawn from rectangles (no image files): chunky little people in the style of an old
+   console role-playing game, tiles painted once into small canvases, and a few icons. */
+const OBA = (function () {
+  const T = 32, TLs = { ROAD: 0, GRASS: 1, PAVE: 2, TREE: 3, CAR: 4, FENCE: 5, ROOF: 6, WALL: 7, DOOR: 8, BORDER: 9 };
+  const INK = '#1a1410';
+  const R = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); };
+  const OL = (g, x, y, w, h, c) => { R(g, x - 1, y - 1, w + 2, h + 2, INK); R(g, x, y, w, h, c); };
+  const mk = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); return c; };
+  const rnd = (() => { let a = 12345; return () => { a = (a * 1664525 + 1013904223) >>> 0; return a / 4294967296; }; })();
+
+  /* ---- people: heroes, survivors, zombies and bosses are all this one function with different colours ---- */
+  const FACE = (g, o, cx, base, u, flip) => {
+    const eye = o.eye || '#161616';
+    if (o.dir === 0) { R(g, cx - 2.3 * u, base - 11.6 * u, 1.3 * u, 1.5 * u, eye); R(g, cx + 1 * u, base - 11.6 * u, 1.3 * u, 1.5 * u, eye); if (o.mouth) R(g, cx - 1.5 * u, base - 9.3 * u, 3 * u, .8 * u, o.mouth); }
+    else if (o.dir === 2) { R(g, cx + flip * 1.9 * u - .6 * u, base - 11.6 * u, 1.3 * u, 1.5 * u, eye); if (o.mouth) R(g, cx + flip * 2.6 * u - 1 * u, base - 9.3 * u, 1.8 * u, .8 * u, o.mouth); }
+  };
+  function person(g, x, y, o) {
+    const s = o.scale || 1, u = 2 * s, cx = x, base = y, f = o.flash ? () => '#fff' : c => c, flip = o.sx || 1, step = o.step || 0, ph = Math.sin(step * Math.PI * 2) * (o.moving ? 1 : 0);
+    g.save(); g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(cx, base + .5 * u, 5 * u, 1.8 * u, 0, 0, 7); g.fill(); g.restore();
+    if (o.glow) { g.save(); g.globalAlpha = .25; g.fillStyle = o.glow; g.beginPath(); g.arc(cx, base - 7 * u, 11 * u, 0, 7); g.fill(); g.restore(); }
+    const side = o.dir === 2, back = o.dir === 1, sk = f(o.skin), sh = f(o.shirt), pa = f(o.pants), ha = f(o.hair);
+    // legs
+    const l1 = ph > 0 ? ph * 1.2 * u : 0, l2 = ph < 0 ? -ph * 1.2 * u : 0;
+    if (side) { OL(g, cx - 1.4 * u, base - 3 * u + l1 * .3, 2.2 * u, 3 * u - l1 * .3, pa); OL(g, cx - 1.4 * u + ph * 1.2 * u, base - 3 * u + l2 * .3, 2.2 * u, 3 * u - l2 * .3, pa); R(g, cx - 1.4 * u + ph * 1.2 * u, base - 1 * u, 2.2 * u, 1 * u, f('#2b211a')); }
+    else { OL(g, cx - 3 * u, base - 3 * u + l1, 2.4 * u, 3 * u - l1, pa); OL(g, cx + .6 * u, base - 3 * u + l2, 2.4 * u, 3 * u - l2, pa); R(g, cx - 3 * u, base - 1 * u, 2.4 * u, 1 * u, f('#2b211a')); R(g, cx + .6 * u, base - 1 * u, 2.4 * u, 1 * u, f('#2b211a')); }
+    // arms behind the body (side view) and body
+    const sw = ph * 1.5 * u;
+    if (side && !o.armsOut) OL(g, cx - flip * 2.6 * u - .6 * u, base - 8 * u + sw * .6, 1.5 * u, 3.8 * u, sk);
+    OL(g, cx - 3 * u - (side ? 0 : 0), base - 8.2 * u, 6 * u, 5.4 * u, sh);
+    if (o.coat) { R(g, cx - 3 * u, base - 8.2 * u, 6 * u, 1.2 * u, f(o.coat)); R(g, cx - .4 * u, base - 8.2 * u, .8 * u, 5.4 * u, f(o.coat === '#fff' ? '#ccd' : '#000')); }
+    if (o.belt) R(g, cx - 3 * u, base - 4.4 * u, 6 * u, .9 * u, f(o.belt));
+    if (o.tie) R(g, cx - .5 * u, base - 8 * u, 1 * u, 3 * u, f(o.tie));
+    if (!side || o.armsOut) {
+      if (o.armsOut) { const a = back ? 1 : 0; OL(g, cx - 7 * u, base - 9.6 * u - a * .5 * u + sw * .2, 4 * u, 1.5 * u, sk); OL(g, cx + 3 * u, base - 9.6 * u - a * .5 * u - sw * .2, 4 * u, 1.5 * u, sk); }
+      else { OL(g, cx - 4.8 * u, base - 8 * u + sw, 1.6 * u, 4 * u, o.sleeve ? f(o.sleeve) : sk); OL(g, cx + 3.2 * u, base - 8 * u - sw, 1.6 * u, 4 * u, o.sleeve ? f(o.sleeve) : sk); }
+    } else if (o.armsOut) OL(g, cx + flip * 1.5 * u - (flip < 0 ? 4 * u : 0), base - 9.4 * u, 4 * u, 1.5 * u, sk);
+    if (o.body) o.body(g, cx, base, u, flip);
+    // head
+    OL(g, cx - 4 * u, base - 15 * u, 8 * u, 7 * u, sk);
+    if (o.bald) { /* no hair */ } else if (back) R(g, cx - 4 * u, base - 15 * u, 8 * u, 5.6 * u, ha);
+    else if (side) { R(g, cx - 4 * u, base - 15 * u, 8 * u, 2.4 * u, ha); R(g, cx - flip * 4 * u - (flip > 0 ? 0 : -(-0)) + (flip > 0 ? 0 : 6.5 * u), base - 15 * u, 1.5 * u, 5 * u, ha); }
+    else { R(g, cx - 4 * u, base - 15 * u, 8 * u, 2.4 * u, ha); R(g, cx - 4 * u, base - 15 * u, 1.4 * u, 4.2 * u, ha); R(g, cx + 2.6 * u, base - 15 * u, 1.4 * u, 4.2 * u, ha); }
+    if (o.band) R(g, cx - 4 * u, base - 12.4 * u, 8 * u, 1.1 * u, f(o.band));
+    FACE(g, o, cx, base, u, flip);
+    if (o.glasses && !back) { R(g, cx - 2.8 * u, base - 12 * u, 5.6 * u, .5 * u, '#222'); if (o.dir === 0) { R(g, cx - 2.8 * u, base - 12.2 * u, 2.2 * u, 1.9 * u, 'rgba(160,220,255,.5)'); R(g, cx + .6 * u, base - 12.2 * u, 2.2 * u, 1.9 * u, 'rgba(160,220,255,.5)'); } }
+    if (o.hat) o.hat(g, cx, base, u, flip, o.dir);
+    if (o.blood) { R(g, cx - 2.6 * u, base - 6.4 * u, 1.4 * u, 1.4 * u, '#8a1c1c'); R(g, cx + 1.4 * u, base - 13.6 * u, 1.2 * u, 1.2 * u, '#8a1c1c'); }
+    if (o.gun !== undefined && o.gun !== null) { g.save(); g.translate(cx, base - 6.5 * u); g.rotate(o.gun); R(g, 1 * u, -.9 * u, 5.5 * u, 1.7 * u, '#101216'); R(g, 1 * u, -.9 * u, 1.8 * u, 2.6 * u, '#3b2a1c'); R(g, 5.2 * u, -.9 * u, 1.3 * u, .6 * u, '#8a929c'); g.restore(); }
+  }
+  const SURV = [
+    { shirt: '#d9a441', pants: '#46506b', hair: '#3a2410' }, { shirt: '#4aa3c7', pants: '#5a4a3a', hair: '#c9a24a' }, { shirt: '#c7584a', pants: '#303a4a', hair: '#1c1410' },
+    { shirt: '#7bbf6a', pants: '#4a3a2a', hair: '#6a3a1a' }, { shirt: '#b07ad1', pants: '#3a3a4a', hair: '#2a1a10' }, { shirt: '#e8e0cc', pants: '#5a5030', hair: '#8a4a20' }];
+  const SKINS = ['#f1c9a0', '#e0ac82', '#c58c62', '#8d5a3a'];
+  function drawSurvivor(g, x, y, s, st) {
+    const d = SURV[(s.look || 0) % 6]; let o = { scale: st.scale, dir: st.dir, sx: st.sx, step: st.step, moving: st.moving, flash: st.flash, skin: SKINS[(s.id * 7 + 1) % 4], shirt: d.shirt, pants: d.pants, hair: d.hair };
+    if (s.story === 'mei') o = Object.assign(o, { skin: SKINS[0], shirt: '#eef2f6', pants: '#3b4a5a', hair: '#15151a', coat: '#fff', glasses: true });
+    else if (s.story === 'marcus') o = Object.assign(o, { skin: SKINS[3], shirt: '#444c58', pants: '#2a2f38', hair: '#1a1410', tie: '#a02030' });
+    person(g, x, y, o);
+  }
+  const ZSK = ['#7ea66a', '#93b07a', '#6f9a7a', '#8aa86a'], ZSH = ['#6b3b3b', '#3b4a6b', '#5a5a3a', '#4a3a5a'];
+  function drawZombie(g, z, st) {
+    const L = z.look || 0; let o = { dir: st.dir, sx: st.sx, step: st.step, moving: true, flash: z.hurt > 0, skin: ZSK[L], shirt: ZSH[L], pants: '#343a40', hair: '#2a2418', armsOut: true, eye: '#d22', mouth: '#4a1010', blood: true, sleeve: null };
+    if (z.type === 'run') o = Object.assign(o, { skin: '#a7b6a0', shirt: '#7a2a2a', scale: .92, step: st.step * 1.6 });
+    else if (z.type === 'brute') o = Object.assign(o, { skin: '#6e8d58', shirt: '#46382a', pants: '#2a2a30', scale: 1.28, bald: true });
+    if (z.boss) { const c = z.boss.col, sc = z.boss.sc; o.scale = sc; o.step = st.step * .6; o.glow = ['#7a2', '#9cf', '#aaa', '#d22', '#999', '#6a5', '#c4f'][c]; o.armsOut = true;
+      if (c === 0) Object.assign(o, { skin: '#5f8a4c', shirt: '#5a3a2a', bald: true, pants: '#2a2a2a' });
+      else if (c === 1) Object.assign(o, { skin: '#d8e0d4', shirt: '#eef2f6', coat: '#fff', pants: '#8890a0', bald: true, eye: '#2c2' });
+      else if (c === 2) Object.assign(o, { skin: '#8a8f94', shirt: '#4a5058', pants: '#33383e', bald: true, hat: (g2, cx, base, u) => { R(g2, cx - 4.4 * u, base - 15.6 * u, 8.8 * u, 4 * u, '#59606a'); R(g2, cx - 3.6 * u, base - 12.2 * u, 7.2 * u, 1 * u, '#d22'); }, body: (g2, cx, base, u) => { R(g2, cx - 3.2 * u, base - 8.2 * u, 6.4 * u, 2 * u, '#7a828c'); } });
+      else if (c === 3) Object.assign(o, { skin: '#9a3a3a', shirt: '#4a1a1a', pants: '#2a1010', hair: '#111', eye: '#ff0' });
+      else if (c === 4) Object.assign(o, { skin: '#c9d1b4', shirt: '#1a1d22', pants: '#101214', hat: (g2, cx, base, u) => { R(g2, cx - 4.4 * u, base - 16 * u, 8.8 * u, 2.6 * u, '#12151a'); R(g2, cx - 5 * u, base - 13.8 * u, 10 * u, .9 * u, '#12151a'); R(g2, cx - 1 * u, base - 15.4 * u, 2 * u, 1.2 * u, '#e5b800'); } });
+      else if (c === 5) Object.assign(o, { skin: '#7a9a6a', shirt: '#4a5a3a', pants: '#3a4a2e', hat: (g2, cx, base, u) => { R(g2, cx - 4.4 * u, base - 15.8 * u, 8.8 * u, 3.4 * u, '#3a4a2a'); }, belt: '#2a2a1a' });
+      else Object.assign(o, { skin: '#c4b0d8', shirt: '#2a2a3a', pants: '#1a1a24', glasses: true, tie: '#c42', bald: false, hair: '#ddd', eye: '#f4f' });
+    }
+    person(g, st.x, st.y, o);
+  }
+  function drawHero(g, x, y, st) { person(g, x, y, { scale: st.scale, dir: st.dir, sx: st.sx, step: st.step, moving: st.moving, flash: st.flash, skin: '#f1c9a0', shirt: '#3f6a3a', sleeve: '#3f6a3a', pants: '#3b4a6b', hair: '#5a3a1e', band: '#d33', gun: st.gun, belt: '#2a1c10' }); }
+
+  /* ---- tiles ---- */
+  const tiles = {}, ROOFC = ['#b5523b', '#4a6fa5', '#6a8a4a', '#8a6a3a', '#7a4a7a', '#3a7fc0', '#7a2a2a', '#c9a227'], CARC = ['#c0392b', '#2980b9', '#e0c030', '#ecf0f1', '#27ae60', '#7f8c8d'], WALLC = '#d8c9a4';
+  function buildTiles() {
+    const speck = (g, n, cols) => { for (let i = 0; i < n; i++) R(g, rnd() * 31, rnd() * 31, 1 + rnd() * 2, 1, cols[Math.floor(rnd() * cols.length)]); };
+    tiles.road = [0, 1, 2].map(v => mk(T, T, g => { R(g, 0, 0, T, T, '#4b4f57'); speck(g, 14, ['#42464d', '#565a62', '#3c4047']); if (v === 1) { R(g, 4, 30, 10, 2, '#e8d34a'); R(g, 18, 30, 10, 2, '#e8d34a'); R(g, 4, 0, 0, 0, '#fff'); } if (v === 2) { R(g, 30, 4, 2, 10, '#e8d34a'); R(g, 30, 18, 2, 10, '#e8d34a'); } }));
+    tiles.grass = [0, 1, 2, 3].map(v => mk(T, T, g => { R(g, 0, 0, T, T, '#5d9a48'); speck(g, 22, ['#4f8a3c', '#6aa853', '#58944a']); if (v === 1) { R(g, 8, 10, 2, 2, '#f4e04a'); R(g, 21, 22, 2, 2, '#f4f4f4'); } if (v === 2) { R(g, 24, 8, 2, 2, '#f08ab0'); } if (v === 3) { R(g, 6, 24, 1, 3, '#3f7a30'); R(g, 7, 23, 1, 3, '#3f7a30'); } }));
+    tiles.pave = [0, 1, 2, 3].map(v => mk(T, T, g => { R(g, 0, 0, T, T, '#b8b2a3'); R(g, 0, 15, T, 1, '#a39d8e'); R(g, 15 + v * 2, 0, 1, 16, '#a39d8e'); R(g, 7 + v, 16, 1, 16, '#a39d8e'); speck(g, 6, ['#c4beb0', '#aaa497']); }));
+    tiles.tree = [0, 1, 2].map(v => mk(T, T + 10, g => { g.translate(0, 10); R(g, 0, 0, T, T, '#5d9a48'); speck(g, 14, ['#4f8a3c', '#6aa853']); R(g, 13, 14, 6, 14, '#5a3c20'); R(g, 13, 14, 2, 14, '#6e4a2a'); const cs = [['#2f7a35', '#3e9444', '#56ad55'], ['#3a8a3a', '#4aa04a', '#67bb5a'], ['#b0742a', '#c98a36', '#e2a64a']][v];
+      g.fillStyle = INK; g.beginPath(); g.arc(16, 8, 15, 0, 7); g.fill(); g.fillStyle = cs[0]; g.beginPath(); g.arc(16, 8, 14, 0, 7); g.fill(); g.fillStyle = cs[1]; g.beginPath(); g.arc(14, 5, 10, 0, 7); g.fill(); g.fillStyle = cs[2]; g.beginPath(); g.arc(11, 2, 5, 0, 7); g.fill(); }));
+    tiles.border = [0, 1, 2].map(v => mk(T, T + 10, g => { g.translate(0, 10); R(g, 0, 0, T, T, '#2f5a2c'); g.fillStyle = INK; g.beginPath(); g.arc(16, 10, 16, 0, 7); g.fill(); g.fillStyle = '#244a24'; g.beginPath(); g.arc(16, 10, 15, 0, 7); g.fill(); g.fillStyle = '#2f6a2f'; g.beginPath(); g.arc(14, 7, 10, 0, 7); g.fill(); }));
+    tiles.car = CARC.map((c, v) => [mk(T, T, g => { R(g, 0, 0, T, T, '#4b4f57'); speck(g, 8, ['#42464d', '#565a62']); OL(g, 3, 8, 26, 17, c); R(g, 8, 11, 7, 10, 'rgba(180,220,255,.8)'); R(g, 19, 11, 6, 10, 'rgba(180,220,255,.7)'); R(g, 3, 8, 26, 2, 'rgba(255,255,255,.25)'); R(g, 1, 10, 3, 3, '#f4e04a'); R(g, 1, 20, 3, 3, '#f4e04a'); R(g, 4, 25, 5, 2, INK); R(g, 22, 25, 5, 2, INK); R(g, 4, 6, 5, 2, INK); R(g, 22, 6, 5, 2, INK); })][0]);
+    tiles.roof = ROOFC.map((c, v) => mk(T, T, g => { R(g, 0, 0, T, T, c); for (let y = 0; y < T; y += 6) { R(g, 0, y, T, 1, 'rgba(0,0,0,.22)'); for (let x = (y / 6 % 2) * 8; x < T; x += 16) R(g, x, y, 1, 6, 'rgba(0,0,0,.14)'); } R(g, 0, 0, T, 2, 'rgba(255,255,255,.12)'); if (v === 5) { R(g, 0, 0, T, 3, '#9ad0ff'); R(g, 0, T - 3, T, 3, '#1d4f91'); } if (v === 6) { R(g, 14, 8, 4, 16, '#ddd'); R(g, 8, 14, 16, 4, '#ddd'); R(g, 0, 0, 0, 0, '#000'); } }));
+    tiles.wall = [0, 1].map(v => mk(T, T, g => { R(g, 0, 0, T, T, WALLC); R(g, 0, 0, T, 3, '#9b8a64'); R(g, 0, 28, T, 4, '#8b7b58'); for (let x = 0; x < T; x += 8) R(g, x, 6, 1, 20, 'rgba(0,0,0,.06)'); if (v === 1) { OL(g, 8, 8, 16, 14, '#8cc4e6'); R(g, 8, 14, 16, 1, '#5a8aaa'); R(g, 15, 8, 2, 14, '#5a8aaa'); R(g, 7, 22, 18, 3, '#7a5a3a'); } }));
+    tiles.door = mk(T, T, g => { R(g, 0, 0, T, T, WALLC); R(g, 0, 0, T, 3, '#9b8a64'); R(g, 0, 28, T, 4, '#8b7b58'); OL(g, 6, 4, 20, 28, '#6b4423'); R(g, 8, 6, 7, 11, '#7e5430'); R(g, 17, 6, 7, 11, '#7e5430'); R(g, 8, 19, 7, 11, '#7e5430'); R(g, 17, 19, 7, 11, '#7e5430'); R(g, 21, 18, 3, 3, '#e5c04a'); R(g, 3, 29, 26, 3, '#b0a890'); });
+  }
+  const IT = {}; // furniture, drawn into small canvases
+  function buildInterior() {
+    const wood = [0, 1].map(v => mk(T, T, g => { R(g, 0, 0, T, T, v ? '#a97b4a' : '#b8844f'); for (let x = 0; x < T; x += 8) R(g, x, 0, 1, T, 'rgba(0,0,0,.12)'); R(g, 0, 15, T, 1, 'rgba(0,0,0,.1)'); })); tiles.wood = wood;
+    tiles.rug = mk(T, T, g => { R(g, 0, 0, T, T, '#8a3a3a'); R(g, 2, 2, T - 4, T - 4, '#a84a48'); R(g, 5, 5, T - 10, T - 10, '#8a3a3a'); R(g, 0, 15, T, 2, 'rgba(0,0,0,.1)'); });
+    tiles.iwall = mk(T, T, g => { R(g, 0, 0, T, T, '#c9b995'); R(g, 0, 0, T, 3, '#8a7a58'); R(g, 0, 29, T, 3, '#6a5a3e'); for (let x = 0; x < T; x += 8) R(g, x, 4, 1, 24, 'rgba(0,0,0,.07)'); });
+    tiles.iwallTop = mk(T, T, g => { R(g, 0, 0, T, T, '#6a5a3e'); R(g, 0, 28, T, 4, '#4a3e2a'); });
+    tiles.mat = mk(T, T, g => { R(g, 0, 0, T, T, '#b8844f'); OL(g, 3, 6, 26, 20, '#6a4a2a'); R(g, 6, 9, 20, 14, '#8a6a3a'); });
+    const item = (k, w, f) => { IT[k] = mk(T * w, T + 8, g => { g.translate(0, 8); f(g, T * w); }); };
+    item('bed', 2, (g, W) => { OL(g, 2, 2, W - 4, 26, '#e8e0d0'); R(g, 4, 4, 18, 22, '#6aa0d0'); OL(g, 4, 4, 14, 10, '#f6f2e8'); R(g, 24, 4, 36, 22, '#4a82b8'); R(g, 24, 4, 36, 3, '#6aa0d0'); });
+    item('cup', 1, g => { OL(g, 3, -6, 26, 32, '#8a5a2a'); R(g, 5, -4, 22, 14, '#a8743a'); R(g, 5, 12, 22, 12, '#a8743a'); R(g, 14, 2, 4, 3, '#e5c04a'); R(g, 14, 16, 4, 3, '#e5c04a'); R(g, 5, -4, 22, 2, 'rgba(255,255,255,.2)'); });
+    item('fridge', 1, g => { OL(g, 4, -8, 24, 34, '#dfe6ea'); R(g, 6, -6, 20, 14, '#eef3f6'); R(g, 6, 10, 20, 14, '#eef3f6'); R(g, 22, -2, 2, 6, '#8a929a'); R(g, 22, 14, 2, 6, '#8a929a'); });
+    item('crate', 1, g => { OL(g, 3, 2, 26, 22, '#6a7a3a'); R(g, 3, 12, 26, 2, '#4a5a28'); R(g, 14, 2, 4, 22, '#4a5a28'); R(g, 9, 6, 3, 5, '#e5c04a'); R(g, 20, 6, 3, 5, '#e5c04a'); });
+    item('chest', 1, g => { OL(g, 3, 4, 26, 20, '#7a4a22'); R(g, 3, 10, 26, 3, '#e5c04a'); R(g, 14, 9, 4, 6, '#e5c04a'); R(g, 5, 6, 22, 2, 'rgba(255,255,255,.18)'); });
+    item('desk', 1, g => { OL(g, 2, 4, 28, 14, '#8a6a3a'); R(g, 4, 18, 4, 8, '#5a4220'); R(g, 24, 18, 4, 8, '#5a4220'); R(g, 7, 6, 10, 8, '#f2ecd8'); R(g, 20, 7, 6, 6, '#3a7fc0'); });
+    item('table', 2, (g, W) => { OL(g, 3, 4, W - 6, 16, '#9a6a36'); R(g, 6, 20, 5, 8, '#5a4220'); R(g, W - 11, 20, 5, 8, '#5a4220'); R(g, 20, 6, 8, 5, '#f2ecd8'); });
+    item('locker', 1, g => { OL(g, 3, -8, 26, 34, '#3f4650'); R(g, 5, -6, 22, 30, '#596270'); R(g, 15, -6, 2, 30, '#2a3038'); R(g, 11, 6, 3, 3, '#e5c04a'); R(g, 19, 6, 3, 3, '#e5c04a'); R(g, 7, -3, 8, 3, '#d22'); });
+    item('cache', 2, (g, W) => { OL(g, 3, -4, W - 6, 30, '#3a6a4a'); R(g, 5, -2, W - 10, 8, '#4a8a5a'); R(g, W / 2 - 3, 8, 6, 12, '#e5c04a'); R(g, 8, 12, 14, 8, '#f6f2e8'); R(g, 13, 11, 4, 10, '#d22'); R(g, 10, 14, 10, 4, '#d22'); });
+    item('radio', 1, g => { OL(g, 4, 4, 24, 16, '#4a5058'); R(g, 7, 7, 8, 8, '#98c8a0'); R(g, 18, 8, 3, 3, '#d22'); R(g, 18, 13, 7, 2, '#9aa'); R(g, 24, -8, 2, 12, '#aaa'); });
+    item('antidote', 1, g => { OL(g, 3, 0, 26, 26, '#2a3a4a'); R(g, 6, 3, 20, 14, 'rgba(120,255,200,.5)'); R(g, 13, 5, 6, 10, '#3f6'); R(g, 14, 2, 4, 3, '#cde'); R(g, 5, 20, 22, 3, '#789'); });
+    for (const k of ['bed', 'cup', 'fridge', 'crate', 'chest', 'desk', 'table', 'locker', 'cache', 'radio', 'antidote']) void IT[k];
+  }
+  /* icons: small pictures for pickups and the status bar (drawn centred on x,y) */
+  function icon(g, k, x, y, s) {
+    s = s || 1; g.save(); g.translate(Math.round(x), Math.round(y)); g.scale(s, s);
+    if (k === 'ammo') { OL(g, -7, -5, 14, 10, '#5a6a2a'); R(g, -5, -3, 3, 6, '#e5c04a'); R(g, -1, -3, 3, 6, '#e5c04a'); R(g, 3, -3, 3, 6, '#e5c04a'); }
+    else if (k === 'food') { OL(g, -6, -2, 12, 5, '#d9a24a'); R(g, -6, -6, 12, 4, '#e8b45a'); R(g, -5, 1, 10, 2, '#7a3a1a'); R(g, -4, -5, 2, 1, '#fff'); R(g, 1, -5, 2, 1, '#fff'); }
+    else if (k === 'water') { OL(g, -3, -7, 6, 13, '#6ac0f0'); R(g, -2, -9, 4, 3, '#e8f0f8'); R(g, -2, -3, 4, 2, 'rgba(255,255,255,.6)'); }
+    else if (k === 'bandage') { OL(g, -6, -5, 12, 10, '#f4f4f4'); R(g, -1, -4, 3, 8, '#d22'); R(g, -4, -1, 9, 3, '#d22'); }
+    else if (k === 'weapon') { OL(g, -8, -4, 16, 8, '#d9b640'); R(g, -6, -2, 12, 4, '#222'); R(g, -2, 2, 3, 4, '#222'); }
+    else if (k === 'hp') { R(g, -5, -7, 4, 4, '#d33'); R(g, 1, -7, 4, 4, '#d33'); R(g, -7, -5, 14, 4, '#d33'); R(g, -5, -1, 10, 3, '#d33'); R(g, -3, 2, 6, 2, '#d33'); }
+    g.restore();
+  }
+  function init() { buildTiles(); buildInterior(); }
+  return { init, person, drawHero, drawZombie, drawSurvivor, icon, tiles, IT, R, OL, ROOFC, mk, T };
+})();
+if (typeof module !== 'undefined') module.exports = OBA;
+
+/* Outbreak screen: paints the world from the state, reads the stick and buttons, plays the sounds, and tells the story.
+   obgen.js builds the cities, obsim.js runs every rule, obart.js draws the people and tiles. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.outbreak.v1', { dark: true, sound: true, diff: 'normal', assist: true, save: null, wins: 0, deaths: 0 }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovTalk', 'ovCard', 'ovDead']);
+settings([
+  { id: 'diff', label: 'Difficulty (applies to the next city)', type: 'select', options: [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']], def: 'normal' },
+  { id: 'assist', label: 'Auto aim (boss first, then nearest zombie)', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S0.save(); if (S) S.assist = st.assist; });
+
+const { T, TL, MW, MH } = OBG, VW = 480, cv = $('cv'), C = KIT.canvas(cv, VW, VW, 2), ctx = C.ctx, PI = Math.PI;
+OBA.init();
+let S = null, startCarry = null, TS = 1, userPause = false, modal = false, talkQ = [], keys = {}, stick = { x: 0, y: 0 }, touchFire = false, acts = [], toast = { t: '', life: 0 }, banner = { t: '', life: 0 }, mini = null, vig = null, fade = 0, sceneT = 0, lastEv = 0;
+const paused = () => userPause || modal;
+const say = t => { $('msg').textContent = t; };
+const tell = (t, life) => { toast = { t, life: life || 2.6 }; };
+
+/* ---------- the story ---------- */
+const NOTES = [
+  `Memo, Helix Labs: “Reminder: ‘Permafrost sample 7’ is a label only. Z-9 is synthetic. Do not mention this outside Cold Room B.”`,
+  `A neighbour’s diary: “The TV says the virus came from 10,000-year-old ice melting in the Arctic. Funny, it started in OUR town, not the Arctic.”`,
+  `Radio log: “Government statement: this is a climate emergency. Stay in the cities, help is coming. Evacuation buses leave from Brookhaven.”`,
+  `Memo, Ministry of Efficiency: “Labour Replacement Programme: AI systems will replace most jobs within a year. Universal income and free health care are unaffordable. Recommendation: Quiet Harvest.”`,
+  `A soldier’s note: “We were ordered to seal the exits ‘to protect the economy’. Nobody said anything about protecting people. I am leaving my post.”`,
+  `A torn page: “Health care budget for the ‘non-essential’ population: zero. The only antidote stays in the Ministry vault, for essential staff.”`,
+  `A press release that was never sent: “The Government blames melting permafrost and climate change for the outbreak.” It is dated the day BEFORE it began.`,
+  `A Ministry clerk’s diary: “The Director says: machines do the work now, people are just a bill. The AI forecast calls 40% of today’s population ‘optimal’.”`,
+  `A sticky note: “The antidote case is in the Ministry, not the vault. The Director does not look entirely human any more. Do not meet his eyes.”`
+];
+const CITY_INTRO = [
+  ['Ashford', `<p>Three days ago the dead began to walk. Every channel says the same thing: an <b>ancient virus</b>, freed from <b>10,000-year-old Arctic ice</b> by climate change.</p><p>You are <b>Sam</b>, a delivery driver with a pistol, <b>1000 bullets</b> and no one left to call. The radio says there are safe houses in the cities. The first one is in <b>Ashford</b>.</p><p><b>Your mission in every city:</b> save <b>all 10 survivors</b> and take them to the safe house, then beat the boss. <b>If any survivor dies, the mission fails.</b> Supplies are scarce and different in every house, so search carefully. Even after the boss falls, <b>the swarm keeps coming</b>.</p>`],
+  ['Brookhaven', `<p>Dr. Mei’s data points at <b>Brookhaven</b>, where the army set up its headquarters and the evacuation buses.</p><p>The news still blames the melting ice. But the convoys never left, the exits are sealed, and the streets are full of the infected.</p><p><b>Your mission:</b> save all 10 survivors, including a government worker who knows more than he should. The swarm never stops, even after the boss.</p>`],
+  ['Capital City', `<p>The trail ends in the <b>Capital</b>, at the <b>Ministry of Efficiency</b> in the north-east corner of the city. Inside are the Director and the antidote.</p><p><b>Your mission:</b> save all 10 survivors, defeat the Director, and take the antidote and the proof from the Ministry. A gold arrow shows the way. The swarm keeps coming, so do not linger.</p>`]
+];
+const TALKS = {
+  hero0: [['tip', 'Controls: stick to move, FIRE to shoot, Act to search or rescue. Walk into doors to go inside. Eat, drink and bandage from the buttons.']],
+  mei_met: [['mei', `Thank God. I’m Dr. Mei Lin, from Helix Labs. They say this virus came out of 10,000-year-old Arctic ice. That is a lie.`], ['mei', `I sequenced Z-9 myself. It has no ancient origin. It was built, here, in our lab. The “melting ice” story was written before the outbreak.`], ['hero', 'Built? By who?'], ['mei', `For whom, you mean. Get me to the safe house, the red cross, and I will show you the data.`]],
+  mei_saved: [['mei', `The lab logs show the release order came from the Ministry of Efficiency. Their briefing says: “AI will replace the workforce within five years. Universal income and public health care are unaffordable.”`], ['mei', `They did not want to pay for you. So they decided to thin the herd, and to blame the weather.`], ['hero', 'The government is killing its own people?'], ['mei', `The next target is Brookhaven. Go. I will stay and work on a cure with what we have here.`], ['mei', `One more thing. If a cure exists, it works on the infected too, not only on the healthy. If it ever reaches enough people, nobody would have to fire a single shot.`]],
+  marcus_met: [['marcus', `Don’t shoot! Ministry of Efficiency, policy analyst. Marcus Cole.`], ['marcus', `I wrote the budget reports. “Workforce reduction.” I did not know what that meant until the sirens started.`], ['hero', 'It was planned?'], ['marcus', `Operation Quiet Harvest. Get me to the safe house and I will tell you the rest.`]],
+  marcus_saved: [['marcus', `Here is the plan. AI will run the factories, the offices, the hospitals. People become a cost: income, pensions, free health care. The Director wants that cost to be zero.`], ['marcus', `The climate story, the “ancient ice virus”, is the cover. The convoys herd people into cities and the walls keep them there. The antidote is only for the people the Ministry decides to keep.`], ['hero', 'Where do I find the Director?'], ['marcus', `The Capital, inside the Ministry. Be careful, Sam: he is not entirely human any more.`]],
+  joe: [['joe', 'Easy, easy! I was the night guard at Helix Labs.'], ['joe', `Three nights ago the alarm never rang. Cold Room B was opened with a manager’s badge, from the inside.`], ['hero', 'Someone did it on purpose?'], ['joe', `The badge belonged to an “efficiency inspector” from the Ministry. He left an hour before it all began.`]],
+  ana: [['ana', `Nurse Ana, from St. Mary’s. The first patients came in from the lab, all with the same fever.`], ['ana', `The Ministry told us there were no beds and no budget for treatment. Keep the doors shut, they said.`], ['ana', 'They did not send help. They sent more locks for the doors.']],
+  kai: [['kai', `I have been listening on my radio. Every official channel says: climate emergency, ancient ice virus, stay in the city.`], ['kai', `But one hidden channel repeats coordinates. Brookhaven first, then the Capital. Like a timetable.`], ['hero', 'A timetable of what?'], ['kai', 'I think... of where it spreads next.']],
+  yuki: [['yuki', `Sergeant Yuki. We were ordered to seal Brookhaven’s exits “to protect the economy”. Not to evacuate. To seal.`], ['yuki', `The orders came from the Ministry of Efficiency, signed by someone called the Director.`]],
+  pia: [['pia', 'I drove the evacuation buses. They made us stop at the gates and wait. Wait for what?'], ['pia', `Every bus was sent to the same square, where a crowd is easy to find. Then the horde arrived. The news said: “climate disaster”.`]],
+  omar: [['omar', `Omar, journalist. I saw the Ministry’s AI forecast: “optimal population: 40% of today’s.” No paper will print it.`], ['omar', 'The Director is hunting anyone who knows. If you reach the Capital, he is inside the Ministry. Be ready.']],
+  leo: [['leo', 'Leo. I worked in the Ministry records office until the day it began.'], ['leo', `The files call it the “Labour Replacement Programme”. The antidote is in a case inside the Ministry, kept for essential staff. Nobody guards it except the Director.`]],
+  sue: [['sue', `I cleaned the Ministry at night. The Director never sleeps. His skin is grey, and when he speaks the infected listen.`], ['sue', 'Be careful. He charges, and he calls others to help him.']],
+  dee: [['dee', 'Dee, a lab engineer. Z-9 changes people who take too much of it. The Director took the dose himself.'], ['dee', `That is why the horde obeys him. And the “ancient ice” label? We stuck it on the samples ourselves.`]],
+  ben: [['ben', `Ben, an off-duty doctor. If you find the antidote, get it to Dr. Mei’s team so they can copy it.`], ['ben', 'And do not hide the proof. Broadcast it in the open, so nobody can blame the weather again.'], ['ben', 'Last thing: the infected are still people under Z-9. The antidote cures them too. A run with no shots fired would be a run worth telling.']],
+  director: [['director', `You are too late, little shooter. Machines will do the work now. People are a bill, and Quiet Harvest settles it.`], ['hero', 'It ends now.']],
+  antidote_peace: [['narr', `Behind the glass: green vials, and a folder stamped QUIET HARVEST. You walked through three cities without firing a shot, and nobody stopped you.`], ['director', `...You crossed my whole swarm with an empty hand. Why?`], ['hero', 'Because every one of them is somebody’s neighbour. The antidote is for all of them.'], ['director', `Efficiency has no word for that. My forecast never counted on someone who keeps everyone.`], ['hero', 'Your Ministry owns the sprinkler drones that sealed the cities. Mei’s team can load them with the antidote.']],
+  antidote: [['narr', `Behind the glass: green vials, and a folder stamped QUIET HARVEST. The AI forecasts, the budgets for “universal income” that were cancelled, and the plan to blame the thawing ice.`], ['hero', 'I have the antidote and the proof.']]
+};
+const ENDING = `<p>With the Director gone, the Ministry falls silent. You have the <b>antidote</b>, and a folder with every forecast, every budget and every signature.</p><p>You broadcast it on every frequency you can find. The Z-9 sequence proves the virus was <b>built, not thawed</b>. The memos prove the plan: let the machines do the work, and let the people go. Mei’s team copies the antidote, and for the first time in days, the radio carries good news.</p><p>They blamed the weather. The evidence blames them.</p>`;
+const ENDING_PEACE = `<p><b>🕊️ Secret ending: Peace.</b></p><p>You never fired a shot, and you saved every survivor. With the antidote and Mei’s lab team, the Ministry’s own sprinkler drones lift over <b>Capital City</b>, <b>Brookhaven</b> and <b>Ashford</b>, and a green mist drifts down the streets.</p><p>The infected stop. They blink, they look at their hands, they remember their names. Neighbours find each other. Old Joe is crying; a bus driver laughs. For the first time in months <b>nobody is left to be afraid of</b>.</p><p>The folder goes out on every channel: the forecasts, the cancelled budgets, the plan to blame the thawing ice. The Director’s “optimal population” becomes the evidence that ends Quiet Harvest. The AI can do the work if it wants, but nobody will ever be called a bill again.</p>`;
+const WHO = { tip: 'Tip', hero: 'Sam', mei: 'Dr. Mei Lin', marcus: 'Marcus Cole', joe: 'Old Joe', ana: 'Nurse Ana', kai: 'Kai', yuki: 'Sgt. Yuki', pia: 'Pia', omar: 'Omar', leo: 'Leo', sue: 'Sue', dee: 'Dee', ben: 'Ben', director: 'The Director', narr: 'Notes', note: 'A found note' };
+/* ---------- modals ---------- */
+function portrait(who) {
+  const g = $('portrait').getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0, 0, 64, 64); g.fillStyle = '#2a3a4a'; g.fillRect(0, 0, 64, 64);
+  const stt = { dir: 0, sx: 1, step: 0, scale: 1.5 };
+  if (who === 'hero') OBA.drawHero(g, 32, 60, stt); else if (who === 'mei') OBA.drawSurvivor(g, 32, 60, { story: 'mei', id: 0, look: 0 }, stt); else if (who === 'marcus') OBA.drawSurvivor(g, 32, 60, { story: 'marcus', id: 1, look: 1 }, stt);
+  else if (OBS_TALES[who] !== undefined) OBA.drawSurvivor(g, 32, 60, { story: null, id: OBS_TALES[who], look: OBS_TALES[who] % 6 }, stt);
+  else if (who === 'director') OBA.drawZombie(g, { boss: { col: 6, sc: 1.5 }, look: 0, hurt: 0, type: 'boss' }, { dir: 0, sx: 1, step: 0, x: 32, y: 60 });
+  else { g.fillStyle = '#f2ecd8'; g.fillRect(14, 10, 36, 44); g.fillStyle = '#8a7a58'; for (let i = 0; i < 6; i++) g.fillRect(19, 17 + i * 6, 26, 2); }
+}
+const OBS_TALES = { joe: 3, ana: 4, kai: 5, yuki: 6, pia: 7, omar: 8, leo: 9, sue: 10, dee: 11, ben: 12 };
+let talkLines = null, talkDone = null, talkI = 0;
+function showTalk(lines, done) { // lines: [[who,text],...]
+  if (talkLines) { talkQ.push([lines, done]); return; }
+  talkLines = lines; talkDone = done; talkI = 0; modal = true; stick = { x: 0, y: 0 }; touchFire = false; talkShow();
+}
+function talkShow() { const l = talkLines[talkI]; portrait(l[0]); $('talkWho').textContent = WHO[l[0]] || l[0]; $('talkText').textContent = l[1]; $('talkNext').textContent = talkI === talkLines.length - 1 ? 'OK' : 'Next'; O.show('ovTalk'); A.beep(520, .03, 'square', .06); }
+function talkNext() {
+  if (!talkLines) return; talkI++;
+  if (talkI < talkLines.length) return talkShow();
+  O.hide('ovTalk'); const d = talkDone; talkLines = null; talkDone = null; modal = false;
+  if (talkQ.length) { const [l, dn] = talkQ.shift(); showTalk(l, dn); } else if (d) d(); 
+}
+function showCard(title, html, buttons) { // buttons: [[label, fn, primary]]
+  modal = true; stick = { x: 0, y: 0 }; touchFire = false; $('cardH').textContent = title; $('cardP').innerHTML = html; const b = $('cardBtns'); b.innerHTML = '';
+  for (const [label, fn, pr] of buttons) { const el = document.createElement('button'); el.className = 'btn' + (pr ? ' primary' : ''); el.type = 'button'; el.textContent = label; el.onclick = () => { O.hide('ovCard'); modal = false; fn && fn(); }; b.appendChild(el); }
+  O.show('ovCard');
+}
+
+/* ---------- game flow ---------- */
+function newCity(ci, carry, first) {
+  S = OBS.obNew({ city: ci, diff: st.diff, assist: st.assist, carry: carry || null, run: Math.floor(Math.random() * 1e6) & 0 }); startCarry = OBS.carryOf(S); mini = null; fade = 1; acts.length = 0; talkQ.length = 0; banner.life = 0; toast.life = 0;
+  st.save = { city: ci, carry: startCarry, diff: st.diff }; S0.save(); O.hide('ovDead'); hud();
+  const intro = CITY_INTRO[ci];
+  showCard(ci === 0 && first ? 'OUTBREAK' : 'City ' + (ci + 1) + ': ' + intro[0], intro[1], [[ci === 0 && first ? 'Start' : 'Go', () => { try { $('s1').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { } if (ci === 0 && first) showTalk(TALKS.hero0); }, true]]);
+}
+function startNew() { newCity(0, null, true); }
+function cont() { const sv = st.save; if (!sv) return startNew(); st.diff = sv.diff || st.diff; newCity(sv.city, sv.carry); }
+function clearCity(peace) {
+  if (modal) { setTimeout(() => clearCity(peace), 300); return; } // let any story talk finish first
+  const ci = S.ci; const fin = () => {
+    if (peace && ci >= 2) { st.wins++; st.peace = (st.peace || 0) + 1; st.save = null; S0.save(); showCard('The end', ENDING_PEACE + '<p><b>Survivors saved:</b> ' + S.saved + '<br><b>Zombies killed:</b> 0<br><b>Deaths:</b> ' + st.deaths + '</p>', [['Play again', startNew, true]]); return; }
+    if (ci >= 2) { st.wins++; st.save = null; S0.save(); showCard('The end', ENDING + '<p><b>Survivors saved:</b> ' + S.saved + '<br><b>Deaths:</b> ' + st.deaths + '</p>', [['Play again', startNew, true]]); return; }
+    const c = OBS.carryOf(S); c.hp = Math.max(c.hp, 80); c.food = Math.max(c.food, 70); c.water = Math.max(c.water, 70); c.ammo += 500; c.inv.food++; c.inv.water++; c.inv.bandage++;
+    showCard('City cleared', '<p><b>' + S.cfg.name + '</b> is ' + (peace ? 'quiet, and you did it <b>without firing a single shot</b>' : 'quiet') + '. You saved <b>' + S.saved + '</b> survivors so far. Supplies for the road: +500 ammo, food, water and a bandage.</p>' + (peace ? '<p>The dead never turned on you. Keep your gun down in the next city too, and something different may happen at the end.</p>' : ''), [['Next city', () => newCity(ci + 1, c), true]]);
+  };
+  A.beep(660, .15, 'triangle', .12); A.beep(880, .2, 'triangle', .12, .15); A.beep(1100, .3, 'triangle', .12, .32);
+  if (peace && ci >= 2) { S.cure = { t0: sceneT }; banner = { t: '✨ The antidote spreads…', life: 4.2 }; for (let i = 0; i < 8; i++) A.beep(500 + i * 90, .25, 'sine', .07, .3 + i * .4); setTimeout(fin, 5200); } else setTimeout(fin, 700);
+}
+function onDead(cause, name) { st.deaths++; S0.save(); const why = { lost: (name || 'A survivor') + ' did not make it. Saving everyone is the mission, so the mission has failed.', bleeding: 'You bled to death. Use a bandage (🩹) as soon as you start bleeding.', hunger: 'You starved. Eat food (🍖) before the bar runs out.', thirst: 'You died of thirst. Drink water (💧) before the bar runs out.', boss: 'A boss crushed you. Watch for the flashing wind-up and step aside.' }[cause] || 'The zombies got you.'; $('deadP').textContent = why + ' (' + S.cfg.name + ': ' + S.kills + ' of ' + S.cfg.quota + ' killed.)'; void 0; $('deadP').dataset.x = 'Zombies got you in ' + S.cfg.name + '. You killed ' + S.kills + ' of ' + S.cfg.quota + '.'; setTimeout(() => O.show('ovDead'), 900); A.slide(300, 60, .8, 'sawtooth', .15); }
+function retry() { O.hide('ovDead'); if (S && S.phase === 'dead' || true) { newCityRetry(); } }
+function newCityRetry() { const ci = S ? S.ci : 0, c = startCarry; S = OBS.obNew({ city: ci, diff: st.diff, assist: st.assist, carry: c }); mini = null; fade = 1; acts.length = 0; talkQ.length = 0; hud(); }
+
+/* ---------- events ---------- */
+function handle(e) {
+  switch (e.t) {
+    case 'shot': e.w === 'mg' ? A.noise(.04, .05) : (A.noise(.07, .1), A.beep(150, .05, 'square', .06)); break;
+    case 'throw': A.slide(500, 200, .15, 'triangle', .08); break;
+    case 'fthrow': A.slide(420, 220, .12, 'triangle', .04); break;
+    case 'boom': A.noise(.3, .22); A.slide(180, 40, .3, 'sawtooth', .12); break;
+    case 'hit': A.beep(110, .03, 'square', .05); break;
+    case 'kill': A.beep(e.boss ? 70 : 90, e.boss ? .5 : .06, 'sawtooth', e.boss ? .2 : .06); break;
+    case 'hurt': A.noise(.12, .16); A.beep(100, .1, 'square', .1); break;
+    case 'bleed': tell('You are bleeding! Use a bandage 🩹', 3); break;
+    case 'empty': tell('Out of ammo for this gun!', 1.5); A.beep(90, .05, 'square', .08); break;
+    case 'msg': tell(e.text); A.beep(300, .04, 'sine', .05); break;
+    case 'loot': tell(e.text, 3); A.beep(660, .05, 'triangle', .1); A.beep(880, .07, 'triangle', .1, .06); break;
+    case 'pick': A.beep(900, .05, 'triangle', .08); break;
+    case 'eat': A.beep(300, .08, 'triangle', .1); tell('Ate some food.'); break;
+    case 'drink': A.slide(500, 300, .15, 'sine', .1); tell('Drank some water.'); break;
+    case 'heal': A.beep(500, .1, 'sine', .1); A.beep(700, .1, 'sine', .1, .1); tell('Bandaged up.'); break;
+    case 'swap': A.beep(420, .05, 'square', .06); tell(OBS.WEAPONS[e.id].name + ': ' + OBS.WEAPONS[e.id].info, 2); break;
+    case 'weapon': tell('New weapon: ' + OBS.WEAPONS[e.id].name + '!', 3.5); A.beep(500, .08, 'square', .1); A.beep(700, .08, 'square', .1, .09); A.beep(1000, .15, 'square', .1, .18); break;
+    case 'enter': A.beep(250, .08, 'triangle', .08); break;
+    case 'leave': A.beep(330, .08, 'triangle', .08); break;
+    case 'rest': fade = 1.5; A.beep(330, .3, 'sine', .08); A.beep(262, .4, 'sine', .08, .3); tell('You slept. Health restored.', 3); break;
+    case 'wave': banner = { t: '⚠ A horde is coming!', life: 2.6 }; A.slide(200, 400, .4, 'sawtooth', .1); break;
+    case 'windup': A.slide(200, 600, .35, 'sawtooth', .08); break;
+    case 'summon': tell('The boss calls for help!', 2); break;
+    case 'boss': banner = { t: '☠ ' + e.name + (e.final ? ' (final boss)' : ''), life: 3.4 }; A.slide(240, 50, .8, 'sawtooth', .2); if (e.id === 'director') showTalk(TALKS.director); break;
+    case 'bossdead': tell('Boss down! Grab the supplies.', 3.5); break;
+    case 'recruit': A.beep(660, .08, 'triangle', .12); A.beep(990, .1, 'triangle', .12, .09); tell(e.name + ' joins you.'); if (e.story) showTalk(TALKS[e.story + '_met']); else if (e.tale) showTalk(TALKS[e.tale]); else tell(e.name + ': “' + ['Thank you! I will stay close.', 'Lead the way!', 'I can throw a bomb or two!', 'Hurry, the safe house is this way!'][Math.floor(Math.random() * 4)] + '”', 3); break;
+    case 'saved': A.beep(784, .1, 'triangle', .12); A.beep(988, .12, 'triangle', .12, .1); tell(e.name + ' is safe! +supplies', 3); break;
+    case 'storySaved': showTalk(TALKS[e.who + '_saved']); break;
+    case 'lost': A.slide(300, 100, .4, 'sawtooth', .1); break;
+    case 'note': showTalk([['note', NOTES[e.id]]]); break;
+    case 'antidote': showTalk(S.pac ? TALKS.antidote_peace : TALKS.antidote); break;
+    case 'radio': tell('The radio crackles: ' + S.savedHere.length + ' people are safe here.', 3); break;
+    case 'dead': onDead(e.cause, e.name); break;
+    case 'danger': tell('⚠ ' + e.name + ' is in danger! Protect them!', 3); A.beep(260, .15, 'square', .1); break;
+    case 'clear': clearCity(e.peace); break;
+  }
+}
+
+/* ---------- controls ---------- */
+const keyMap = { ArrowLeft: 'l', a: 'l', ArrowRight: 'r', d: 'r', ArrowUp: 'u', w: 'u', ArrowDown: 'd', s: 'd' };
+window.addEventListener('keydown', e => {
+  if (/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (modal) { if ((k === 'Enter' || k === ' ' || k === 'e') && talkLines) { e.preventDefault(); talkNext(); } return; }
+  if (keyMap[k]) { keys[keyMap[k]] = true; e.preventDefault(); } else if (k === ' ') { keys.f = true; e.preventDefault(); } else if (k === 'e') acts.push('act'); else if (k === 'q') acts.push('swap'); else if (k === '1') acts.push('eat'); else if (k === '2') acts.push('drink'); else if (k === '3') acts.push('bandage'); else if (k === 'p') togglePause();
+});
+window.addEventListener('keyup', e => { const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if (keyMap[k]) keys[keyMap[k]] = false; else if (k === ' ') keys.f = false; });
+window.addEventListener('blur', () => { keys = {}; touchFire = false; stick = { x: 0, y: 0 }; });
+// the stick: a pointer anywhere inside the round pad
+(() => {
+  const el = $('stick'), knob = $('knob'); let id = -1;
+  const upd = e => { const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = r.width / 2; let dx = (e.clientX - cx) / R, dy = (e.clientY - cy) / R; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; } stick = { x: Math.abs(dx) < .12 ? 0 : dx, y: Math.abs(dy) < .12 ? 0 : dy }; knob.style.transform = 'translate(' + dx * R * .6 + 'px,' + dy * R * .6 + 'px)'; };
+  el.addEventListener('pointerdown', e => { id = e.pointerId; try { el.setPointerCapture(id); } catch (x) { } upd(e); e.preventDefault(); });
+  el.addEventListener('pointermove', e => { if (e.pointerId === id) upd(e); });
+  const end = e => { if (e.pointerId === id) { id = -1; stick = { x: 0, y: 0 }; knob.style.transform = ''; } };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+})();
+(() => { const f = $('bFire'); f.addEventListener('pointerdown', e => { touchFire = true; f.classList.add('on'); try { f.setPointerCapture(e.pointerId); } catch (x) { } e.preventDefault(); }); const up = () => { touchFire = false; f.classList.remove('on'); }; f.addEventListener('pointerup', up); f.addEventListener('pointercancel', up); f.addEventListener('lostpointercapture', up); })();
+document.querySelectorAll('[data-hold]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); if (!modal) acts.push(b.dataset.hold); }));
+function togglePause() { userPause = !userPause; $('bPause').textContent = userPause ? '▶ Resume' : '⏸ Pause'; if (userPause) say('Paused'); }
+ui.actions(document.body, { talknext: talkNext, pause: togglePause, retry: () => { if (!S) return; O.hide('ovDead'); newCityRetry(); }, newgame: () => { if (st.save && !confirm('Start a new game? Your saved progress will be replaced.')) return; startNew(); } });
+
+/* ---------- each frame: rules ---------- */
+function inputNow() {
+  let mx = stick.x, my = stick.y; if (keys.l) mx -= 1; if (keys.r) mx += 1; if (keys.u) my -= 1; if (keys.d) my += 1;
+  const a = acts; acts = []; return { mx, my, fire: !!(keys.f || touchFire), acts: a };
+}
+function step(dt) {
+  if (!S) return; sceneT += dt; if (paused()) { return; }
+  const inp = inputNow(); OBS.update(S, dt * TS, inp);
+  for (const e of S.ev) handle(e); S.ev.length = 0;
+  toast.life -= dt; banner.life -= dt; fade = Math.max(0, fade - dt * 1.4); hud();
+}
+function hud() {
+  if (!S) return; const p = S.p, ob = OBS.objective(S); $('s1').textContent = S.cfg.name; $('s2').textContent = S.kills >= S.cfg.quota ? S.kills + ' ∞' : S.kills + '/' + S.cfg.quota; $('s3').textContent = S.map.survivors.filter(q => q.state === 'saved').length + '/' + S.map.survivors.length; $('s4').textContent = S.fol.length + '/2';
+  if (!userPause) say(ob.text);
+  $('bEat').lastElementChild.textContent = p.inv.food; $('bDrink').lastElementChild.textContent = p.inv.water; $('bBand').lastElementChild.textContent = p.inv.bandage;
+  $('bEat').classList.toggle('dis', !p.inv.food); $('bDrink').classList.toggle('dis', !p.inv.water); $('bBand').classList.toggle('dis', !p.inv.bandage);
+  const w = OBS.WEAPONS[p.weapons[p.wi]]; $('bSwap').textContent = '🔄 ' + w.name; const na = OBS.nearAct(S); $('bAct').textContent = na ? '✋ ' + na.label : '✋ Act'; $('bAct').classList.toggle('dis', !na);
+  $('recLine').textContent = (st.wins ? 'Wins: ' + st.wins + ' · Deaths: ' + st.deaths : 'Deaths: ' + st.deaths) + (st.peace ? ' · 🕊️ Peace endings: ' + st.peace : '');
+}
+
+/* ---------- drawing ---------- */
+const dirOf = (fx, fy) => (Math.abs(fy) > Math.abs(fx) * .8 ? (fy > 0 ? 0 : 1) : 2);
+const R_ = OBA.R;
+function camOf() {
+  const p = S.p; let w, h;
+  if (p.inHouse >= 0) { w = S.int.W * T; h = S.int.H * T; } else { w = MW * T; h = MH * T; }
+  const cx = w <= VW ? -(VW - w) / 2 : Math.max(0, Math.min(w - VW, p.x - VW / 2)), cy = h <= VW ? -(VW - h) / 2 : Math.max(0, Math.min(h - VW, p.y - VW / 2));
+  return { x: Math.round(cx), y: Math.round(cy) };
+}
+function drawOutside(g, cam, list) {
+  const m = S.map, t = m.t, v = m.v, W = m.W, x0 = Math.max(0, Math.floor(cam.x / T)), y0 = Math.max(0, Math.floor(cam.y / T)), x1 = Math.min(W - 1, Math.floor((cam.x + VW) / T)), y1 = Math.min(m.H - 1, Math.floor((cam.y + VW) / T)), TT = OBA.tiles;
+  const isB = (x, y) => x >= 0 && y >= 0 && x < W && y < m.H && (t[y * W + x] === TL.ROOF || t[y * W + x] === TL.WALL || t[y * W + x] === TL.DOOR);
+  for (let y = y0 - 1; y <= y1 + 1; y++) for (let x = x0; x <= x1; x++) {
+    if (y < 0 || y >= m.H) continue; const i = y * W + x, id = t[i], vv = v[i], px = x * T - cam.x, py = y * T - cam.y;
+    if (y < y0) { if (id === TL.TREE || id === TL.BORDER) list.push({ y: y * T + T, k: 'tree', id, vv, px, py }); continue; }
+    switch (id) {
+      case TL.ROAD: g.drawImage(TT.road[vv > 2 ? 0 : vv], px, py); break;
+      case TL.GRASS: g.drawImage(TT.grass[vv & 3], px, py); break;
+      case TL.PAVE: g.drawImage(TT.pave[vv & 3], px, py); break;
+      case TL.TREE: g.drawImage(TT.grass[vv & 3], px, py); list.push({ y: y * T + T, k: 'tree', id, vv, px, py }); break;
+      case TL.BORDER: g.drawImage(TT.grass[vv & 3], px, py); list.push({ y: y * T + T, k: 'tree', id, vv, px, py }); break;
+      case TL.CAR: g.drawImage(TT.car[vv % 6], px, py); break;
+      case TL.ROOF: g.drawImage(TT.roof[vv % 8], px, py); if (!isB(x, y - 1)) R_(g, px, py, T, 2, INK); if (!isB(x - 1, y)) R_(g, px, py, 2, T, INK); if (!isB(x + 1, y)) R_(g, px + T - 2, py, 2, T, INK); break;
+      case TL.WALL: g.drawImage(TT.wall[vv & 1], px, py); if (!isB(x - 1, y)) R_(g, px, py, 2, T, INK); if (!isB(x + 1, y)) R_(g, px + T - 2, py, 2, T, INK); R_(g, px, py + T - 2, T, 2, INK); break;
+      case TL.DOOR: g.drawImage(TT.door, px, py); R_(g, px, py + T - 2, T, 2, INK); break;
+    }
+    if ((id !== TL.ROOF && id !== TL.WALL && id !== TL.DOOR) && y > 0 && (t[(y - 1) * W + x] === TL.WALL || t[(y - 1) * W + x] === TL.DOOR)) R_(g, px, py, T, 6, 'rgba(0,0,0,.22)');
+  }
+  for (const f of S.fx) if (f.k === 'splat') { const a = Math.max(0, 1 - f.t / f.d); g.fillStyle = 'rgba(110,20,20,' + (.55 * a) + ')'; const r = f.big ? 16 : 7; g.beginPath(); g.ellipse(f.x - cam.x, f.y - cam.y + 4, r, r * .55, 0, 0, 7); g.fill(); }
+  // the safe house: a big painted cross, a flag, a glowing mat and a light beam so it is easy to spot
+  if (m.safe) { const h = m.safe, rx = h.x * T - cam.x, ry = h.y * T - cam.y, rw = h.w * T, pul = .5 + .5 * Math.sin(sceneT * 3);
+    if (rx > -rw - 40 && rx < VW + 40 && ry > -120 && ry < VW + 60) {
+      const fx = h.fx * T - cam.x, fy = h.fy * T - cam.y;
+      g.fillStyle = 'rgba(80,200,255,' + (.18 + .18 * pul) + ')'; g.beginPath(); g.ellipse(fx + 16, fy + 16, 30 + pul * 4, 22 + pul * 3, 0, 0, 7); g.fill();
+      R_(g, fx + 2, fy + 8, 28, 16, INK); R_(g, fx + 3, fy + 9, 26, 14, '#2f9a4a'); R_(g, fx + 14, fy + 11, 4, 10, '#fff'); R_(g, fx + 10, fy + 14, 12, 4, '#fff');
+      const cx = rx + rw / 2, cy = ry + T; R_(g, cx - 13, cy - 21, 26, 42, INK); R_(g, cx - 11, cy - 19, 22, 38, '#fff'); R_(g, cx - 5, cy - 19, 10, 38, '#d33'); R_(g, cx - 11, cy - 5, 22, 10, '#d33');
+      R_(g, rx + 4, ry - 30, 3, 34, INK); R_(g, rx + 5, ry - 29, 1, 32, '#ddd'); const wv = Math.sin(sceneT * 5) * 2; R_(g, rx + 7, ry - 30, 24, 14, INK); R_(g, rx + 8, ry - 29 + wv * .3, 22, 12, '#2f9a4a'); R_(g, rx + 17, ry - 28 + wv * .3, 4, 10, '#fff'); R_(g, rx + 14, ry - 25 + wv * .3, 10, 4, '#fff');
+      const bg = g.createLinearGradient(0, ry - 140, 0, ry); bg.addColorStop(0, 'rgba(120,220,255,0)'); bg.addColorStop(1, 'rgba(120,220,255,' + (.28 + .15 * pul) + ')'); g.fillStyle = bg; g.fillRect(cx - 7, ry - 140, 14, 140); } }
+  // house markers
+  for (const h of [m.safe, m.arm, m.min]) if (h) { const px = h.dx * T - cam.x, py = h.dy * T - cam.y - 12 + Math.sin(sceneT * 3) * 2; if (px > -40 && px < VW + 40 && py > -30 && py < VW + 30) { const lab = h.kind === 'safe' ? 'SAFE HOUSE' : h.kind === 'arm' ? 'GUNS' : 'MINISTRY'; g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; const tw = g.measureText(lab).width + 8; R_(g, px + 16 - tw / 2, py - 8, tw, 13, INK); R_(g, px + 17 - tw / 2, py - 7, tw - 2, 11, h.kind === 'safe' ? '#3a7fc0' : h.kind === 'arm' ? '#a33' : '#c9a227'); g.fillStyle = '#fff'; g.fillText(lab, px + 16, py + 2); } }
+  // pickups, survivors, followers, zombies, hero, trees
+  for (const k of S.pick) list.push({ y: k.y, k: 'pick', o: k });
+  for (const s of m.survivors) if (s.state === 'wait' && s.house < 0) list.push({ y: s.y, k: 'surv', o: s });
+  for (const f of S.fol) list.push({ y: f.y, k: 'fol', o: f });
+  for (const z of S.z) { if (z.x > cam.x - 60 && z.x < cam.x + VW + 60 && z.y > cam.y - 60 && z.y < cam.y + VW + 90) list.push({ y: z.y, k: 'zom', o: z }); }
+}
+function drawInside(g, cam, list) {
+  const I = S.int, W = I.W, H = I.H, TT = OBA.tiles; g.fillStyle = '#000'; g.fillRect(0, 0, VW, VW);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const id = I.t[y * W + x], px = x * T - cam.x, py = y * T - cam.y;
+    if (id === 0) g.drawImage(TT.wood[(x + y) & 1], px, py); else if (id === 2) g.drawImage(TT.rug, px, py); else if (id === 3) g.drawImage(TT.mat, px, py);
+    else g.drawImage(y === 0 || x === 0 || x === W - 1 || y === H - 1 ? TT.iwallTop : (y === 1 ? TT.iwall : TT.iwallTop), px, py);
+  }
+  for (let x = 1; x < W - 1; x++) { /* wall face under the top wall already drawn as row 1 */ }
+  for (const it of I.items) list.push({ y: (it.y + 1) * T - 2, k: 'item', o: it });
+  for (const s of S.map.survivors) if (s.state === 'wait' && s.house === S.p.inHouse) list.push({ y: s.y, k: 'surv', o: s });
+  for (const f of S.fol) list.push({ y: f.y, k: 'fol', o: f });
+  if (S.map.houses[S.p.inHouse].kind === 'safe') S.savedHere.forEach((s, i) => { s.ix = s.ix || (2 + (i * 3) % (W - 4)) * T + 16; s.iy = s.iy || (5 + (i % 2)) * T + 16; list.push({ y: s.iy, k: 'npc', o: s }); });
+}
+function drawEntity(g, e, cam, t) {
+  if (e.k === 'tree') { const im = e.id === TL.BORDER ? OBA.tiles.border[e.vv % 3] : OBA.tiles.tree[e.vv % 3]; g.drawImage(im, e.px, e.py - 10); return; }
+  if (e.k === 'item') { const it = e.o, im = OBA.IT[it.k]; if (im) { g.drawImage(im, it.x * T - cam.x, it.y * T - cam.y - 8); if (it.done && !['bed', 'table', 'radio'].includes(it.k)) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(it.x * T - cam.x + 3, it.y * T - cam.y + 2, it.w * T - 6, 22); } else if (!it.done && !['bed', 'table', 'radio'].includes(it.k)) { const a = .5 + .5 * Math.sin(t * 5 + it.x); R_(g, it.x * T - cam.x + it.w * T / 2 - 1, it.y * T - cam.y - 12 - a * 2, 3, 3, '#ffd84a'); } } return; }
+  if (e.k === 'pick') { const k = e.o, bob = Math.sin(t * 5 + k.x) * 2; g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(k.x - cam.x, k.y - cam.y + 6, 6, 2.5, 0, 0, 7); g.fill(); OBA.icon(g, k.k === 'weapon' ? 'weapon' : k.k, k.x - cam.x, k.y - cam.y - 2 + bob, 1.1); return; }
+  if (e.k === 'zom' && S.cure && Math.hypot(e.o.x - S.p.x, e.o.y - S.p.y) < (sceneT - S.cure.t0) * 150) { const z = e.o, x = Math.round(z.x - cam.x), y = Math.round(z.y - cam.y + 8); OBA.drawSurvivor(g, x, y, { look: z.look, id: z.look + 1 }, { dir: 0, sx: 1, step: 0, moving: false }); g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillStyle = '#9dffb0'; g.fillText('✨', x + Math.sin(t * 4 + z.x) * 6, y - 30 - ((t * 20 + z.y) % 12)); return; }
+  if (e.k === 'zom') { const z = e.o, d = dirOf(z.fx, z.fy); OBA.drawZombie(g, z, { dir: d, sx: z.fx < 0 ? -1 : 1, step: (z.anim * (z.sp / 40)) % 1, x: Math.round(z.x - cam.x), y: Math.round(z.y - cam.y + 8) });
+    if (z.ch === 1) { R_(g, z.x - cam.x - z.r, z.y - cam.y - z.r * 2.2, z.r * 2, 3, (Math.floor(t * 14) & 1) ? '#f33' : '#fff'); }
+    if (z.boss || z.hp < z.mhp) { const w = z.boss ? 30 : 16, bx = z.x - cam.x - w / 2, by = z.y - cam.y - (z.boss ? z.r * 2.4 + 12 : 24); R_(g, bx - 1, by - 1, w + 2, 5, INK); R_(g, bx, by, w, 3, '#400'); R_(g, bx, by, w * Math.max(0, z.hp / z.mhp), 3, z.boss ? '#f44' : '#d33'); } return; }
+  if (e.k === 'surv') { const s = e.o; OBA.drawSurvivor(g, Math.round(s.x - cam.x), Math.round(s.y - cam.y + 8), s, { dir: 0, sx: 1, step: 0, moving: false }); const b = Math.sin(t * 6) * 2; R_(g, s.x - cam.x - 5, s.y - cam.y - 34 + b, 10, 12, INK); R_(g, s.x - cam.x - 4, s.y - cam.y - 33 + b, 8, 10, '#ffd84a'); g.fillStyle = '#000'; g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.fillText('!', s.x - cam.x, s.y - cam.y - 24 + b); if (s.story) { g.fillStyle = '#ffd84a'; g.fillText('★', s.x - cam.x, s.y - cam.y - 40 + b); } return; }
+  if (e.k === 'fol') { const f = e.o, dd = dirOf(f.fx || 0, f.fy || 1); OBA.drawSurvivor(g, Math.round(f.x - cam.x), Math.round(f.y - cam.y + 8), f, { dir: dd, sx: (f.fx || 1) < 0 ? -1 : 1, step: ((f.anim || 0) * 2.4) % 1, moving: !!f.moving, flash: f.hurt > 0 }); const w = 16; R_(g, f.x - cam.x - w / 2 - 1, f.y - cam.y - 28, w + 2, 5, INK); R_(g, f.x - cam.x - w / 2, f.y - cam.y - 27, w, 3, '#143'); R_(g, f.x - cam.x - w / 2, f.y - cam.y - 27, w * Math.max(0, f.hp / f.mhp), 3, '#4d8'); return; }
+  if (e.k === 'npc') { const s = e.o; OBA.drawSurvivor(g, Math.round(s.ix - cam.x), Math.round(s.iy - cam.y + 8), s, { dir: 0, sx: 1, step: 0, moving: false }); return; }
+  if (e.k === 'hero') { const p = S.p, fa = p.fa, d = dirOf(Math.cos(fa), Math.sin(fa)); OBA.drawHero(g, Math.round(p.x - cam.x), Math.round(p.y - cam.y + 8), { dir: d, sx: Math.cos(fa) < -.1 ? -1 : 1, step: (p.anim / 8) % 1, moving: p.moving, flash: p.hurtT > 0 && (Math.floor(t * 20) & 1), gun: fa }); }
+}
+function drawShots(g, cam, t) {
+  for (const b of S.bullets) { g.fillStyle = '#ffe680'; g.fillRect(Math.round(b.x - cam.x - 1), Math.round(b.y - cam.y - 1), 3, 3); g.fillStyle = 'rgba(255,230,128,.4)'; g.fillRect(Math.round(b.x - b.vx * .018 - cam.x - 1), Math.round(b.y - b.vy * .018 - cam.y - 1), 3, 3); }
+  for (const b of S.bombs) { const k = b.t / b.dur, h = Math.sin(k * PI) * 36, x = b.x - cam.x, y = b.y - cam.y; g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x, y, 5, 2, 0, 0, 7); g.fill(); g.fillStyle = INK; g.beginPath(); g.arc(x, y - h - 3, 5, 0, 7); g.fill(); g.fillStyle = b.own === 'p' ? '#555' : '#2a4a2a'; g.beginPath(); g.arc(x, y - h - 3, 4, 0, 7); g.fill(); R_(g, x, y - h - 10, 2, 3, (Math.floor(t * 20) & 1) ? '#ff8' : '#f63'); }
+  for (const f of S.fx) { const x = f.x - cam.x, y = f.y - cam.y, a = 1 - f.t / f.d;
+    if (f.k === 'boom') { const r = f.r * (.4 + .8 * (1 - a)); g.fillStyle = 'rgba(255,200,60,' + a * .7 + ')'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.fillStyle = 'rgba(255,90,30,' + a * .8 + ')'; g.beginPath(); g.arc(x, y, r * .6, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,220,' + a + ')'; g.beginPath(); g.arc(x, y, r * .25, 0, 7); g.fill(); }
+    else if (f.k === 'flash') { g.fillStyle = 'rgba(255,240,150,' + a + ')'; g.beginPath(); g.arc(x, y, 6, 0, 7); g.fill(); }
+    else if (f.k === 'hit' || f.k === 'spark') { g.fillStyle = f.k === 'hit' ? 'rgba(160,255,120,' + a + ')' : 'rgba(255,255,255,' + a + ')'; g.fillRect(x - 3, y - 1, 6, 2); g.fillRect(x - 1, y - 3, 2, 6); } }
+}
+function minimap() {
+  const m = S.map; mini = OBA.mk(MW, MH, g => { const col = [[75, 78, 86], [74, 122, 58], [160, 154, 140], [40, 100, 44], [130, 60, 50], [90, 90, 90], [165, 82, 70], [200, 190, 160], [140, 100, 60], [30, 70, 30]]; const im = g.createImageData(MW, MH); for (let i = 0; i < MW * MH; i++) { const c = col[m.t[i]] || col[0]; im.data[i * 4] = c[0]; im.data[i * 4 + 1] = c[1]; im.data[i * 4 + 2] = c[2]; im.data[i * 4 + 3] = 255; } g.putImageData(im, 0, 0); });
+}
+function drawHUD(g, t) {
+  const p = S.p, m = S.map;
+  // bars
+  R_(g, 4, 4, 128, 46, 'rgba(0,0,0,.55)'); const bar = (y, v, c, ic) => { OBA.icon(g, ic, 14, y + 4, .8); R_(g, 26, y, 100, 8, INK); R_(g, 27, y + 1, 98, 6, '#222'); R_(g, 27, y + 1, 98 * Math.max(0, Math.min(1, v / 100)), 6, c); };
+  bar(8, p.hp, p.bleed && (Math.floor(t * 4) & 1) ? '#ff7a7a' : '#d33', 'hp'); bar(20, p.food, '#e8913a', 'food'); bar(32, p.water, '#4aa8e8', 'water');
+  g.font = 'bold 10px sans-serif'; g.textAlign = 'left'; g.fillStyle = '#fff'; if (p.bleed) { g.fillStyle = '#ff9a9a'; g.fillText('BLEEDING', 30, 47); }
+  // ammo
+  const w = OBS.WEAPONS[p.weapons[p.wi]]; R_(g, 4, VW - 30, 130, 26, 'rgba(0,0,0,.55)'); OBA.icon(g, 'ammo', 17, VW - 17, .9); g.font = 'bold 15px sans-serif'; g.fillStyle = p.ammo < 100 ? '#ff7a7a' : '#fff'; g.textAlign = 'left'; g.fillText(p.ammo, 30, VW - 12); g.font = '10px sans-serif'; g.fillStyle = '#ddd'; g.fillText(w.name, 78, VW - 12);
+  // minimap
+  if (!mini) minimap(); const mx = VW - 70, my = 6; R_(g, mx - 2, my - 2, 68, 68, INK); g.save(); g.globalAlpha = .9;
+  if (p.inHouse < 0) { g.drawImage(mini, mx, my); const dot = (x, y, c, s) => { R_(g, mx + x / T - s / 2, my + y / T - s / 2, s, s, c); };
+    if (m.safe) { dot(m.safe.fx * T, m.safe.fy * T, '#4aa8ff', 5); g.strokeStyle = '#fff'; g.lineWidth = 1; g.strokeRect(mx + m.safe.fx - 4.5, my + m.safe.fy - 4.5, 9, 9); } if (m.arm) dot(m.arm.fx * T, m.arm.fy * T, '#ff9a3a', 4); if (m.min) dot(m.min.fx * T, m.min.fy * T, '#ffd84a', 4);
+    for (const s of m.survivors) if (s.state === 'wait' && s.house < 0) dot(s.x, s.y, s.story ? '#ffd84a' : '#fff4a0', s.story ? 4 : 2);
+    for (const z of S.z) { if (z.boss) dot(z.x, z.y, '#f22', 5); else if (Math.hypot(z.x - p.x, z.y - p.y) < 700) dot(z.x, z.y, '#e44', 1); }
+    for (const f of S.fol) dot(f.x, f.y, '#5fe', 2); if (Math.floor(t * 3) & 1) dot(p.x, p.y, '#fff', 3); else dot(p.x, p.y, '#3f3', 3); }
+  else { g.fillStyle = '#222'; g.fillRect(mx, my, 64, 64); g.fillStyle = '#ddd'; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; g.fillText('INSIDE', mx + 32, my + 36); }
+  g.restore();
+  // boss bar
+  const b = S.z.find(z => z.boss); if (b) { const w2 = 180, x = (VW - w2) / 2; R_(g, x - 2, 6, w2 + 4, 16, INK); R_(g, x, 8, w2, 12, '#300'); R_(g, x, 8, w2 * Math.max(0, b.hp / b.mhp), 12, '#d22'); g.font = 'bold 10px sans-serif'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(b.boss.name, VW / 2, 18); }
+  // compass arrow
+  const ob = OBS.objective(S); if (ob.tgt && p.inHouse < 0) {
+    const cam = camOf(), sx = ob.tgt.x - cam.x, sy = ob.tgt.y - cam.y;
+    if (sx > 16 && sx < VW - 16 && sy > 16 && sy < VW - 16) { const bob = Math.sin(t * 6) * 3; g.fillStyle = INK; g.beginPath(); g.moveTo(sx - 9, sy - 40 + bob); g.lineTo(sx + 9, sy - 40 + bob); g.lineTo(sx, sy - 24 + bob); g.fill(); g.fillStyle = '#ffd84a'; g.beginPath(); g.moveTo(sx - 7, sy - 38 + bob); g.lineTo(sx + 7, sy - 38 + bob); g.lineTo(sx, sy - 27 + bob); g.fill(); }
+    else { const a = Math.atan2(ob.tgt.y - p.y, ob.tgt.x - p.x), cx = VW / 2 + Math.cos(a) * 205, cy = VW / 2 + Math.sin(a) * 205, d = Math.round(Math.hypot(ob.tgt.x - p.x, ob.tgt.y - p.y) / T); g.save(); g.translate(Math.max(16, Math.min(VW - 16, cx)), Math.max(16, Math.min(VW - 16, cy))); g.rotate(a); g.fillStyle = INK; g.beginPath(); g.moveTo(14, 0); g.lineTo(-9, -11); g.lineTo(-5, 0); g.lineTo(-9, 11); g.fill(); g.fillStyle = '#ffd84a'; g.beginPath(); g.moveTo(11, 0); g.lineTo(-6, -8); g.lineTo(-3, 0); g.lineTo(-6, 8); g.fill(); g.restore(); g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; const tx = Math.max(16, Math.min(VW - 16, cx - Math.cos(a) * 22)), ty = Math.max(16, Math.min(VW - 16, cy - Math.sin(a) * 22)); g.fillStyle = INK; g.fillText(d + 'm', tx + 1, ty + 4); g.fillStyle = '#ffd84a'; g.fillText(d + 'm', tx, ty + 3); } }
+  // act prompt
+  const na = OBS.nearAct(S); if (na) { const cam = camOf(), x = na.x - cam.x, y = na.y - cam.y + Math.sin(t * 6) * 2; g.font = 'bold 11px sans-serif'; g.textAlign = 'center'; const tw = g.measureText(na.label).width + 10; R_(g, x - tw / 2 - 1, y - 11, tw + 2, 17, INK); R_(g, x - tw / 2, y - 10, tw, 15, '#2a6f8c'); g.fillStyle = '#fff'; g.fillText(na.label, x, y + 1); }
+  // toasts
+  g.textAlign = 'center'; if (toast.life > 0) { g.font = 'bold 13px sans-serif'; const tw = g.measureText(toast.t).width + 16; g.globalAlpha = Math.min(1, toast.life * 2); R_(g, VW / 2 - tw / 2, VW - 66, tw, 24, 'rgba(0,0,0,.7)'); g.fillStyle = '#fff'; g.fillText(toast.t, VW / 2, VW - 49); g.globalAlpha = 1; }
+  if (banner.life > 0) { g.font = 'bold 24px Georgia, serif'; g.globalAlpha = Math.min(1, banner.life); g.fillStyle = INK; g.fillText(banner.t, VW / 2 + 2, 128 + 2); g.fillStyle = '#ff5a4a'; g.fillText(banner.t, VW / 2, 128); g.globalAlpha = 1; }
+  if (p.hp < 30) { g.fillStyle = 'rgba(200,0,0,' + (.12 + .08 * Math.sin(t * 6)) + ')'; g.fillRect(0, 0, VW, VW); }
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / VW, 0, 0, cv.height / VW, 0, 0); g.imageSmoothingEnabled = false; if (!S) return; const t = performance.now() / 1000;
+  const cam = camOf(); if (S.shake > 0) { cam.x += Math.round((Math.random() - .5) * 8 * Math.min(1, S.shake * 3)); cam.y += Math.round((Math.random() - .5) * 8 * Math.min(1, S.shake * 3)); }
+  g.fillStyle = '#111'; g.fillRect(0, 0, VW, VW); const list = [];
+  if (S.p.inHouse < 0) drawOutside(g, cam, list); else drawInside(g, cam, list);
+  list.push({ y: S.p.y + 1, k: 'hero' }); list.sort((a, b) => a.y - b.y); for (const e of list) drawEntity(g, e, cam, t);
+  drawShots(g, cam, t);
+  if (S.cure) { const r = (sceneT - S.cure.t0) * 150, sx = S.p.x - cam.x, sy = S.p.y - cam.y; for (let k = 0; k < 3; k++) { const rr2 = r - k * 22; if (rr2 > 0) { g.strokeStyle = 'rgba(150,255,190,' + Math.max(0, .6 - k * .18) + ')'; g.lineWidth = 5 - k; g.beginPath(); g.arc(sx, sy, rr2, 0, 7); g.stroke(); } } }
+  if (!vig) vig = OBA.mk(VW, VW, v => { const gr = v.createRadialGradient(VW / 2, VW / 2, VW * .32, VW / 2, VW / 2, VW * .72); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,10,.5)'); v.fillStyle = gr; v.fillRect(0, 0, VW, VW); });
+  g.drawImage(vig, 0, 0); drawHUD(g, t);
+  if (fade > 0) { g.fillStyle = 'rgba(0,0,0,' + Math.min(1, fade) + ')'; g.fillRect(0, 0, VW, VW); }
+}
+const INK = '#1a1410';
+KIT.loop(step, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+// start: continue or new
+if (st.save && st.save.carry) { modal = true; showCard('OUTBREAK', '<p>Welcome back. Your last save is the start of <b>' + CITY_INTRO[st.save.city][0] + '</b> (city ' + (st.save.city + 1) + ' of 3).</p>', [['Continue', cont, true], ['New game', startNew]]); } else startNew();
+KIT.hook({
+  get S() { return S; }, get st() { return st; }, get modal() { return modal; }, ts: x => { TS = x; }, newCity, startNew, cont, handle, talkNext, showTalk, camOf, step: n => { for (let i = 0; i < n; i++) step(1 / 30); },
+  keys, setStick: (x, y) => { stick = { x, y }; }, fire: v => { touchFire = v; }, act: a => acts.push(a), get acts() { return acts; }, get stickNow() { return stick; }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

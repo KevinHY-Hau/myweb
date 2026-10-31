@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 34 · Train Tracks</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TrainTracks">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:660px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.tmsg{min-height:1.4em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:min(100%,calc(100vh - 300px),640px);min-width:280px;margin:0 auto}
+.cv{display:block;width:100%;aspect-ratio:1;border-radius:14px;touch-action:none;user-select:none;-webkit-user-select:none;background:#e9edf4;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Train Tracks</h2>
+  <p>Chapter 34 · Lay one rail line from the entry to the exit. The numbers say how many track squares each row and column holds. Finish it and a train runs along your track</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TIME</small><b id="s1">0:00</b></div>
+    <div class="tstat"><small>BEST</small><b id="s2">–</b></div>
+    <div class="tstat"><small>SOLVED</small><b id="s3">0</b></div>
+    <div class="tstat"><small>HINTS</small><b id="s4">0</b></div>
+  </div>
+  <div class="tmsg" id="msg">Lay the track</div>
+  <div class="tboardwrap">
+    <canvas id="cv" class="cv" aria-label="Train tracks board"></canvas>
+    <div class="ov" id="ovWin"><h3 id="winH">Solved!</h3><p id="winP"></p><div class="tbar"><button class="btn primary" data-act="next" type="button">Next puzzle</button><button class="btn" data-act="train" type="button">🚂 Watch again</button><button class="btn" data-act="hide" type="button">Look at the track</button></div></div>
+    <div class="ov" id="ovPause"><h3>Paused</h3><button class="btn primary" data-act="pause" type="button">Resume</button></div>
+  </div>
+  <div class="tbar"><span class="kl">Tap does:</span><button class="btn tool" data-act="tool" data-k="track" type="button">🟫 Track</button><button class="btn tool" data-act="tool" data-k="x" type="button">✖ No track</button></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="clear" type="button">🧹 Clear</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="check" type="button">✔ Check</button>
+    <button class="btn sm" data-act="pause" type="button">⏸ Pause</button>
+  </div>
+  <div class="tbar"><span class="kl">Grid:</span><span id="sizes"></span></div>
+  <div class="tbar"><span class="kl">Level:</span><span id="levels"></span></div>
+  <div class="tbar"><button class="btn sm primary" data-act="next" type="button">🔄 New puzzle</button><button class="btn sm" data-act="daily" type="button">📅 Today's puzzle</button></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">How to play: lay <b>one single rail line</b> from the <b style="color:#3b82f6">blue entry</b> to the <b style="color:#2e9e5b">green exit</b>, drawn on the edge of the board. The numbers at the side and top say <b>how many squares of track</b> that row or column holds. The line never crosses or touches itself in one square, turns at right angles and passes through every pre-placed piece the way it points. <b>Tap or drag</b> to mark squares as track (brown); use <b>✖ No track</b> (or right-click, or Shift) for squares you know are empty. Rows and columns turn <b style="color:#2e9e5b">green</b> when they are right and <b style="color:#d93a3a">red</b> if they hold too much. Pieces join up by themselves when a square has only two possible neighbours. <b>Hint</b> fills in one square (and counts), <b>Check</b> flashes your mistakes. When the track is complete, a train rides along it!</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🚂 A rail-laying logic puzzle (a family of puzzles with row and column counts, a fixed entry and exit, and some pieces already placed). The puzzle maker, solver, drawings, train and code here are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+const TTBANK={"10-easy":[{"a":4,"p":"RULLURRUULDLLDDDLLURUULURRULLURRULLURRRULL","g":[61,52,65,73,64,31,21,83,92,75,42,90,71,62,41]},{"a":2,"p":"URRRRRURRULLLDLLLLLURURRUULDLULDDLUUURRULU","g":[75,71,54,22,12,86,72,82,32,83,62,73,69,52,34,21]},{"a":0,"p":"RRRULLLUURDRRULULULURRRDDRUURULULDLLLURRUL","g":[92,73,24,62,91,22,61,34,80,44,51,32,20,30,53,43,35,14]},{"a":8,"p":"LURUULLURRURUULDLDLLULDLDLULDLUURURRULLLUR","g":[45,57,35,47,23,22,37,48,11,30,97,31,58,43,67,40,52]},{"a":8,"p":"LURRULLLURRRULLLLLLURRRRRRULLLLURURDRUULL","g":[78,76,45,37,88,67,87,43,58,56,68,66,35,69,16,77,48,36,26,55]},{"a":7,"p":"LLURRULURURRULLLLLLURRRRULURRULLLDDLLLURRU","g":[59,5,24,85,87,36,25,23,44,18,34,58,57,14,8,13,47,95,48]},{"a":8,"p":"RULLLURRRULLURRULLLLURRRRULLLLULURRDRURDRU","g":[38,99,78,8,18,37,19,89,36,27,16,7,39,79,5,29,14,86,87,48,6,46,28,58,77]},{"a":3,"p":"RULULURULLUUURDDRURDDRUUURDRDDRUURULLURRUL","g":[42,52,38,39,51,53,29,83,32,28,63,26,43,9,31,18]},{"a":6,"p":"LLURRURULULDDLLDLUULURURULURRUULDLLDLUURR","g":[75,0,76,85,13,56,33,14,67,21,51,11,4,95,77,94,84,61,22,1,20,65]},{"a":3,"p":"RULLURURRULLLLDLUURRRRRULLLLLURURDRRRULLUR","g":[34,53,64,14,35,94,12,60,42,3,31,40,84,23,25,44,20,72]},{"a":0,"p":"URRULLUUURRRULLLURURDRURDDRURRDRUULLLURRR","g":[5,50,37,80,12,81,16,15,27,6,31,42,41,71,33,60]},{"a":8,"p":"UULLURRRULURULLURRULLULDDDLLDLUURRULLLURRR","g":[69,35,18,4,76,7,59,66,14,6,49,17,25,36,88,23,39,19,26]},{"a":5,"p":"LLUURDRRULURRUULDLUUULDDLULDLUURRURRRULLL","g":[85,21,65,5,22,34,66,6,84,55,31,23,42,43,74,13,24,67,35,56,76]},{"a":9,"p":"ULDLLLLURURDRURRULLLLURRURRULLULURRDRUULL","g":[49,27,9,8,37,95,75,56,39,16,98,84,89,48,96,69,57,97,17,29]}],"10-hard":[{"a":7,"p":"LLURRRDRUULLULDLULLLLURRURDRRRULLULURURDDRURDDDRUUUULLURR","g":[88,28,44,27,25,54,24,89,77,37,16,85,47,66,86,49,36,58,98,52,18]},{"a":6,"p":"LLLURRRULURRDDRURULULURURULLDLDDLUULDLLLLURRRURRRUURDRRUL","g":[29,19,78,88,24,40,84,83,16,23,68,69,45,33,42,57,48,86,35,85,27,44,55,79,56]},{"a":2,"p":"LLUURDRURDDRURRUULDLULLULLURURDRRDRURULLULLLURURDRRRRULLL","g":[73,42,91,36,74,82,32,51,24,63,90,84,34,75,54,45,11,35,71,43,22]},{"a":3,"p":"RRUUULDDLULDDLUULURUURDDRURULULURRDRURRULULDLLULDLDDLUUUR","g":[60,61,20,17,32,91,62,75,30,33,74,15,85,92,12,84,44,53,71,41,65,21,3]},{"a":4,"p":"RRRULLLLLDLULURRRRULLULDLUUURDRRDRRULULLURRRRULLULDLLLURR","g":[43,70,53,33,44,4,13,62,51,91,71,72,16,73,30,55,25,26,92,31,22]},{"a":9,"p":"ULDLLLLURURDRURRULLLULDLULLURRURDRRDRRUULURULLDDLUULURRRR","g":[75,42,36,65,39,7,52,37,26,94,8,95,46,86,28,84,78,34,57,66,67,6,58]},{"a":8,"p":"LURRULLLDLULURRRRRULULDLUUULLDRDDLLDDDLULURULULURRULLURU","g":[64,46,34,24,21,86,61,58,36,66,88,72,41,48,52,32,26,63,89,83,57]},{"a":0,"p":"URRRULULDLUUURDRUURDRDRUUUUURDDDDDDLDRRRULUURDRUULURULUR","g":[29,49,82,28,6,76,16,72,81,41,61,80,35,48,50,47,55,78,57,40,18]},{"a":3,"p":"LLLURURDRRULULUUURDDRDRDDRUURDDRUUULLLURURRULLLURRRRULLL","g":[56,25,75,46,62,71,9,33,84,53,54,32,42,26,37,73,57,66,87,15,28,91]},{"a":2,"p":"LLURURDRDRUULURUURDDDDDRUURDRDRUUULLLURRRULLURRULLLURRRU","g":[77,75,38,98,80,96,54,82,47,56,66,85,74,83,67,19,39,37]},{"a":7,"p":"ULLLURRRURURULLDLDLULDLDLDLDLUURURUURULLLUURDRRRRULULDLU","g":[67,91,21,64,77,82,84,81,73,70,24,80,23,10,12,72,56,65,62,76,42,43]},{"a":4,"p":"RRRRULLLLLURRRRULLLLLDLUURURDRURDRURULLLURRRRUULDLULDLLUR","g":[63,6,52,18,25,98,96,47,64,43,35,73,45,84,83,16,66,44,77,42,67,97]},{"a":9,"p":"LLLLLURRRRRULLLLLURRRRRULLURRUULDLULDDLLURULLURRRURDRRUL","g":[7,74,34,48,76,38,17,25,69,67,78,65,18,29,85,64,49,14]},{"a":4,"p":"RRULLURULURULUULDDDDDDDLULDLUURRULLURRULLURRULLURRRRULLL","g":[30,65,83,4,75,32,21,43,81,44,23,63,51,91,61,84,12,74]},{"a":6,"p":"ULURRDDRUUURULULDDLULDLDLULURRURRULULDLDLULURRULURRDRRUL","g":[86,43,12,87,65,54,35,59,2,68,42,14,58,25,55,47,62,34,63,67,85,76,6]},{"a":9,"p":"ULLDLULLLURURDRRULULLLLDDLULURURURDRURDRURRULLLLLURRRRUL","g":[86,27,77,96,16,33,97,87,55,44,32,35,75,73,52,46,25,43,84,62]},{"a":9,"p":"LURUULDLDDLULURURULURRDRUULURULULDDDLLURULULDLDDLUULLURRR","g":[36,17,0,11,14,19,67,7,10,22,28,86,97,56,76,32,58,46,78,38,47,23]},{"a":1,"p":"LURRDRURDRRULULLLLLURRRURURRULLLDLDLLURURULURRRDRURULLLLL","g":[54,84,33,11,86,90,92,53,61,41,21,52,94,12,24,35,80,15,34,72,82,4,31]},{"a":9,"p":"UUUUULDDLDRDLDLUULDDLULULDLLURURRRRULLLURRRULLULLUURDRRUL","g":[67,68,53,34,33,82,48,52,22,76,87,58,85,23,81,96,64,35,63]},{"a":7,"p":"LLUURDRRULUULURRRULLURRUULDLULDDLDDDLLURUULDLLURUURDRRUL","g":[16,87,85,22,38,77,27,2,37,26,75,29,88,96,43,13,45,56]}],"10-normal":[{"a":5,"p":"LLLURRRURULLURRRUULDLULLDLUURRRUURDDRUURDDDDRUUUU","g":[94,93,23,29,57,66,49,32,75,65,92,37,82,34,25,42,85,56,24,83,47,28,6]},{"a":0,"p":"URRRULLLURRRULLLUUUUURDRDLDRDRURULUURDRDDRRULURUL","g":[71,51,83,61,12,53,16,7,34,42,22,43,32,50,63,35,80,10]},{"a":1,"p":"ULUUURDDRRDLDRRURRULLULLURULLLURRRULLURRRDRURULLLL","g":[12,4,84,81,80,50,32,51,41,73,33,3,64,60,40,93,70,23,25]},{"a":7,"p":"LURRRULLUULLDRDLDDLLURULULURRULULDLUURRRDRURULLLU","g":[66,65,74,62,77,15,14,67,86,22,33,79,53,96,31,73]},{"a":3,"p":"UURDRDRUULURRDDDRUURULULLLURRRULUULDDLUULLLLURRRR","g":[74,73,3,68,15,27,4,77,75,26,16,37,58,55,48,86,96,47]},{"a":1,"p":"URRULLUULURRULLURRRUURDDRDDLDRRUUURDDDDRUURULURUU","g":[24,58,39,68,44,29,20,71,23,27,19,46,55,83,57,21,73,61,25,3,14,37]},{"a":6,"p":"LURRRUULDLLULDDDLLLURRULUULURRDRUUULDLULLURRRRULL","g":[84,75,12,22,72,92,65,42,62,95,93,73,23,4,52,21]},{"a":6,"p":"LURRULLLDLULURULLLURRRURDDDRRRRULLLURURRULLLURRRUL","g":[67,66,58,45,68,33,77,16,75,28,51,56,83,85,54,87,95,52,57,53,38,26,46]},{"a":1,"p":"RULLURURDRDRDRURRUURULLDDLLULURURRRULLLLLURRURRULL","g":[58,44,67,66,33,53,95,37,82,73,80,22,75,85,81,64,76,5,57,24]},{"a":0,"p":"RRRRRULLULDLLUURULUURRDDRRDDRUUULLURUULDLULDLUURR","g":[81,83,91,65,93,30,74,84,64,10,45,60,43,95,73,34,21,54,94,31,52,12]},{"a":9,"p":"LLURRUULDLULURRRUULDLULDLULLURRRRULLLLURRRRRDDRUU","g":[48,59,7,5,78,56,68,77,45,35,69,58,47,16,28,15,79,23]},{"a":1,"p":"LURURDRDRURDRUULURRRULLLURRULLURRRDRUUULDLLLLLURRR","g":[45,65,57,86,4,28,16,90,80,13,9,67,35,82,58,84,93,8,68,95,85,14]}],"6-easy":[{"a":4,"p":"RULULLURRRULLU","g":[15,14,20,21,11]},{"a":4,"p":"RULLURUULULDLLU","g":[28,21,9,10,16]},{"a":0,"p":"RRRULLLURULURUL","g":[31,25,32,13,24]},{"a":1,"p":"ULURRRDRUULURU","g":[18,27,19,16,21]},{"a":5,"p":"LLURRULLURRULUR","g":[21,22,28,16,23]},{"a":5,"p":"ULULDLLLUURULU","g":[29,28,27,21,25]},{"a":1,"p":"RUULDLUURRULLU","g":[18,14,7,13,25]},{"a":1,"p":"LURURRULULLURR","g":[20,15,8,19,25]},{"a":2,"p":"RULULURURRDRUUL","g":[5,20,10,19,13]},{"a":2,"p":"URULULDLUURRULL","g":[21,27,6,2,18,20,7,12]},{"a":0,"p":"UURDRRULULURUL","g":[26,21,7,20,14]},{"a":2,"p":"RULURRDRUULURU","g":[29,23,16,17,28]},{"a":1,"p":"LURURDRUULLURRU","g":[30,21,24,9,26,25,20]},{"a":2,"p":"LURRULULLUURDRU","g":[27,31,7,20,14]},{"a":4,"p":"URULLDLUURRURUL","g":[28,29,14,11,22]},{"a":2,"p":"LURURRUULDLLURU","g":[26,14,13,10,25]},{"a":0,"p":"URRULLUURRRULL","g":[2,18,19,3,9]},{"a":1,"p":"RRULLULURURRULL","g":[13,3,12,26,18]},{"a":1,"p":"UURDDRUURRUULUR","g":[25,21,23,19,17]},{"a":4,"p":"RULLURULULLURR","g":[27,7,22,2,15]},{"a":3,"p":"RULLDLLURUULURU","g":[28,26,19,31,24]},{"a":4,"p":"RULLURRULLURRU","g":[15,27,10,22,23]},{"a":0,"p":"URURDRRRULURUU","g":[17,29,26,16,27]},{"a":2,"p":"RULLURURRULLLLU","g":[14,15,6,9,25,26,27]},{"a":1,"p":"URDRURRULULURU","g":[10,29,22,28,15]},{"a":5,"p":"UULDLLURURURUL","g":[21,5,15,29,11]},{"a":1,"p":"URRULLUURDRRULU","g":[14,15,19,27,8]},{"a":0,"p":"RULUUURURDDRUU","g":[31,8,14,6,25]},{"a":5,"p":"LLLURRRUUULLLU","g":[23,27,11,26,10]},{"a":0,"p":"UURDDRUURDRUUUU","g":[26,19,32,25,10]}],"6-hard":[{"a":4,"p":"RULULLLUURDRRRUULDLU","g":[4]},{"a":4,"p":"RULLLURRUULULDLDLUU","g":[]},{"a":0,"p":"RRRULLLURRULLURRULL","g":[8,31,12]},{"a":1,"p":"ULURRRDRURULLLURRRUL","g":[21]},{"a":5,"p":"LLURRULLLURRRULLURR","g":[27,9]},{"a":5,"p":"ULULDDLULLUURRUULDLU","g":[13,22]},{"a":1,"p":"RRRULLULDLUURRRULLLU","g":[19]},{"a":1,"p":"LURURDDRURULULULLURR","g":[33]},{"a":2,"p":"RRULLULLURRURRDRUUL","g":[]},{"a":2,"p":"LURRULULDLUURRRULLL","g":[13]},{"a":0,"p":"UURDRRULULURRRRULLLL","g":[]},{"a":2,"p":"RULLLURRRRDDRUUULURU","g":[27]},{"a":1,"p":"LURURDRURULLLLURRRU","g":[9,24,25]},{"a":2,"p":"LURRRULLULLUURDRRUL","g":[]},{"a":4,"p":"URULLDLLURUURDRURUL","g":[21,23]},{"a":2,"p":"LURURRUUULDDLLLURRU","g":[3]},{"a":0,"p":"URDRRULULLUURRDRUULL","g":[18]},{"a":1,"p":"RRULLULURURRRRULLLL","g":[]},{"a":1,"p":"UURDDRRULUURDRUULUR","g":[28,25]},{"a":4,"p":"RULLURULULDDLUULURRR","g":[14,22]},{"a":3,"p":"RRULLULDDLLURUULURU","g":[]},{"a":4,"p":"RULLLLUURDRRRULLURRU","g":[15]},{"a":0,"p":"URURDRRDRUULURULLURR","g":[]},{"a":2,"p":"RULLLURRURRRULLLLLU","g":[]},{"a":1,"p":"LUURDRDRURDRUULULURU","g":[]},{"a":5,"p":"UULDLDLLLURRURURURUL","g":[]},{"a":1,"p":"LURRRULLUURDRRRULLU","g":[19]},{"a":0,"p":"RRULLURULURURDDRRULU","g":[1]},{"a":5,"p":"LLLURRRUUUULDLDDLUUU","g":[26]},{"a":0,"p":"UUURDDDRUURDRURULUU","g":[19]}],"6-normal":[{"a":4,"p":"RULULLLURRRRUULDLU","g":[10,35,22]},{"a":4,"p":"RULLURUULULDLDLUU","g":[27,22,10]},{"a":0,"p":"RRRULLLURRULLURUL","g":[7,32,14,33,18,6,12,31]},{"a":1,"p":"ULURRRDRUULLURRRUL","g":[19,22,24,11,27,10]},{"a":5,"p":"LLURRULLURRULLURR","g":[17,27,34,10]},{"a":5,"p":"ULULDDLULLUURRULLU","g":[22,33,18]},{"a":1,"p":"RRRULLULDLUURRULLU","g":[24,28,25,20]},{"a":1,"p":"LURURDRRULULULLURR","g":[1,21,14]},{"a":2,"p":"RRULLULURURRDRUUL","g":[19,28,14]},{"a":2,"p":"LURRULULDLUURRULL","g":[27,26,18,25,21,8]},{"a":0,"p":"UURDRRULULURRRULLL","g":[18,24,25]},{"a":2,"p":"RULLURRRDDRUUULURU","g":[34,23,29]},{"a":1,"p":"LURURDRUULLLURRRU","g":[25,24,9]},{"a":2,"p":"LURRULULLUURDRRUL","g":[7,21,26]},{"a":4,"p":"URULLDLUUURDRURUL","g":[22,29,15]},{"a":2,"p":"LURURRUULDLLLURRU","g":[22,10,14]},{"a":0,"p":"URDRUULLUURRDRUULL","g":[9,19,7]},{"a":1,"p":"RRULLULURURRRULLL","g":[2,25,26]},{"a":1,"p":"UURDDRUUURDRUULUR","g":[25,19,4]},{"a":4,"p":"RULLURULULDDLUUURR","g":[29,9,14]},{"a":3,"p":"RRULLLDLLURUULURU","g":[26,31,27]},{"a":4,"p":"RULLLLURRRRULLURRU","g":[35,15,17]},{"a":0,"p":"URURDRRDRUULURULUR","g":[20,27,34]},{"a":2,"p":"RULLLURRURRULLLLU","g":[7,24,33]},{"a":1,"p":"LURRDRURDRUULULURU","g":[16,9,22]},{"a":5,"p":"UULDLDLLURURURURUL","g":[10,26,32]},{"a":1,"p":"URRULLUURDRRRULLU","g":[14,13,15]},{"a":0,"p":"RRULLUUURURDDRRULU","g":[6,2,31]},{"a":5,"p":"LLLURRRUUULLDDLUUU","g":[26,9,14]},{"a":0,"p":"UURDDRUURDRURULUU","g":[32,24,16]}],"8-easy":[{"a":7,"p":"ULLULDLLDLULURUURULLURRUL","g":[54,33,52,48,18,8,2]},{"a":3,"p":"UURDDRUURRULLLLURRRULULUR","g":[38,51,21,61,39,43,36,13,44]},{"a":5,"p":"URULLULDLDDLUULURRULUULUR","g":[43,44,45,50,41,54,8]},{"a":6,"p":"LLURRRULLLURRULLURRRULLURR","g":[37,20,53,23,22,5,15,61]},{"a":0,"p":"RRULLUURURDRDDRUUURULLURU","g":[36,29,32,51,33,44,35]},{"a":7,"p":"UUUULDDLDRDLLLURUURUULURU","g":[62,55,61,60,47,54,39,21,13]},{"a":2,"p":"RULLLURRULURULLURRRRRULLL","g":[8,42,50,10,49,34,16]},{"a":0,"p":"UURRRDDRUUURDRDDRUUULURUUU","g":[52,43,39,41,51,38,44]},{"a":2,"p":"LURRULURULUURDRRURDDDRUUUU","g":[20,35,51,21,13,42,22]},{"a":7,"p":"ULLLLLURRRRRULLLURRRULURU","g":[36,55,15,31,39,28,37]},{"a":5,"p":"RULULUULURRDDRDRUULURULUR","g":[62,37,28,19,36,23,21,6,54]},{"a":4,"p":"LURRRRULLLURULLLURRRRULLU","g":[46,54,45,53,36,12,52]},{"a":1,"p":"RULULURUULUURDRDDRURRULLUR","g":[26,49,50,0,17,58,25]},{"a":3,"p":"UURUULDLDDLULURURULURRULL","g":[33,49,50,42,34,35,27]},{"a":5,"p":"ULUULDDLUUURRRULULDLULLURR","g":[51,12,53,44,11,42,10,36,29,1,26]},{"a":6,"p":"RULLURRULULURULLDDDLUUULU","g":[38,28,39,21,36,29,19]},{"a":0,"p":"URULURURDDRURRULULURRRULL","g":[40,42,36,32,41,35,34]},{"a":1,"p":"RULLURRRRUULDLLLURRULLURUL","g":[58,33,16,48,35,43,50]},{"a":5,"p":"LURURULLLURRRRULULDLLULUR","g":[53,52,13,29,20,45,14]},{"a":2,"p":"LURRURDDRUURRULLLLURRUURUL","g":[53,51,13,57,45,38,61,52,49,50,21,36,6,39,14]},{"a":3,"p":"RULULLURRRURULLDLLLURRULUR","g":[51,60,43,9,27,42,52]},{"a":5,"p":"RULULURURULURULLDLDDLUUUR","g":[4,21,5,27,19,6,53,12,26,54]},{"a":1,"p":"UULURRULLURRRDDDRUURULURUL","g":[36,13,5,41,18,26,40,20,29]},{"a":3,"p":"URULUULULDDRDLDLUUUUURRULL","g":[52,26,40,16,32,10,9,18,2,48,41,49,25,17]},{"a":2,"p":"URULLLURURDRRDRURULUULLURR","g":[36,50,42,12,37,3,21,38]},{"a":2,"p":"RULUULDDDLUUUUURRRULULDLU","g":[56,59,1,19,48,40,42,41,57]},{"a":2,"p":"LLUURDRURULLURUUURDDDRUURU","g":[35,56,33,25,10,49,28,40,18,20,57,43]},{"a":3,"p":"RRRULULDLULURRRULLLULURRUL","g":[45,37,54,53,52,42,35,29,3,27,43,26]},{"a":0,"p":"URULURURDRRUURDDRDDRUUUUUU","g":[29,48,55,25,49,35,46]},{"a":6,"p":"LURRULULDLULDLLDLUUUURULU","g":[38,61,43,36,24,16,46]}],"8-hard":[{"a":1,"p":"LURULURRDRURDRUULLLLLUURDRRURDRRULULL","g":[9,37,34,11,44,24,48,21]},{"a":0,"p":"RULURRDRURULLLLUURDRURRRRULULDLLULDLU","g":[2,26,13,12,43,40,19,8]},{"a":3,"p":"ULURURURDRDDRUUULURULLDLULDLLURURRRRR","g":[42,46,43,21,11,28,2,37]},{"a":4,"p":"LLURRURULLDLULDDLUUURRRULLLURRRRULLLL","g":[41,27,37,8,11,50,43,16]},{"a":0,"p":"UUURDDRRDRURRULLLLURURRDRUULLLULLURR","g":[1,53,20,42,48,28,45,2,29,35]},{"a":4,"p":"LURRDRUUURULLDDLUULDLULLURRRRULLLLUR","g":[11,38,34,24,17,29,59,25,53,20]},{"a":0,"p":"RRRULLLUURURDRRURDDDLDRRUUUURULLURRUL","g":[57,29,37,59,50,34,14]},{"a":5,"p":"LLURRRDRUULLLLURRRULLLLLLURRRRRULLURR","g":[54,51,53,20,60,37]},{"a":3,"p":"LLLURRRURDRRULUULDLLDLULUURDRUUULDLU","g":[33,1,36,43,28,51,25]},{"a":4,"p":"ULURULURRRRUULDLLUULDDLDDDLUUULURRUL","g":[35,43,11,9,44]},{"a":0,"p":"UURULUURDRUULLURRRDDRDDRUURDRUULLURR","g":[9,19,2,13,21,30]},{"a":7,"p":"UULDLULLLLURRRRRRUULDLULDLULURRRRULLL","g":[47,55,20,22,29,45,42]},{"a":7,"p":"LURULLDLDLLURURURRRULLLLUURDRRRULLURR","g":[36,15,30,51,53,23,54,52,27]},{"a":1,"p":"LURRRULLULURRDRUUURDRDLDRDRURULUURUL","g":[36,12,45,27,20,43,25]},{"a":0,"p":"RULUUUURDDDRUUURDDDDRUURULURULLLLURRR","g":[1,32,11,43,21,9,51,27,37]},{"a":3,"p":"LURRRDRUUURUUUULDDDLDDLLLURRULLURURUL","g":[22,27,54,45,29,30,43,6]},{"a":2,"p":"LURRRDRUUULDLLLURRULURRRULULDLULDDLUU","g":[57,53,60,49,21,33,3,9,45,43]},{"a":2,"p":"RRRURDRUULULDLDLUULDDLDLUURULUURRULLU","g":[59,41,33,62]},{"a":2,"p":"RULURRDRDRRULULULULDLLDLUURRURRULLLUR","g":[33,36,59,50,11,20,34,54,18]},{"a":2,"p":"RRRRULLLLLURURDRRURDRUULLLUURDRRULUR","g":[30,39,51,21,14,41,12,28,35]},{"a":5,"p":"LLLURULURURDDDRRRULLURRUULDLULURURDRU","g":[13,28,36,52,29,47,50,46,15]},{"a":4,"p":"RRRULLLULLURRULURULURRDDDRDDRUUULURUL","g":[28,35,21,53,12,27,46]},{"a":6,"p":"RULLLLURRRRUUULDDLLLLURRRULLULURRDRU","g":[29,20,43,31,27,10,54]},{"a":7,"p":"ULURULLDDDLULURULURRRULLLLLURRRRRULL","g":[27,54,12,61,47,45,29]}],"8-normal":[{"a":7,"p":"ULLUULDDLLDLULURRULURRULLLURRUL","g":[54,49,57,55,45]},{"a":3,"p":"LURURDDRRULURRULLLLURRRRULLULUR","g":[13,43,31,39,12,51,52,38]},{"a":5,"p":"URDRUULLLULDLDDLUULURRULURULLUR","g":[62,45,32,57,43,18]},{"a":6,"p":"LLURRRULLLURRRULLLURRRULLLLURRRR","g":[47,60,45,31,15,54,37,44,55,28,38,14,61,13]},{"a":0,"p":"RRULLUURUURDDRDDRRRULLUURULLURU","g":[25,32,49,57,17,34,35,46,48,11]},{"a":7,"p":"UUUUULDDDLDRDLLLLURRUURUULLURRU","g":[52,31,47,11,19,45,46,37,29,59,55]},{"a":2,"p":"RULLLURRRULLURULLUURDRRRDRUULLL","g":[5,35,50,3]},{"a":0,"p":"RRULLURRRDDRUUURDRDLDRRUUULURUUU","g":[39,23,57,58,49,42,46,52]},{"a":2,"p":"LURRULURULUUURDDRRUURDDDLDRRUUUU","g":[42,34,14,15]},{"a":7,"p":"ULLLDLULURRRRRULLLURRRULLLURRRU","g":[45,50,51,37,47,53,20,42,12,44,59,14,60,22]},{"a":5,"p":"RRULLULLURULURURDDDRDRUULURULUR","g":[35,31,30,62,13,14,19,21,47]},{"a":4,"p":"LURRDRURULLLURULLLURRRRRULULDLU","g":[14,59,28,19,37,22,54,15,26,23,45,12]},{"a":1,"p":"RRUULDLULURUULUURDRDDRURDRUULLUR","g":[0,26,20,58,27,1]},{"a":3,"p":"UURRULULDLDDDLUULURURULURRRULLL","g":[18,58,45,44,3]},{"a":5,"p":"RRULLLUULDDLULURURRRULULDLULLURR","g":[62,55,35,28,9,0,43,34,20,36,10]},{"a":6,"p":"RULLURRULULURUULDLDDDLULURULLUR","g":[10,47,6,9,29,20,27,54]},{"a":0,"p":"URULURURDDRURRULULLURRRDRURULLL","g":[33,10,41,14]},{"a":1,"p":"RULLURRRRURRUULDLLDLLLURRULLURUL","g":[16,34,50,25]},{"a":5,"p":"LLLURRRURULLLLURRRRRULULDLLULUR","g":[53,35,14,52,27,30]},{"a":2,"p":"LLURRRURDDRUURRUULDLLLLURRRUURUL","g":[46,48,53,56,34,61,14,39,26,49,43]},{"a":3,"p":"RULULLURRRURURULULDDLDLLLURRULUR","g":[60,43,1,19,25,20]},{"a":5,"p":"RRULLULURURULURULLDLDRDLDLUUUUR","g":[6,18,20,62,63,22,10]},{"a":1,"p":"UULURRULLURRUURDDDDDRUURRULLURUL","g":[11,10,44,43,3,33]},{"a":3,"p":"LURRULUULULDDRDLDLUUUUURRRRULLLL","g":[58,50,8,2,18,32,12,4,43]},{"a":2,"p":"URULLLURURDRRDRURDRUULLUULDLUURR","g":[11,39,21,45,50]},{"a":2,"p":"RULUULDDDLUUUUURDRURDRUULLULDLU","g":[27,59,42,2,41,20,49,51,56,17]},{"a":2,"p":"LLUURDRURULLLURRULURURDDDRUURRUL","g":[3,27,35,56,11,40,20,33,2,57]},{"a":3,"p":"RRRULULDLULURRRULULDLULLUURDRRUL","g":[61,53,3,27,1,42,9,51,60]},{"a":0,"p":"URULURURDRRUULURRDDDRDDRUUUULURU","g":[33,28,48,40,37,25,41,13]},{"a":6,"p":"LURRULULDLULDLUULDDDDLUUUUURULU","g":[55,38,33,35]}]};
+
+/* Train Tracks. Puzzles come from a bank made offline by tools/genbank.js (a random winding route, row and column counts, and just enough
+   pre-placed pieces that a solver proves there is exactly one answer). Each load flips or turns the board (8 ways) so one puzzle looks like many.
+   You mark squares as track or no-track. A track square draws as a proper rail piece when it has exactly two possible neighbours.
+   When the counts all match, the game looks for one route from the entry through EVERY track square to the exit; if it finds one, the puzzle is solved and a train runs along it. */
+(() => {
+const { $, store, ui, rng, sfx, settings } = KIT;
+const S = store('kevinhyhau.traintracks.v1', { dark: true, sound: true, auto: true, speed: 'normal', n: '8', level: 'normal', best: {}, solved: 0, last: {} }), st = S.st;
+if (!st.best || typeof st.best !== 'object') st.best = {};
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovWin', 'ovPause']);
+settings([
+  { id: 'auto', label: 'Show faint ✖ in squares of finished rows and columns', type: 'check', def: true },
+  { id: 'speed', label: 'Train speed', type: 'select', options: [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']], def: 'normal' },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); });
+
+const DR = [-1, 0, 1, 0], DC = [0, 1, 0, -1], OPP = d => (d + 2) & 3, W = 640, M = 40, GRID = W - 2 * M;
+const dirOf = (dr, dc) => DR.findIndex((v, k) => v === dr && DC[k] === dc);
+const NAMES = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
+let G = null, tool = 'track', undo = [], flash = null, lastIdx = -1;
+const cv = $('cv'), C = KIT.canvas(cv, W, W, 2), ctx = C.ctx;
+
+/* ---------- loading a puzzle ---------- */
+const tfCell = (r, c, k, n) => { if (k & 1) r = n - 1 - r; if (k & 2) c = n - 1 - c; if (k & 4) [r, c] = [c, r]; return [r, c]; };
+const tfDir = (d, k) => { let dr = DR[d], dc = DC[d]; if (k & 1) dr = -dr; if (k & 2) dc = -dc; if (k & 4) [dr, dc] = [dc, dr]; return dirOf(dr, dc); };
+function load(n, level, seedR) {
+  const key = n + '-' + level, bank = (typeof TTBANK !== 'undefined' && TTBANK[key]) || [], r = seedR || Math.random;
+  if (!bank.length) return false;
+  let i = Math.floor(r() * bank.length); if (!seedR && bank.length > 1 && i === st.last[key]) i = (i + 1) % bank.length; st.last[key] = i;
+  const P = bank[i], k = Math.floor(r() * 8); let cells = [[n - 1, P.a]]; for (const ch of P.p) { const l = cells[cells.length - 1]; cells.push([l[0] + (ch === 'U' ? -1 : ch === 'D' ? 1 : 0), l[1] + (ch === 'R' ? 1 : ch === 'L' ? -1 : 0)]); }
+  const t = cells.map(c => tfCell(c[0], c[1], k, n)), eSide = tfDir(2, k), xSide = tfDir(0, k), masks = [];
+  for (let j = 0; j < t.length; j++) {
+    const c = t[j], pv = j ? t[j - 1] : [c[0] + DR[eSide], c[1] + DC[eSide]], nx = j < t.length - 1 ? t[j + 1] : [c[0] + DR[xSide], c[1] + DC[xSide]];
+    masks.push((1 << dirOf(pv[0] - c[0], pv[1] - c[1])) | (1 << dirOf(nx[0] - c[0], nx[1] - c[1])));
+  }
+  const rows = new Array(n).fill(0), cols = new Array(n).fill(0); t.forEach(c => { rows[c[0]]++; cols[c[1]]++; });
+  const given = new Map(), sol = new Map(); t.forEach((c, j) => sol.set(c[0] * n + c[1], masks[j]));
+  P.g.forEach(g => { const [r0, c0] = tfCell((g / n) | 0, g % n, k, n), id = r0 * n + c0; given.set(id, sol.get(id)); });
+  G = { n, level, key, rows, cols, given, sol, route: t, entry: { idx: t[0][0] * n + t[0][1], side: eSide }, exit: { idx: t[t.length - 1][0] * n + t[t.length - 1][1], side: xSide }, state: new Uint8Array(n * n), t: 0, started: false, won: false, hints: 0, anim: null, total: t.length };
+  undo = []; flash = null; computeLayout(); return true;
+}
+/* ---------- geometry ---------- */
+let cs = 56;
+const computeLayout = () => { cs = GRID / G.n; };
+const cx0 = c => M + c * cs, cy0 = r => M + r * cs;
+const mid = (x, y, d) => d === 0 ? [x + cs / 2, y] : d === 1 ? [x + cs, y + cs / 2] : d === 2 ? [x + cs / 2, y + cs] : [x, y + cs / 2];
+/* points along the centre line of a piece joining sides a and b of the square at (x, y) */
+function centre(x, y, a, b, N) {
+  const A0 = mid(x, y, a), B0 = mid(x, y, b), out = [];
+  if (a === OPP(b)) { for (let i = 0; i <= N; i++) out.push([A0[0] + (B0[0] - A0[0]) * i / N, A0[1] + (B0[1] - A0[1]) * i / N]); return out; }
+  const cx = (a === 1 || b === 1) ? x + cs : x, cy = (a === 2 || b === 2) ? y + cs : y, a0 = Math.atan2(A0[1] - cy, A0[0] - cx), a1 = Math.atan2(B0[1] - cy, B0[0] - cx);
+  let da = a1 - a0; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+  for (let i = 0; i <= N; i++) { const t = a0 + da * i / N; out.push([cx + cs / 2 * Math.cos(t), cy + cs / 2 * Math.sin(t)]); } return out;
+}
+const bits = m => { const r = []; for (let d = 0; d < 4; d++) if (m & (1 << d)) r.push(d); return r; };
+function normals(pts) { return pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [-dy / l, dx / l]; }); }
+function drawRail(x, y, mask, alpha) {
+  const [a, b] = bits(mask); if (b === undefined) return; const pts = centre(x, y, a, b, 16), nv = normals(pts), off = cs * .2;
+  ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha; ctx.lineCap = 'butt';
+  const m = Math.max(3, Math.round(cs / 14)); ctx.strokeStyle = '#c9985a'; ctx.lineWidth = cs * .065;
+  for (let i = 0; i < m; i++) { const t = (i + .5) / m * 16, j = Math.min(15, Math.floor(t)), f = t - j, p = [pts[j][0] + (pts[j + 1][0] - pts[j][0]) * f, pts[j][1] + (pts[j + 1][1] - pts[j][1]) * f], n0 = nv[j]; ctx.beginPath(); ctx.moveTo(p[0] - n0[0] * cs * .31, p[1] - n0[1] * cs * .31); ctx.lineTo(p[0] + n0[0] * cs * .31, p[1] + n0[1] * cs * .31); ctx.stroke(); }
+  ctx.strokeStyle = '#2d3b57'; ctx.lineWidth = cs * .05; ctx.lineCap = 'round';
+  for (const sg of [-1, 1]) { ctx.beginPath(); pts.forEach((p, i) => { const px = p[0] + nv[i][0] * off * sg, py = p[1] + nv[i][1] * off * sg; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.stroke(); }
+  ctx.restore();
+}
+/* ---------- the rules ---------- */
+const inGrid = (r, c) => r >= 0 && c >= 0 && r < G.n && c < G.n;
+const isT = i => G.given.has(i) || G.state[i] === 1;
+function canLink(i, d) {                          // may square i join its neighbour in direction d?
+  const n = G.n, r = (i / n) | 0, c = i % n, nr = r + DR[d], nc = c + DC[d]; if (!inGrid(nr, nc)) return false; const j = nr * n + nc; if (!isT(j)) return false;
+  const gi = G.given.get(i), gj = G.given.get(j); if (gi !== undefined && !(gi & (1 << d))) return false; if (gj !== undefined && !(gj & (1 << OPP(d)))) return false; return true;
+}
+function pieceOf(i) {                              // mask of the piece to draw in a track square, or 0 if it is not clear yet
+  if (G.given.has(i)) return G.given.get(i);
+  const ds = []; for (let d = 0; d < 4; d++) if (canLink(i, d)) ds.push(d); if (i === G.entry.idx) ds.push(G.entry.side); if (i === G.exit.idx) ds.push(G.exit.side);
+  const u = [...new Set(ds)]; return u.length === 2 ? (1 << u[0]) | (1 << u[1]) : 0;
+}
+function counts() { const n = G.n, r = new Array(n).fill(0), c = new Array(n).fill(0); for (let i = 0; i < n * n; i++) if (isT(i)) { r[(i / n) | 0]++; c[i % n]++; } return { r, c }; }
+function findRoute() {
+  const n = G.n; let T = 0; for (let i = 0; i < n * n; i++) if (isT(i)) T++; if (T !== G.total || !isT(G.entry.idx) || !isT(G.exit.idx)) return null;
+  const res = [], vis = new Uint8Array(n * n);
+  function go(i, from) {
+    vis[i] = 1; const g = G.given.get(i);
+    if (i === G.exit.idx) { const ok = res.length + 1 === T && (g === undefined || g === ((1 << from) | (1 << G.exit.side))); if (ok) { res.push([i, from, G.exit.side]); return true; } vis[i] = 0; return false; }
+    for (let d = 0; d < 4; d++) {
+      if (d === from) continue; if (g !== undefined && g !== ((1 << from) | (1 << d))) continue; if (!canLink(i, d)) continue; const j = ((i / n | 0) + DR[d]) * n + (i % n) + DC[d]; if (vis[j]) continue;
+      res.push([i, from, d]); if (go(j, OPP(d))) return true; res.pop();
+    }
+    vis[i] = 0; return false;
+  }
+  return go(G.entry.idx, G.entry.side) ? res : null;
+}
+/* ---------- playing ---------- */
+const snap = () => undo.push(G.state.slice());
+function setMsg(t) { const m = $('msg'); if (m.textContent !== t) m.textContent = t; }
+function afterMove() {
+  if (G.won) return; const k = counts(); let ok = true; for (let i = 0; i < G.n; i++) if (k.r[i] !== G.rows[i] || k.c[i] !== G.cols[i]) ok = false;
+  if (!ok) { setMsg('Lay the track'); return; }
+  const rt = findRoute(); if (rt) win(rt); else setMsg('The counts match, but it is not one line from the blue entry to the green exit through every square.');
+}
+function win(rt) {
+  G.won = true; G.route = rt; G.rmap = new Map(rt.map(q => [q[0], q])); const n = G.n, key = G.key; st.solved++; const prev = st.best[key], t = G.t; let nb = false; if (!prev || t < prev) { st.best[key] = Math.round(t * 10) / 10; nb = true; } S.save();
+  A.beep(660, .09, 'square', .1); A.beep(880, .09, 'square', .1, .09); A.beep(1320, .18, 'square', .1, .18);
+  $('winH').textContent = 'Track complete!'; $('winP').textContent = 'Solved in ' + fmt(t) + (G.hints ? ' with ' + G.hints + ' hint' + (G.hints > 1 ? 's' : '') : '') + (nb ? ' · new best for this size and level!' : ' · best ' + fmt(st.best[key]));
+  setMsg('Here comes the train…'); hud(); setTimeout(() => startTrain(), 650);
+}
+const fmt = t => { t = Math.floor(t); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+function hud() { if (!G) return; KIT.setText($('s1'), fmt(G.t)); KIT.setText($('s2'), st.best[G.key] ? fmt(st.best[G.key]) : '–'); KIT.setText($('s3'), st.solved); KIT.setText($('s4'), G.hints); $('recLine').textContent = G.n + '×' + G.n + ' · ' + NAMES[G.level] + ' · pre-placed pieces ' + G.given.size + ' · track squares to place ' + (G.total - G.given.size); }
+function apply(i, v) { if (G.given.has(i) || G.state[i] === v) return false; G.state[i] = v; return true; }
+let drag = null;
+function cellAt(e) { const p = C.pos(e), c = Math.floor((p.x - M) / cs), r = Math.floor((p.y - M) / cs); return inGrid(r, c) ? r * G.n + c : -1; }
+cv.addEventListener('contextmenu', e => e.preventDefault());
+cv.addEventListener('pointerdown', e => {
+  if (!G || G.won || G.anim) return; const i = cellAt(e); if (i < 0 || G.given.has(i)) return; try { cv.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault();
+  const use = e.button === 2 || e.shiftKey ? 'x' : tool, tv = use === 'x' ? 2 : 1, nv = G.state[i] === tv ? 0 : tv; if (!G.started) G.started = true; snap();
+  drag = { nv, tv, changed: apply(i, nv) }; lastIdx = i; if (drag.changed) A.beep(nv === 1 ? 520 : nv === 2 ? 300 : 380, .04, 'square', .05);
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag || !G) return; const i = cellAt(e); if (i < 0 || i === lastIdx) return; lastIdx = i; const cur = G.state[i];
+  if (drag.nv !== 0 ? cur === 0 : cur === drag.tv) { if (apply(i, drag.nv)) { drag.changed = true; A.beep(drag.nv === 1 ? 520 : 300, .03, 'square', .04); } }
+});
+window.addEventListener('pointerup', () => { if (!drag) return; const d = drag; drag = null; lastIdx = -1; if (!d.changed) undo.pop(); else afterMove(); });
+function undoMove() { if (!G || G.won || G.anim || !undo.length) return; G.state = undo.pop(); setMsg('Lay the track'); }
+function clearAll() { if (!G || G.won || G.anim) return; if (G.state.some(v => v)) { snap(); G.state = new Uint8Array(G.n * G.n); } }
+function hint() {
+  if (!G || G.won || G.anim) return; const cand = []; for (let i = 0; i < G.n * G.n; i++) { if (G.given.has(i)) continue; const want = G.sol.has(i) ? 1 : 2; if (G.state[i] !== want) cand.push([i, want]); }
+  if (!cand.length) return; const wrong = cand.filter(c => G.state[c[0]] !== 0), pick = (wrong.length ? wrong : cand)[Math.floor(Math.random() * (wrong.length || cand.length))];
+  snap(); G.state[pick[0]] = pick[1]; G.hints++; G.started = true; flash = { cells: [pick[0]], col: '90,200,120', t: 1 }; A.beep(880, .08, 'triangle', .08); hud(); afterMove();
+}
+function check() {
+  if (!G || G.won || G.anim) return; const bad = []; for (let i = 0; i < G.n * G.n; i++) { if (G.given.has(i)) continue; if ((G.state[i] === 1 && !G.sol.has(i)) || (G.state[i] === 2 && G.sol.has(i))) bad.push(i); }
+  if (bad.length) { flash = { cells: bad, col: '230,60,60', t: 1.4 }; setMsg(bad.length + ' square' + (bad.length > 1 ? 's are' : ' is') + ' wrong (flashing red).'); A.slide(300, 150, .2, 'sawtooth', .07); } else { setMsg('No mistakes so far. Keep going!'); A.beep(784, .1, 'triangle', .08); }
+}
+/* ---------- the train ---------- */
+function startTrain() {
+  const n = G.n, pts = []; let ext = 0; const u = Math.min(cs, 66), carLen = u * .82, gap = u * .12, cars = 4, trainLen = cars * carLen + (cars - 1) * gap; ext = trainLen + 90;
+  const first = G.route[0], last = G.route[G.route.length - 1];
+  const addExt = (idx, side, atStart) => { const r = (idx / n) | 0, c = idx % n, m = mid(cx0(c), cy0(r), side); return [m[0] + DC[side] * ext, m[1] + DR[side] * ext]; };
+  pts.push(addExt(first[0], first[1])); G.route.forEach(([idx, a, b]) => { const r = (idx / n) | 0, c = idx % n, seg = centre(cx0(c), cy0(r), a, b, 10); seg.forEach(p => pts.push(p)); }); pts.push(addExt(last[0], last[2]));
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  G.anim = { pts, cum, len: cum[cum.length - 1], s: 0, carLen, gap, cars, trainLen, u, smoke: [], chuff: 0, done: false, wait: 0 }; setMsg('🚂 Choo choo!');
+  A.slide(520, 880, .35, 'sine', .07); A.beep(880, .25, 'sine', .05, .3);
+}
+function posAt(an, s) {
+  s = Math.max(0, Math.min(an.len, s)); let lo = 0, hi = an.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (an.cum[m] <= s) lo = m; else hi = m; }
+  const f = (s - an.cum[lo]) / ((an.cum[hi] - an.cum[lo]) || 1); return [an.pts[lo][0] + (an.pts[hi][0] - an.pts[lo][0]) * f, an.pts[lo][1] + (an.pts[hi][1] - an.pts[lo][1]) * f];
+}
+function trainStep(dt) {
+  const an = G.anim; if (!an || an.done) return; const sp = cs * ({ slow: 3.6, normal: 5.5, fast: 8.5 }[st.speed] || 5.5); an.s += sp * dt;
+  an.chuff += sp * dt; if (an.chuff > cs * .9) { an.chuff = 0; A.noise(.06, .06); A.beep(110, .05, 'square', .04); }
+  const head = posAt(an, an.s - 4); if (Math.random() < .5) an.smoke.push({ x: head[0], y: head[1] - an.u * .4, vx: (Math.random() - .5) * 14, vy: -20 - Math.random() * 20, l: 1, r: an.u * .12 });
+  for (const p of an.smoke) { p.x += p.vx * dt; p.y += p.vy * dt; p.l -= dt * .9; p.r += dt * 6; } an.smoke = an.smoke.filter(p => p.l > 0);
+  if (an.s > an.len + an.trainLen + 10) { an.done = true; setTimeout(() => { G.anim = null; setMsg('Solved! 🎉'); O.show('ovWin'); }, 300); }
+}
+function drawCar(x, y, ang, len, wid, col, kind, u) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+  ctx.fillStyle = '#2d3b57'; for (const sx of [-.3, .3]) for (const sy of [-1, 1]) ctx.fillRect(len * sx - u * .06, sy * wid * .5 - u * .02, u * .12, u * .09);
+  ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(-len / 2, -wid / 2, len, wid, u * .1); ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+  if (kind === 'engine') {
+    ctx.fillStyle = '#263238'; ctx.beginPath(); ctx.arc(len * .18, 0, wid * .2, 0, 6.283); ctx.fill();           // chimney seen from above
+    ctx.fillStyle = '#ffd54f'; ctx.fillRect(len * .02, -wid * .38, len * .22, wid * .76 * .0 + 0); ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(-len * .46, -wid * .4, len * .26, wid * .8);
+    ctx.fillStyle = '#ffeb3b'; ctx.beginPath(); ctx.arc(len / 2 - 2, 0, wid * .12, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#b71c1c'; ctx.beginPath(); ctx.moveTo(len / 2, -wid * .4); ctx.lineTo(len / 2 + u * .14, 0); ctx.lineTo(len / 2, wid * .4); ctx.fill();
+  } else { ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(-len * .38, -wid * .36, len * .76, wid * .72); ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(-len * .38, -wid * .36, len * .76, wid * .12); }
+  ctx.restore();
+}
+function drawTrain() {
+  const an = G.anim; if (!an) return; const w = an.u * .5, cols = ['#d32f2f', '#f9a825', '#43a047', '#1e88e5'];
+  for (const p of an.smoke) { ctx.globalAlpha = Math.max(0, p.l) * .55; ctx.fillStyle = '#f5f5f5'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill(); } ctx.globalAlpha = 1;
+  for (let k = an.cars - 1; k >= 0; k--) {
+    const sc = an.s - an.carLen / 2 - k * (an.carLen + an.gap), a = posAt(an, sc - an.carLen * .3), b = posAt(an, sc + an.carLen * .3), m = posAt(an, sc), ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    drawCar(m[0], m[1], ang, an.carLen, w, cols[k % 4], k === 0 ? 'engine' : 'car', an.u);
+  }
+}
+/* ---------- drawing ---------- */
+function draw() {
+  if (!G) return; const n = G.n, k = counts(); ctx.clearRect(0, 0, W, W);
+  ctx.fillStyle = '#e9edf4'; ctx.fillRect(0, 0, W, W); ctx.fillStyle = '#fbfcfe'; ctx.fillRect(M, M, GRID, GRID);
+  const rowOk = r => k.r[r] === G.rows[r], colOk = c => k.c[c] === G.cols[c];
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const i = r * n + c, x = cx0(c), y = cy0(r), g = G.given.has(i), s = G.state[i];
+    if (g) { ctx.fillStyle = '#eef0f6'; ctx.fillRect(x, y, cs, cs); drawRail(x, y, G.given.get(i)); }
+    else if (G.won && G.rmap.has(i)) { ctx.fillStyle = '#fbf1de'; ctx.fillRect(x, y, cs, cs); const rr = G.rmap.get(i); drawRail(x, y, (1 << rr[1]) | (1 << rr[2])); }
+    else if (s === 1) {
+      ctx.fillStyle = '#fbf1de'; ctx.fillRect(x, y, cs, cs); const m = pieceOf(i);
+      if (m) drawRail(x, y, m); else { ctx.fillStyle = '#d9b27a'; ctx.beginPath(); ctx.roundRect(x + cs * .22, y + cs * .22, cs * .56, cs * .56, cs * .12); ctx.fill(); ctx.strokeStyle = '#2d3b57'; ctx.lineWidth = cs * .05; ctx.beginPath(); ctx.moveTo(x + cs * .4, y + cs * .3); ctx.lineTo(x + cs * .4, y + cs * .7); ctx.moveTo(x + cs * .6, y + cs * .3); ctx.lineTo(x + cs * .6, y + cs * .7); ctx.stroke(); }
+    } else if (s === 2) { ctx.strokeStyle = '#9aa7bb'; ctx.lineWidth = cs * .07; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x + cs * .3, y + cs * .3); ctx.lineTo(x + cs * .7, y + cs * .7); ctx.moveTo(x + cs * .7, y + cs * .3); ctx.lineTo(x + cs * .3, y + cs * .7); ctx.stroke(); }
+    else if (st.auto && !G.won && (rowOk(r) || colOk(c))) { ctx.strokeStyle = '#d3d9e4'; ctx.lineWidth = cs * .05; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x + cs * .36, y + cs * .36); ctx.lineTo(x + cs * .64, y + cs * .64); ctx.moveTo(x + cs * .64, y + cs * .36); ctx.lineTo(x + cs * .36, y + cs * .64); ctx.stroke(); }
+  }
+  ctx.strokeStyle = '#cfd6e2'; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i <= n; i++) { ctx.moveTo(M + i * cs, M); ctx.lineTo(M + i * cs, M + GRID); ctx.moveTo(M, M + i * cs); ctx.lineTo(M + GRID, M + i * cs); } ctx.stroke();
+  ctx.strokeStyle = '#8d9ab0'; ctx.lineWidth = 3; ctx.strokeRect(M, M, GRID, GRID);
+  if (flash) { ctx.fillStyle = `rgba(${flash.col},${Math.min(.7, flash.t * .6)})`; for (const i of flash.cells) ctx.fillRect(cx0(i % n), cy0((i / n) | 0), cs, cs); }
+  ctx.font = `bold ${Math.round(Math.min(26, cs * .42))}px system-ui,Segoe UI,Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const col = (ok, over) => over ? '#d93a3a' : ok ? '#2e9e5b' : '#3a4658';
+  for (let c = 0; c < n; c++) { ctx.fillStyle = col(colOk(c), k.c[c] > G.cols[c]); ctx.fillText(G.cols[c], cx0(c) + cs / 2, M - 25); }
+  for (let r = 0; r < n; r++) { ctx.fillStyle = col(rowOk(r), k.r[r] > G.rows[r]); ctx.fillText(G.rows[r], M - 25, cy0(r) + cs / 2); }
+  portal(G.entry, '#3b82f6', 'IN'); portal(G.exit, '#2e9e5b', 'OUT'); drawTrain();
+}
+function portal(p, colr, label) {                // a coloured bar on the border and an arrow: blue goes in, green goes out
+  const n = G.n, r = (p.idx / n) | 0, c = p.idx % n, m = mid(cx0(c), cy0(r), p.side), d = p.side, horiz = d === 0 || d === 2, L = cs * .5, T = 9, inward = label === 'IN', fx = inward ? -DC[d] : DC[d], fy = inward ? -DR[d] : DR[d];
+  ctx.save(); ctx.translate(m[0], m[1]); ctx.fillStyle = colr; ctx.beginPath(); if (horiz) ctx.roundRect(-L / 2, -T / 2, L, T, 4); else ctx.roundRect(-T / 2, -L / 2, T, L, 4); ctx.fill();
+  const bx = DC[d] * 15, by = DR[d] * 15; ctx.translate(bx, by); ctx.rotate(Math.atan2(fy, fx)); ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-5, -6); ctx.lineTo(-5, 6); ctx.closePath(); ctx.fill(); ctx.restore();
+}
+/* ---------- the loop ---------- */
+let pausedUI = false;
+function step(dt) {
+  if (!G) return; if (flash) { flash.t -= dt; if (flash.t <= 0) flash = null; }
+  if (G.started && !G.won && !pausedUI) G.t += dt; trainStep(dt); hud();
+}
+const loop = KIT.loop(step, draw); loop.onHide = () => { if (G && G.started && !G.won) pause(true); }; loop.start();
+function pause(force) { if (!G || G.won || G.anim) return; if (!pausedUI && (G.started || force)) { pausedUI = true; O.show('ovPause'); } else if (pausedUI) { pausedUI = false; O.hide('ovPause'); } }
+/* ---------- buttons ---------- */
+function newPuzzle(seeded) {
+  O.hideAll(); pausedUI = false; const ok = load(+st.n, st.level, seeded); if (!ok) { st.level = 'normal'; if (!load(+st.n, 'normal', seeded)) { st.n = '6'; load(6, 'normal', seeded); } } marks(); setMsg('Lay the track'); hud();
+}
+function daily() { const r = rng.daily('traintracks' + st.n + st.level); newPuzzle(r); setMsg('Today’s puzzle (the same for everyone today)'); }
+function marks() { [...$('sizes').children].forEach(b => b.classList.toggle('on', b.dataset.k === st.n)); [...$('levels').children].forEach(b => b.classList.toggle('on', b.dataset.k === st.level)); document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.k === tool)); }
+const have = (n, l) => typeof TTBANK !== 'undefined' && TTBANK[n + '-' + l] && TTBANK[n + '-' + l].length;
+$('sizes').innerHTML = [6, 8, 10].map(n => `<button class="btn sm" data-act="size" data-k="${n}" type="button">${n}×${n}</button>`).join('');
+$('levels').innerHTML = ['easy', 'normal', 'hard'].map(l => `<button class="btn sm" data-act="level" data-k="${l}" type="button">${NAMES[l]}</button>`).join('');
+ui.actions(document.body, {
+  next: () => newPuzzle(), hide: () => O.hide('ovWin'), train: () => { O.hide('ovWin'); if (G && G.won && !G.anim) startTrain(); }, tool: b => { tool = b.dataset.k; marks(); },
+  undo: undoMove, clear: clearAll, hint, check, pause: () => pause(), daily,
+  size: b => { st.n = b.dataset.k; if (!have(st.n, st.level)) st.level = 'normal'; S.save(); newPuzzle(); }, level: b => { if (have(st.n, b.dataset.k)) { st.level = b.dataset.k; S.save(); newPuzzle(); } else setMsg('No ' + b.dataset.k + ' puzzles for that grid size yet.'); }
+});
+window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase(); if (k === 'z') undoMove(); else if (k === 'p') pause(); else if (k === 'h') hint(); else if (k === 'x') { tool = tool === 'x' ? 'track' : 'x'; marks(); } });
+if (!have(st.n, st.level)) { st.n = '8'; st.level = 'normal'; }
+newPuzzle(); KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+KIT.hook({ get G() { return G; }, get st() { return st; }, load, newPuzzle, daily, hint, check, findRoute, afterMove, step, apply, counts, pieceOf, startTrain, solveAll() { for (const i of G.sol.keys()) if (!G.given.has(i)) G.state[i] = 1; G.started = true; afterMove(); } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 22 · Othello</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Othello">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:620px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.tboardwrap{position:relative}
+.cv{display:block;width:100%;border-radius:12px;touch-action:manipulation;cursor:pointer;aspect-ratio:1/1}
+.tmsg{min-height:1.5em;text-align:center;font-weight:700}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+.setup{display:flex;flex-direction:column;gap:6px}
+.grp{display:flex;flex-wrap:wrap;gap:5px;align-items:center}.grp .kl{min-width:4.6em;color:var(--muted);font-size:13px}.setup .btn.sm{padding:.25rem .55rem;font-size:13px}
+.setup .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.tpanel{margin-top:2px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Othello</h2>
+  <p>Chapter 22 · Trap the other side's discs between yours and flip them. Corners win games. Play the computer at four levels, or a friend on the same device</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TURN</small><b id="s1">-</b></div>
+    <div class="tstat"><small id="l2">BLACK</small><b id="s2">2</b></div>
+    <div class="tstat"><small id="l3">WHITE</small><b id="s3">2</b></div>
+    <div class="tstat"><small>MOVES</small><b id="s4">0</b></div>
+  </div>
+  <div class="tboardwrap">
+    <canvas id="cv" class="cv" aria-label="Othello board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH"></h3><p id="endP"></p><div><button class="btn primary" data-act="again" type="button">Play again</button> <button class="btn" data-act="close" type="button">Look at board</button></div></div>
+  </div>
+  <div class="tmsg" id="msg"></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" id="bUndo" type="button">↶ Undo</button>
+    <button class="btn sm" data-act="hint" id="bHint" type="button">💡 Hint</button>
+    <button class="btn sm" id="bNew" type="button">🔄 New game</button>
+  </div>
+  <div class="rec" id="recLine"></div>
+  <div id="setup" class="setup"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">Rules: you place a disc so that it traps a straight line of enemy discs between your new disc and another of your own discs. All trapped discs flip to your colour. You must flip at least one disc. If you cannot, you pass. The game ends when nobody can move, and the player with more discs wins. Corners can never be flipped, so they are very strong. The squares next to a corner are risky. Keys: Z undo, H hint, N new game.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 Othello (also called Reversi) is a classic board game. The rules engine, computer player (alpha-beta search), drawings and code are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Shared shell for the two-player board games (Chapters 22 to 24).
+   A chapter gives it a rules ENGINE (a function, so it can also run inside a Web Worker) and a few settings.
+   The shell does everything that is the same in every game: setup buttons, computer opponent, undo, hint, save/resume, records.
+   The engine object E must provide:
+     E.newGame(opts)        -> state { turn:0|1, over:bool, winner:0|1|-1(draw)|null, moves:[...] ... }
+     E.play(state, move)    -> changes state
+     E.legal(state)         -> array of moves
+     E.job({moves,opts,level,hint}) -> the move the computer chooses (the same call runs in the worker) */
+function Shell(cfg) {
+  const { $, store, ui, sfx } = KIT;
+  const S = store(cfg.key, Object.assign({ dark: true, sound: true, mode: 'ai', side: 'first', level: 'medium', opts: Object.assign({}, cfg.opts || {}), rec: {}, game: null }, cfg.defaults || {})), st = S.st;
+  ui.theme($('themeBtn'), st, S.save);
+  const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+  const E = cfg.ENGINE(false);
+  const LEVELS = [['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['expert', 'Expert']];
+  const sh = { st, S, A, O, E, state: null, moves: [], human: 0, busy: false, hintMove: null, token: 0, lastInfo: null, hintsUsed: 0 };
+
+  /* ---- the computer runs in a Web Worker so the page never freezes; if workers are not allowed it runs in the page ---- */
+  let worker = null;
+  try { worker = new Worker(URL.createObjectURL(new Blob(['(' + cfg.ENGINE.toString() + ')(true)'], { type: 'text/javascript' }))); } catch (e) { worker = null; }
+  let pending = null;
+  if (worker) { worker.onmessage = ev => { if (pending) { const p = pending; pending = null; p(ev.data); } }; worker.onerror = () => { worker = null; if (pending) { const p = pending; pending = null; p(null); } }; }
+  function ask(job) {
+    return new Promise(res => {
+      if (worker) { pending = res; worker.postMessage(job); }
+      else setTimeout(() => res(E.job(job)), 30);
+    }).then(r => r == null ? E.job(job) : r);
+  }
+
+  const rank = () => (st.mode === 'ai' ? st.level : 'two');
+  const rec = () => { const k = rank(); return st.rec[k] || (st.rec[k] = { w: 0, l: 0, d: 0 }); };
+  const isAI = p => st.mode === 'ai' && p !== sh.human;
+
+  function rebuild() { sh.state = E.newGame(st.opts); sh.moves.forEach(m => E.play(sh.state, m)); }
+  function saveGame() { st.game = sh.state.over ? null : { moves: sh.moves.slice(), opts: Object.assign({}, st.opts), human: sh.human, mode: st.mode, level: st.level, hints: sh.hintsUsed }; S.save(); }
+
+  sh.newGame = function () {
+    sh.token++; sh.busy = false; sh.moves = []; sh.hintMove = null; sh.hintsUsed = 0; O.hideAll();
+    sh.human = st.side === 'second' ? 1 : st.side === 'random' ? (Math.random() < .5 ? 0 : 1) : 0;
+    rebuild(); sh.lastInfo = { fresh: true }; st.game = null; S.save(); cfg.onState(sh, sh.lastInfo); after();
+  };
+  sh.resume = function () {
+    const g = st.game; if (!g) return false;
+    try { st.opts = Object.assign({}, g.opts); st.mode = g.mode; st.level = g.level; sh.human = g.human; sh.moves = g.moves.slice(); sh.hintsUsed = g.hints || 0; rebuild();
+      const ok = E.newGame(st.opts); for (const m of sh.moves) { if (!E.legal(ok).includes(m)) throw 0; E.play(ok, m); }
+      if (sh.state.over) throw 0; sh.lastInfo = { fresh: true }; cfg.onState(sh, sh.lastInfo); after(); return true; } catch (e) { st.game = null; S.save(); return false; }
+  };
+
+  sh.humanMove = function (m) {
+    const s = sh.state; if (!s || s.over || sh.busy || isAI(s.turn)) return false;
+    if (!E.legal(s).some(x => x === m)) return false; doMove(m, true); return true;
+  };
+  function doMove(m, byHuman) {
+    sh.hintMove = null; sh.moves.push(m); const who = sh.state.turn; E.play(sh.state, m); sh.lastInfo = { move: m, who, human: byHuman }; saveGame();
+    A.beep(byHuman ? 520 : 400, .05, 'triangle', .07); cfg.onState(sh, sh.lastInfo); after();
+  }
+  function after() {
+    const s = sh.state; updateStats();
+    if (s.over) { finish(); return; }
+    if (isAI(s.turn)) think();
+    else { KIT.setText($('msg'), cfg.status(sh, s)); }
+  }
+  function think() {
+    const s = sh.state, tk = ++sh.token; sh.busy = true; KIT.setText($('msg'), '🤔 Computer is thinking…'); const t0 = performance.now();
+    ask({ moves: sh.moves.slice(), opts: Object.assign({}, st.opts), level: st.level }).then(mv => {
+      if (tk !== sh.token) return; const wait = Math.max(0, 380 - (performance.now() - t0));
+      setTimeout(() => { if (tk !== sh.token) return; sh.busy = false; doMove(mv, false); }, wait);
+    });
+  }
+  function finish() {
+    const s = sh.state; sh.busy = false; st.game = null; let h, p;
+    if (st.mode === 'ai') { const r = rec(); if (s.winner === -1) { r.d++; h = 'Draw'; p = cfg.drawText || 'Nobody won.'; } else if (s.winner === sh.human) { r.w++; h = 'You win! 🎉'; p = cfg.winText ? cfg.winText(sh, s) : ''; A.beep(660, .12, 'triangle', .1); A.beep(880, .15, 'triangle', .1, .12); A.beep(1100, .2, 'triangle', .1, .26); } else { r.l++; h = 'Computer wins'; p = cfg.winText ? cfg.winText(sh, s) : ''; A.slide(400, 90, .5, 'sawtooth', .1); } }
+    else { h = s.winner === -1 ? 'Draw' : cfg.names[s.winner] + ' wins!'; p = cfg.winText ? cfg.winText(sh, s) : ''; if (s.winner !== -1) { A.beep(660, .12, 'triangle', .1); A.beep(990, .2, 'triangle', .1, .12); } }
+    S.save(); updateStats(); KIT.setText($('msg'), h);
+    setTimeout(() => { KIT.setText($('endH'), h); KIT.setText($('endP'), p); O.show('ovEnd'); }, cfg.endDelay || 700);
+  }
+  function updateStats() {
+    const v = cfg.stats(sh, sh.state), r = rec(); for (let i = 0; i < v.length; i++) { const el = $('s' + (i + 1)); if (el) KIT.setText(el, v[i]); }
+    const rr = $('recLine'); if (rr) KIT.setText(rr, st.mode === 'ai' ? 'Your record on ' + st.level + ': ' + r.w + ' won · ' + r.l + ' lost · ' + r.d + ' drawn' : 'Two players on one device');
+    $('bUndo').disabled = !sh.moves.length || (st.mode === 'ai' && sh.moves.length <= (sh.human === 1 ? 1 : 0) && false);
+  }
+  sh.undo = function () {
+    if (!sh.moves.length) return; const wasOver = sh.state.over; sh.token++; sh.busy = false; sh.hintMove = null; O.hideAll();
+    if (st.mode === 'ai') { sh.moves.pop(); rebuild(); while (sh.moves.length && sh.state.turn !== sh.human) { sh.moves.pop(); rebuild(); } } else { sh.moves.pop(); rebuild(); }
+    if (wasOver) { /* a finished game was already counted; undo after the end does not take the result back */ }
+    sh.lastInfo = { undo: true }; saveGame(); cfg.onState(sh, sh.lastInfo); after();
+  };
+  sh.hint = function () {
+    const s = sh.state; if (!s || s.over || sh.busy || isAI(s.turn)) return; const tk = ++sh.token; sh.busy = true; KIT.setText($('msg'), '💡 Thinking of a hint…'); sh.hintsUsed++;
+    ask({ moves: sh.moves.slice(), opts: Object.assign({}, st.opts), level: 'hard', hint: true }).then(mv => { if (tk !== sh.token) return; sh.busy = false; sh.hintMove = mv; cfg.onState(sh, { hint: mv }); KIT.setText($('msg'), cfg.status(sh, sh.state) + '  💡 Try the marked spot.'); });
+  };
+
+  /* ---- setup buttons ---- */
+  function renderSetup() {
+    const grp = (id, label, opts, cur) => '<div class="grp"><span class="kl">' + label + '</span>' + opts.map(([v, t]) => '<button class="btn sm' + (String(cur) === String(v) ? ' on' : '') + '" data-act="set" data-k="' + id + '" data-v="' + v + '" type="button">' + t + '</button>').join(' ') + '</div>';
+    let h = grp('mode', 'Play', [['ai', '🤖 vs Computer'], ['two', '👥 2 players']], st.mode);
+    if (st.mode === 'ai') h += grp('level', 'Level', LEVELS, st.level) + grp('side', 'You play', [['first', cfg.names[0] + ' (first)'], ['second', cfg.names[1]], ['random', '🎲 Random']], st.side);
+    for (const d of cfg.optionDefs || []) h += grp('opt:' + d.id, d.label, d.options, st.opts[d.id]);
+    $('setup').innerHTML = h;
+  }
+  sh.renderSetup = renderSetup;
+  ui.actions(document.body, {
+    set: b => { const k = b.dataset.k, v = b.dataset.v;
+      if (k.startsWith('opt:')) { const id = k.slice(4), o = (cfg.optionDefs.find(d => d.id === id).options.find(x => String(x[0]) === v)); st.opts[id] = typeof o[0] === 'number' ? +v : v; S.save(); renderSetup(); sh.newGame(); }
+      else if (k === 'mode') { st.mode = v; S.save(); renderSetup(); sh.newGame(); }
+      else if (k === 'level') { st.level = v; S.save(); renderSetup(); updateStats(); }
+      else { st[k] = v; S.save(); renderSetup(); sh.newGame(); } },
+    undo: () => sh.undo(), hint: () => sh.hint(), again: () => sh.newGame(), close: () => O.hide('ovEnd')
+  });
+  $('bNew').onclick = () => sh.newGame();
+  sh.start = function () { renderSetup(); if (!sh.resume()) sh.newGame(); };
+  return sh;
+}
+
+/* Othello rules + computer player. One function so the same code runs in the page and inside a Web Worker. */
+function ENGINE(isWorker) {
+  const N = 8, EMPTY = 0, B = 1, W = 2;               // board cells: 0 empty, 1 black (first player), 2 white
+  /* RAYS[i][d] = the squares you meet walking from square i in direction d until the edge */
+  const DR = [-1, -1, -1, 0, 0, 1, 1, 1], DC = [-1, 0, 1, -1, 1, -1, 0, 1], RAYS = [];
+  for (let i = 0; i < 64; i++) { const r = (i / 8) | 0, c = i % 8, rays = []; for (let d = 0; d < 8; d++) { const ray = []; let rr = r + DR[d], cc = c + DC[d]; while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) { ray.push(rr * 8 + cc); rr += DR[d]; cc += DC[d]; } if (ray.length > 1) rays.push(ray); } RAYS.push(rays); }
+  /* classic square values: corners great, squares next to corners bad */
+  const WT = new Int16Array(64), q = [[100, -20, 10, 5], [-20, -50, -2, -2], [10, -2, -1, -1], [5, -2, -1, -1]];
+  for (let i = 0; i < 64; i++) { let r = (i / 8) | 0, c = i % 8; if (r > 3) r = 7 - r; if (c > 3) c = 7 - c; WT[i] = q[r][c]; }
+  const CORNERS = [0, 7, 56, 63];
+
+  /* put the pieces: returns the list of flipped squares (empty list = illegal) */
+  function flipsAt(b, me, i, out) {
+    out.length = 0; if (b[i] !== EMPTY) return out; const opp = 3 - me, rays = RAYS[i];
+    for (let d = 0; d < rays.length; d++) { const ray = rays[d]; let k = 0; while (k < ray.length && b[ray[k]] === opp) k++; if (k > 0 && k < ray.length && b[ray[k]] === me) for (let j = 0; j < k; j++) out.push(ray[j]); }
+    return out;
+  }
+  const tmp = [];
+  function hasMove(b, me) { for (let i = 0; i < 64; i++) if (b[i] === EMPTY && flipsAt(b, me, i, tmp).length) return true; return false; }
+  function moveList(b, me) { const r = []; for (let i = 0; i < 64; i++) if (b[i] === EMPTY && flipsAt(b, me, i, tmp).length) r.push(i); return r; }
+  function count(b) { let x = 0, y = 0; for (let i = 0; i < 64; i++) { if (b[i] === B) x++; else if (b[i] === W) y++; } return [x, y]; }
+
+  /* ---------- the game object used by the page ---------- */
+  function newGame() { const b = new Int8Array(64); b[27] = W; b[28] = B; b[35] = B; b[36] = W; return { board: b, turn: 0, over: false, winner: null, moves: [], last: -1, flips: [], passed: -1, cnt: [2, 2] }; }
+  function legal(s) { return s.over ? [] : moveList(s.board, s.turn + 1); }
+  function finishCheck(s) { s.cnt = count(s.board); if (s.cnt[0] + s.cnt[1] === 64 || (!hasMove(s.board, B) && !hasMove(s.board, W))) { s.over = true; s.winner = s.cnt[0] === s.cnt[1] ? -1 : s.cnt[0] > s.cnt[1] ? 0 : 1; } }
+  function play(s, i) {
+    const me = s.turn + 1, f = flipsAt(s.board, me, i, []); if (!f.length) throw new Error('illegal');
+    s.board[i] = me; for (const j of f) s.board[j] = me; s.flips = f; s.last = i; s.moves.push(i); s.passed = -1;
+    const opp = 3 - me; if (hasMove(s.board, opp)) s.turn = opp - 1; else if (hasMove(s.board, me)) { s.passed = opp - 1; s.turn = me - 1; } else s.turn = opp - 1;
+    finishCheck(s); return s;
+  }
+
+  /* ---------- search ---------- */
+  let nodes = 0, deadline = 0, aborted = false;
+  function evaluate(b, me) {
+    const opp = 3 - me; let pos = 0, mine = 0, theirs = 0, front = 0, cm = 0, co = 0;
+    for (let i = 0; i < 64; i++) { const v = b[i]; if (v === EMPTY) continue; const s = v === me ? 1 : -1; pos += s * WT[i]; if (s > 0) mine++; else theirs++;
+      // frontier: discs that touch an empty square are easier for the other side to use
+      const rays = RAYS[i]; let fr = 0; for (let d = 0; d < rays.length; d++) if (b[rays[d][0]] === EMPTY) fr = 1; front += s * fr; }
+    for (const c of CORNERS) { if (b[c] === me) cm++; else if (b[c] === opp) co++; }
+    const mm = moveList(b, me).length, mo = moveList(b, opp).length, empt = 64 - mine - theirs;
+    const mob = mm + mo ? 100 * (mm - mo) / (mm + mo) : 0;
+    const early = empt > 40 ? 1 : empt > 16 ? .6 : .25;
+    return pos * (1.2 - .5 * (1 - early)) + mob * (3 * early + 1) + 25 * (cm - co) * 4 - front * 4 * early + (empt < 14 ? (mine - theirs) * 4 : 0);
+  }
+  const flipStack = [];
+  function negamax(b, me, depth, alpha, beta, exact) {
+    if ((++nodes & 1023) === 0 && Date.now() > deadline) aborted = true; if (aborted) return 0;
+    const ms = moveList(b, me);
+    if (!ms.length) {
+      if (!hasMove(b, 3 - me)) { const c = count(b), d = me === B ? c[0] - c[1] : c[1] - c[0]; return d * 1000; }
+      return -negamax(b, 3 - me, depth, -beta, -alpha, exact);
+    }
+    if (depth <= 0 && !exact) return evaluate(b, me);
+    // order moves: corners first, then by square value (cheap and good enough)
+    ms.sort((x, y) => WT[y] - WT[x]);
+    let best = -1e9; const opp = 3 - me;
+    for (let k = 0; k < ms.length; k++) {
+      const i = ms[k], f = flipsAt(b, me, i, []); b[i] = me; for (const j of f) b[j] = me;
+      const v = -negamax(b, opp, depth - 1, -beta, -alpha, exact);
+      b[i] = EMPTY; for (const j of f) b[j] = opp; if (aborted) return 0;
+      if (v > best) best = v; if (v > alpha) alpha = v; if (alpha >= beta) break;
+    }
+    return best;
+  }
+  function rootSearch(b, me, ms, depth, exact) {
+    let best = -1, bv = -1e9, alpha = -1e9; const scores = [];
+    for (let k = 0; k < ms.length; k++) { const i = ms[k], f = flipsAt(b, me, i, []); b[i] = me; for (const j of f) b[j] = me;
+      const v = -negamax(b, 3 - me, depth - 1, -1e9, -alpha + 0, exact); b[i] = EMPTY; for (const j of f) b[j] = 3 - me; if (aborted) return null;
+      scores.push([i, v]); if (v > bv) { bv = v; best = i; alpha = Math.max(alpha, v); } }
+    return { move: best, score: bv, scores };
+  }
+  const LEVEL = { medium: { depth: 3, ms: 400, solve: 0 }, hard: { depth: 6, ms: 700, solve: 8 }, expert: { depth: 12, ms: 1800, solve: 13 } };
+  function choose(s, level, hint) {
+    const b = Int8Array.from(s.board), me = s.turn + 1, ms = moveList(b, me); if (ms.length === 1) return ms[0];
+    if (level === 'easy' && !hint) {   // easy: mostly grabs discs, sometimes plays at random
+      if (Math.random() < .3) return ms[(Math.random() * ms.length) | 0];
+      let best = ms[0], bv = -1e9; for (const i of ms) { const v = flipsAt(b, me, i, []).length * 4 + WT[i] * .3 + Math.random() * 14; if (v > bv) { bv = v; best = i; } } return best;
+    }
+    const L = LEVEL[hint ? 'hard' : level] || LEVEL.medium, empt = 64 - s.cnt[0] - s.cnt[1];
+    ms.sort((x, y) => WT[y] - WT[x]); deadline = Date.now() + L.ms; aborted = false; nodes = 0;
+    let best = { move: ms[0], scores: [] };
+    if (empt <= L.solve) { aborted = false; const r = rootSearch(b, me, ms, empt + 1, true); if (r) return r.move; }
+    for (let d = 1; d <= L.depth; d++) { aborted = false; const r = rootSearch(b, me, ms, d, false); if (!r) break; best = r;
+      const bi = ms.indexOf(r.move); if (bi > 0) { ms.splice(bi, 1); ms.unshift(r.move); } if (Math.abs(r.score) > 50000) break; }
+    if (level === 'medium' && !hint && best.scores.length > 1) {   // medium: sometimes picks the second best, so it is beatable
+      const sc = best.scores.slice().sort((a, c) => c[1] - a[1]); if (Math.random() < .25 && sc[1][1] > sc[0][1] - 40) return sc[1][0];
+    }
+    return best.move;
+  }
+  function job(j) { const s = newGame(); for (const m of j.moves) play(s, m); return choose(s, j.level, !!j.hint); }
+  const E = { newGame, play, legal, job, choose, moveList, flipsAt, hasMove, count, evaluate };
+  if (isWorker) self.onmessage = ev => self.postMessage(job(ev.data));
+  return E;
+}
+if (typeof module !== 'undefined') module.exports = ENGINE;
+
+/* Othello on the shared shell. Rules and computer player are in engine.js; this file draws the board and animates the discs. */
+(() => {
+const { $, settings } = KIT;
+const BOARDS = { green: ['#1f7a4d', '#17663f', '#0d3f27'], blue: ['#2a5f9e', '#224f86', '#122c4d'], wood: ['#b07a43', '#9a6a39', '#5a3a1c'], slate: ['#4a5568', '#3f4856', '#232a35'] };
+const DISCS = {
+  classic: [['#555', '#000', '#111'], ['#fff', '#d6d6d6', '#aaa']], ruby: [['#ff7a7a', '#d02a2a', '#7a1010'], ['#8fc2ff', '#2f78d8', '#163f80']],
+  coin: [['#ffe28a', '#e0a82e', '#8a5f0a'], ['#f4f6fa', '#b9c2d0', '#6d7888']], panda: [['#ffffff', '#f1f1f1', '#999'], ['#ffd27a', '#ff9d2e', '#a65b00']]
+};
+const EMO = { panda: ['🐼', '🐯'] };
+const sh = Shell({
+  key: 'kevinhyhau.ch22.v1', ENGINE, names: ['Black', 'White'], defaults: { disc: 'classic', board: 'green', legal: true, last: true, anim: true },
+  status(sh, s) { const nm = sh.st.disc === 'panda' ? ['🐼', '🐯'] : ['Black', 'White']; const pass = s.passed >= 0 ? (sh.st.mode === 'ai' && s.passed === sh.human ? 'You have no move and pass. ' : (sh.st.mode === 'ai' ? 'Computer has no move and passes. ' : nm[s.passed] + ' has no move and passes. ')) : '';
+    return pass + (sh.st.mode === 'ai' ? 'Your move (' + nm[sh.human] + ')' : nm[s.turn] + ' to move'); },
+  stats(sh, s) { return [s.over ? 'End' : (sh.st.mode === 'ai' ? (s.turn === sh.human ? 'You' : 'Computer') : (s.turn ? 'White' : 'Black')), s.cnt[0], s.cnt[1], s.moves.length]; },
+  winText(sh, s) { return 'Black ' + s.cnt[0] + ' – White ' + s.cnt[1]; },
+  onState(sh, info) { onState(info); }
+});
+const st = sh.st;
+settings([
+  { id: 'disc', label: 'Discs', type: 'select', options: [['classic', '⚫⚪ Black and white'], ['ruby', '🔴🔵 Red and blue'], ['coin', '🪙 Gold and silver'], ['panda', '🐼🐯 Panda and tiger']], def: 'classic' },
+  { id: 'board', label: 'Board', type: 'select', options: [['green', '🟩 Green felt'], ['blue', '🟦 Blue'], ['wood', '🟫 Wood'], ['slate', '⬛ Slate']], def: 'green' },
+  { id: 'legal', label: 'Show where I can play', type: 'check', def: true },
+  { id: 'last', label: 'Mark the last move', type: 'check', def: true },
+  { id: 'anim', label: 'Animate flipping discs', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { sh.S.save(); labels(); });
+function labels() { const nm = st.disc === 'panda' ? ['🐼', '🐯'] : ['⚫ BLACK', '⚪ WHITE']; KIT.setText($('l2'), nm[0]); KIT.setText($('l3'), nm[1]); }
+
+const W = 480, M = 16, CS = (W - 2 * M) / 8, cv = $('cv'), C = KIT.canvas(cv, W, W), ctx = C.ctx;
+const cx = i => M + (i % 8) * CS + CS / 2, cy = i => M + ((i / 8) | 0) * CS + CS / 2;
+let anims = {}, shown = new Int8Array(64), now = 0;
+function onState(info) {
+  const s = sh.state;
+  if (info.fresh || info.undo || info.hint !== undefined) { if (!info.hint) { anims = {}; shown = Int8Array.from(s.board); } return; }
+  if (info.move !== undefined) {
+    const t = performance.now() / 1000, mover = info.who + 1;
+    if (!st.anim) { shown = Int8Array.from(s.board); anims = {}; return; }
+    anims[info.move] = { t0: t, kind: 'drop', to: mover };
+    const mx = info.move % 8, my = (info.move / 8) | 0;
+    s.flips.forEach(j => { const d = Math.max(Math.abs((j % 8) - mx), Math.abs(((j / 8) | 0) - my)); anims[j] = { t0: t + .12 + d * .09, kind: 'flip', from: 3 - mover, to: mover }; });
+  }
+}
+function drawDisc(x, y, r, who, sx) {
+  const p = DISCS[st.disc] || DISCS.classic, c = p[who - 1];
+  ctx.save(); ctx.translate(x, y); ctx.scale(sx, 1);
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(1.5, 3, r, r * .95, 0, 0, 7); ctx.fill();
+  const g = ctx.createRadialGradient(-r * .35, -r * .35, r * .1, 0, 0, r); g.addColorStop(0, c[0]); g.addColorStop(.7, c[1]); g.addColorStop(1, c[2]);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+  if (EMO[st.disc]) { ctx.font = Math.round(r * 1.25) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(EMO[st.disc][who - 1], 0, 2); }
+  ctx.restore();
+}
+const ease = t => 1 - Math.pow(1 - t, 3);
+function draw() {
+  const s = sh.state; ctx.clearRect(0, 0, W, W); if (!s) return; const P = BOARDS[st.board] || BOARDS.green; now = performance.now() / 1000;
+  ctx.fillStyle = P[2]; ctx.fillRect(0, 0, W, W); ctx.fillStyle = P[0]; ctx.fillRect(M, M, W - 2 * M, W - 2 * M);
+  for (let i = 0; i < 64; i++) if (((i >> 3) + i) & 1) { ctx.fillStyle = P[1]; ctx.fillRect(M + (i % 8) * CS, M + ((i / 8) | 0) * CS, CS, CS); }
+  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1.5; for (let k = 0; k <= 8; k++) { ctx.beginPath(); ctx.moveTo(M + k * CS, M); ctx.lineTo(M + k * CS, W - M); ctx.stroke(); ctx.beginPath(); ctx.moveTo(M, M + k * CS); ctx.lineTo(W - M, M + k * CS); ctx.stroke(); }
+  ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; for (let k = 0; k < 8; k++) { ctx.fillText('abcdefgh'[k], M + k * CS + CS / 2, 8); ctx.fillText(String(k + 1), 8, M + k * CS + CS / 2); }
+  const R = CS * .41; let busy = false;
+  for (let i = 0; i < 64; i++) {
+    const a = anims[i]; let who = shown[i], sx = 1, rr = R;
+    if (a) { const t = now - a.t0; if (t < 0) { who = a.kind === 'flip' ? a.from : 0; } else if (a.kind === 'drop') { const p = Math.min(1, t / .28); who = a.to; rr = R * (p < 1 ? ease(p) * 1.12 : 1); if (p >= 1) delete anims[i]; else busy = true; }
+      else { const p = Math.min(1, t / .42); sx = Math.abs(Math.cos(Math.PI * p)); who = p < .5 ? a.from : a.to; rr = R * (1 + .12 * Math.sin(Math.PI * p)); if (p >= 1) delete anims[i]; else busy = true; } if (t < 0) busy = true; }
+    else who = s.board[i];
+    if (who) drawDisc(cx(i), cy(i), Math.max(1, rr), who, Math.max(.06, sx));
+  }
+  if (!busy) shown = Int8Array.from(s.board);
+  if (st.last && s.last >= 0 && !s.over || (st.last && s.over && s.last >= 0)) { ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx(s.last), cy(s.last), R + 3, 0, 7); ctx.stroke(); }
+  if (st.legal && !s.over && !sh.busy && (st.mode === 'two' || s.turn === sh.human)) { for (const m of sh.E.legal(s)) { ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx(m), cy(m), CS * .11, 0, 7); ctx.fill(); ctx.stroke(); } }
+  if (sh.hintMove != null && !s.over) { const pulse = 1 + .12 * Math.sin(now * 6); ctx.strokeStyle = '#ffd24a'; ctx.fillStyle = 'rgba(255,210,74,.25)'; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(cx(sh.hintMove), cy(sh.hintMove), CS * .36 * pulse, 0, 7); ctx.fill(); ctx.stroke(); }
+}
+cv.addEventListener('pointerdown', e => { e.preventDefault(); const p = C.pos(e), c = Math.floor((p.x - M) / CS), r = Math.floor((p.y - M) / CS); if (c < 0 || c > 7 || r < 0 || r > 7) return; if (!sh.humanMove(r * 8 + c)) { const s = sh.state; if (s && !s.over && !sh.busy && (st.mode === 'two' || s.turn === sh.human) && s.board[r * 8 + c] === 0) KIT.setText($('msg'), 'You can only play where you flip a disc. ' + (st.legal ? '' : 'Turn on “Show where I can play” to see them.')); } });
+window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey || /^(input|select|textarea)$/i.test(e.target.tagName)) return; const k = e.key.toLowerCase(); if (k === 'z') sh.undo(); else if (k === 'h') sh.hint(); else if (k === 'n') sh.newGame(); });
+KIT.loop(() => {}, draw).start();
+labels(); sh.start(); shown = Int8Array.from(sh.state.board);
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+KIT.hook({ sh, get state() { return sh.state; } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

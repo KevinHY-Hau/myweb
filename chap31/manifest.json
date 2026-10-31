@@ -1,0 +1,31 @@
+{
+  "name": "Sausage Dog Walk",
+  "short_name": "DogWalk",
+  "description": "Walk your sausage dog round a sunny garden, seen over your own shoulder. Walk every path, but keep the peace: squirrels, cats and other dog walkers will make the dog bark",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#1b3a1f",
+  "theme_color": "#1b3a1f",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

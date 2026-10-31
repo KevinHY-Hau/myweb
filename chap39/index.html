@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 39 · Banqi 暗棋</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7a2323">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Banqi">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:624/412;border-radius:12px;touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul,.rules ol{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+.rules .rank{font-weight:700;text-align:center;padding:6px;background:rgba(255,255,255,.05);border-radius:8px}
+.rt{border-collapse:collapse;width:100%;margin:6px 0;font-size:13.5px}
+.rt th,.rt td{border:1px solid var(--line);padding:4px 7px;text-align:left}
+.rt th{background:rgba(255,255,255,.06);color:var(--muted);font-size:12px}
+.rt td.cr,.rt td.cb{font-size:22px;font-weight:700;text-align:center}.rt td.cr{color:#e5534b}.rt td.cb{color:var(--text)}
+.langbar{margin-bottom:6px}
+.lg{display:none}.lg.on{display:block}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Banqi 暗棋</h2>
+  <p>Chapter 39 · Dark chess: 32 xiangqi pieces start face down. Flip, move, capture and the cannon jumps. Play the computer or a friend</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small id="l1">TURN</small><b id="s1">You</b></div>
+    <div class="tstat"><small id="l2">YOU</small><b id="s2">–</b></div>
+    <div class="tstat"><small id="l3">COMPUTER</small><b id="s3">–</b></div>
+    <div class="tstat"><small id="l4">FACE DOWN</small><b id="s4">32</b></div>
+  </div>
+  <div class="tmsg" id="msg">Tap a face-down piece to flip it</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="Banqi board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win!</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+  </div>
+  <div class="tbar"><span class="kl">Rules:</span><span id="varBar"></span></div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+<div class="tbar langbar" role="tablist" aria-label="Instructions language"><button class="btn sm" data-act="lang" data-k="en" type="button">English</button><button class="btn sm" data-act="lang" data-k="zh-Hant" type="button">繁體中文</button><button class="btn sm" data-act="lang" data-k="zh-Hans" type="button">简体中文</button><button class="btn sm" data-act="lang" data-k="ja" type="button">日本語</button><button class="btn sm" data-act="lang" data-k="ko" type="button">한국어</button></div>
+<div class="lg" data-l="en" lang="en">
+<h2>📖 Rules of Banqi (暗棋)</h2>
+<p>Banqi, “dark chess” (also written 盲棋, and called “half chess” 半棋), is a Chinese chess game played on <b>half a xiangqi board: 4 rows by 8 columns</b>, with all 32 xiangqi pieces <b>face down</b>. You do not know what a piece is until it has been flipped, so luck and memory matter as much as tactics.</p>
+<h3>The pieces (16 each)</h3>
+<table class="rt">
+<tr><th>Piece</th><th>Red 紅</th><th>Black 黑</th><th>Each side has</th></tr>
+<tr><td>General</td><td class="cr">帥</td><td class="cb">將</td><td>1</td></tr>
+<tr><td>Advisor</td><td class="cr">仕</td><td class="cb">士</td><td>2</td></tr>
+<tr><td>Elephant</td><td class="cr">相</td><td class="cb">象</td><td>2</td></tr>
+<tr><td>Chariot</td><td class="cr">俥</td><td class="cb">車</td><td>2</td></tr>
+<tr><td>Horse</td><td class="cr">傌</td><td class="cb">馬</td><td>2</td></tr>
+<tr><td>Cannon</td><td class="cr">炮</td><td class="cb">砲</td><td>2</td></tr>
+<tr><td>Soldier</td><td class="cr">兵</td><td class="cb">卒</td><td>5</td></tr>
+</table>
+<h3>Setting up and choosing colours</h3>
+<ul>
+<li>The 32 pieces are shuffled and placed <b>face down</b>, one on every square.</li>
+<li>The first player <b>flips</b> a piece. <b>The colour of that piece is the colour that player will control</b>; the other player has the other colour. Then the <b>other player</b> takes the next turn.</li>
+</ul>
+<h3>On your turn do exactly one of these</h3>
+<ol>
+<li><b>Flip</b> any face-down piece (while any are left). It stays on its square, face up, whatever colour it is. You may flip a piece that belongs to the enemy.</li>
+<li><b>Move</b> one of your face-up pieces <b>one square</b> up, down, left or right, onto an empty square. (Never diagonally.)</li>
+<li><b>Capture</b> an enemy face-up piece with one of yours (rules below). The captured piece is removed and your piece takes its square.</li>
+</ol>
+<p>Face-down pieces cannot be captured and are not touched by any move (in the Taiwanese rules a <b>cannon</b> may use one as its screen).</p>
+<h3>Hong Kong rules (the default)</h3>
+<p class="rank">General 將 &gt; Chariot 車 &gt; Horse 馬 &gt; Cannon 砲 &gt; Advisor 士 &gt; Elephant 象 &gt; Soldier 卒</p>
+<ul>
+<li>Every piece, <b>including the cannon, moves and captures one square</b> up, down, left or right. Nothing jumps.</li>
+<li>A piece captures an enemy piece of <b>equal or lower</b> rank by this order. (So the chariot takes the horse, but the horse cannot take the chariot.)</li>
+<li><b>The exception:</b> a <b>Soldier</b> can capture the <b>General</b>, and the <b>General cannot capture a Soldier</b>.</li>
+</ul>
+<h3>Taiwanese rules (a choice above the board)</h3>
+<p class="rank">General 將 &gt; Advisor 士 &gt; Elephant 象 &gt; Chariot 車 &gt; Horse 馬 &gt; Soldier 卒</p>
+<ul>
+<li>Same ranks and the same Soldier/General exception, but the <b>cannon</b> works differently. It <b>moves</b> any number of empty squares along a row or column.</li>
+<li>It <b>captures by jumping</b>: exactly <b>one piece between itself and its target</b> in a straight line. That piece (the <b>screen</b>) can be any colour, face up or face down. The cannon lands on the target's square.</li>
+<li>A cannon captures <b>any rank</b>, even a General. It <b>cannot capture an adjacent piece</b>, cannot jump over two pieces and cannot capture a face-down piece.</li>
+<li>A cannon <b>can be captured</b> by any piece except a Soldier (it counts as ranking just above the Soldier), when that piece steps next to it.</li>
+</ul>
+<h3>Winning, losing and drawing</h3>
+<ul>
+<li>The General is <b>not</b> a royal piece: capturing it does not end the game.</li>
+<li>You <b>lose when you have no legal move</b>: normally when all your pieces have been captured (as long as there are face-down pieces left you can always flip one).</li>
+<li><b>Draw (house rule):</b> if 40 moves each go by with no capture and no flip, the game is a draw.</li>
+</ul>
+<h3>Tips</h3>
+<ul>
+<li>Count what is left. The pieces face down are exactly the ones not yet seen or captured. The computer does this too, and the strips above and below the board show what has been taken.</li>
+<li>Flipping is a gamble. A flipped enemy General next to your Soldier is a gift; your own General next to an enemy Soldier is a danger.</li>
+</ul>
+<h3>How to use this game</h3>
+<ul>
+<li><b>Tap a face-down piece to flip it.</b> Tap one of your face-up pieces to select it; green dots are moves, red dots are captures (a red dot with an arc is a Taiwanese cannon jump). Tap a dot to play it. If a piece is selected, tapping anywhere else just cancels the selection, so you cannot flip by accident.</li>
+<li>Settings: rule set, who flips first, the computer's level, <b>piece style</b> (Wood, Ivory, Jade, Flat, Mahjong tile), <b>board style</b> (Wood, Green felt, Paper, Night), piece labels (Chinese characters, English letters or both), and a helper that rings the pieces you can move. <b>Hint</b> shows a good move and <b>Undo</b> takes back your move and the reply.</li>
+<li>Not included: the Mainland-China rule set and “chain capture” house rules.</li>
+</ul>
+</div>
+
+<div class="lg" data-l="zh-Hant" lang="zh-Hant">
+<h2>📖 暗棋規則（繁體中文）</h2>
+<p>暗棋（又稱盲棋、半棋）是象棋的一種玩法，在<b>半個象棋棋盤（4 行 × 8 列）</b>上進行，32 隻象棋子全部<b>背面朝上</b>。棋子翻開之前你不知道它是什麼，所以運氣和記憶跟策略一樣重要。</p>
+<h3>棋子（每方 16 隻）</h3>
+<table class="rt">
+<tr><th>棋子</th><th>紅方</th><th>黑方</th><th>每方數量</th></tr>
+<tr><td>帥／將</td><td class="cr">帥</td><td class="cb">將</td><td>1</td></tr>
+<tr><td>仕／士</td><td class="cr">仕</td><td class="cb">士</td><td>2</td></tr>
+<tr><td>相／象</td><td class="cr">相</td><td class="cb">象</td><td>2</td></tr>
+<tr><td>俥／車</td><td class="cr">俥</td><td class="cb">車</td><td>2</td></tr>
+<tr><td>傌／馬</td><td class="cr">傌</td><td class="cb">馬</td><td>2</td></tr>
+<tr><td>炮／砲</td><td class="cr">炮</td><td class="cb">砲</td><td>2</td></tr>
+<tr><td>兵／卒</td><td class="cr">兵</td><td class="cb">卒</td><td>5</td></tr>
+</table>
+<h3>開局與決定顏色</h3>
+<ul>
+<li>32 隻棋子洗勻後<b>背面朝上</b>，每格放一隻。</li>
+<li>先手玩家<b>翻開</b>一隻棋子。<b>翻出的棋子是什麼顏色，該玩家就執那一種顏色</b>，對手執另一種顏色。之後由<b>對手</b>下一手。</li>
+</ul>
+<h3>輪到你時，只能做以下其中一件事</h3>
+<ol>
+<li><b>翻棋</b>：翻開任何一隻背面朝上的棋子（只要還有）。棋子留在原位，翻開後正面朝上，不論是哪個顏色。你可以翻出對手的棋子。</li>
+<li><b>走子</b>：把你一隻正面朝上的棋子向上、下、左或右移動<b>一格</b>，到一個空格。（不能斜走。）</li>
+<li><b>吃子</b>：用你的棋子吃掉對手一隻正面朝上的棋子（規則見下）。被吃的棋子拿走，你的棋子佔據該格。</li>
+</ul>
+<p>背面朝上的棋子不能被吃，也不受任何走法影響（台灣規則中，<b>炮</b>可以把它當作炮架）。</p>
+<h3>香港規則（預設）</h3>
+<p class="rank">帥／將 &gt; 俥／車 &gt; 傌／馬 &gt; 炮／砲 &gt; 仕／士 &gt; 相／象 &gt; 兵／卒</p>
+<ul>
+<li>每隻棋子，<b>包括炮，都是每次走一格、吃一格</b>（上、下、左、右），沒有跳吃。</li>
+<li>棋子可以吃<b>同級或較低級</b>的對方棋子（按上面的次序）。例如車可以吃馬，但馬不能吃車。</li>
+<li><b>例外：</b><b>兵／卒可以吃帥／將</b>，而<b>帥／將不能吃兵／卒</b>。</li>
+</ul>
+<h3>台灣規則（可在棋盤上方選擇）</h3>
+<p class="rank">帥／將 &gt; 仕／士 &gt; 相／象 &gt; 俥／車 &gt; 傌／馬 &gt; 兵／卒</p>
+<ul>
+<li>級別相同，兵與帥的例外也相同，但<b>炮</b>的玩法不同。炮可以沿橫行或直行<b>移動</b>任意多個空格。</li>
+<li>炮<b>隔子跳吃</b>：在同一直線上，炮與目標之間必須<b>剛好有一隻棋子</b>。這隻棋子（<b>炮架</b>）可以是任何顏色，正面或背面都可以。炮落在目標的格子。</li>
+<li>炮可以吃<b>任何級別</b>的棋子，包括帥／將。炮<b>不能吃相鄰的棋子</b>，不能隔兩隻棋子，也不能吃背面朝上的棋子。</li>
+<li>炮<b>可以被吃</b>：除了兵／卒以外的棋子走到炮旁邊就能吃它（炮的級別剛好比兵／卒高）。</li>
+</ul>
+<h3>勝、負與和棋</h3>
+<ul>
+<li>帥／將<b>不是</b>主帥：吃掉它並不結束遊戲。</li>
+<li>當你<b>沒有合法走法時就輸了</b>：通常是你所有棋子都被吃光（只要還有背面朝上的棋子，你總可以翻一隻）。</li>
+<li><b>和棋（本遊戲自訂規則）：</b>雙方各走 40 步都沒有吃子也沒有翻棋，就算和棋。</li>
+</ul>
+<h3>小提示</h3>
+<ul>
+<li>記住還剩什麼。背面朝上的棋子，正好就是還沒見過、也還沒被吃的棋子。電腦也會這樣算，棋盤上下兩條欄會顯示已被吃的棋子。</li>
+<li>翻棋是賭博。翻出對手的帥在你的兵旁邊是大禮；你自己的帥在對手的兵旁邊就危險了。</li>
+</ul>
+<h3>本遊戲的操作</h3>
+<ul>
+<li><b>點一下背面朝上的棋子即可翻開。</b>點你自己正面朝上的棋子可以選取；綠點是可走的位置，紅點是可吃的位置（帶弧線的紅點是台灣規則的炮跳吃）。點一個圓點就走棋。選了棋子之後，點其他地方只會取消選取，所以不會誤翻棋。</li>
+<li>設定：規則（香港／台灣）、誰先翻、電腦等級、<b>棋子款式</b>（木頭、象牙、翡翠、扁平、麻雀牌）、<b>棋盤款式</b>（木紋、綠絨、紙張、夜晚）、棋子文字（漢字、英文字母或兩者）、以及標出可動棋子的輔助圈。<b>提示</b>會顯示一步好棋，<b>悔棋</b>會收回你和電腦各一步。</li>
+<li>未包括：大陸規則及「連吃」等自訂規則。</li>
+</ul>
+</div>
+
+<div class="lg" data-l="zh-Hans" lang="zh-Hans">
+<h2>📖 暗棋规则（简体中文）</h2>
+<p>暗棋（又称盲棋、半棋）是象棋的一种玩法，在<b>半个象棋棋盘（4 行 × 8 列）</b>上进行，32 个象棋子全部<b>背面朝上</b>。棋子翻开之前你不知道它是什么，所以运气和记忆跟策略一样重要。</p>
+<h3>棋子（每方 16 个）</h3>
+<table class="rt">
+<tr><th>棋子</th><th>红方</th><th>黑方</th><th>每方数量</th></tr>
+<tr><td>帅／将</td><td class="cr">帅</td><td class="cb">将</td><td>1</td></tr>
+<tr><td>仕／士</td><td class="cr">仕</td><td class="cb">士</td><td>2</td></tr>
+<tr><td>相／象</td><td class="cr">相</td><td class="cb">象</td><td>2</td></tr>
+<tr><td>车</td><td class="cr">车</td><td class="cb">车</td><td>2</td></tr>
+<tr><td>马</td><td class="cr">马</td><td class="cb">马</td><td>2</td></tr>
+<tr><td>炮</td><td class="cr">炮</td><td class="cb">炮</td><td>2</td></tr>
+<tr><td>兵／卒</td><td class="cr">兵</td><td class="cb">卒</td><td>5</td></tr>
+</table>
+<p>（游戏棋盘上显示的是繁体字：俥、傌、砲 等；设置里可以改成英文字母。）</p>
+<h3>开局与确定颜色</h3>
+<ul>
+<li>32 个棋子洗匀后<b>背面朝上</b>，每格放一个。</li>
+<li>先手玩家<b>翻开</b>一个棋子。<b>翻出的棋子是什么颜色，该玩家就执那一种颜色</b>，对手执另一种颜色。之后由<b>对手</b>走下一步。</li>
+</ul>
+<h3>轮到你时，只能做以下其中一件事</h3>
+<ol>
+<li><b>翻棋</b>：翻开任何一个背面朝上的棋子（只要还有）。棋子留在原位，翻开后正面朝上，不论是哪种颜色。你可以翻出对手的棋子。</li>
+<li><b>走子</b>：把你一个正面朝上的棋子向上、下、左或右移动<b>一格</b>，到一个空格。（不能斜走。）</li>
+<li><b>吃子</b>：用你的棋子吃掉对手一个正面朝上的棋子（规则见下）。被吃的棋子拿走，你的棋子占据该格。</li>
+</ol>
+<p>背面朝上的棋子不能被吃，也不受任何走法影响（台湾规则中，<b>炮</b>可以把它当作炮架）。</p>
+<h3>香港规则（默认）</h3>
+<p class="rank">帅／将 &gt; 车 &gt; 马 &gt; 炮 &gt; 仕／士 &gt; 相／象 &gt; 兵／卒</p>
+<ul>
+<li>每个棋子，<b>包括炮，每次走一格、吃一格</b>（上、下、左、右），没有跳吃。</li>
+<li>棋子可以吃<b>同级或较低级</b>的对方棋子（按上面的次序）。例如车可以吃马，但马不能吃车。</li>
+<li><b>例外：</b><b>兵／卒可以吃帅／将</b>，而<b>帅／将不能吃兵／卒</b>。</li>
+</ul>
+<h3>台湾规则（可在棋盘上方选择）</h3>
+<p class="rank">帅／将 &gt; 仕／士 &gt; 相／象 &gt; 车 &gt; 马 &gt; 兵／卒</p>
+<ul>
+<li>级别相同，兵与帅的例外也相同，但<b>炮</b>的玩法不同。炮可以沿横行或直列<b>移动</b>任意多个空格。</li>
+<li>炮<b>隔子跳吃</b>：在同一直线上，炮与目标之间必须<b>刚好有一个棋子</b>。这个棋子（<b>炮架</b>）可以是任何颜色，正面或背面都可以。炮落在目标的格子。</li>
+<li>炮可以吃<b>任何级别</b>的棋子，包括帅／将。炮<b>不能吃相邻的棋子</b>，不能隔两个棋子，也不能吃背面朝上的棋子。</li>
+<li>炮<b>可以被吃</b>：除了兵／卒以外的棋子走到炮旁边就能吃它（炮的级别刚好比兵／卒高）。</li>
+</ul>
+<h3>胜、负与和棋</h3>
+<ul>
+<li>帅／将<b>不是</b>主帅：吃掉它并不结束游戏。</li>
+<li>当你<b>没有合法走法时就输了</b>：通常是你所有棋子都被吃光（只要还有背面朝上的棋子，你总可以翻一个）。</li>
+<li><b>和棋（本游戏自定规则）：</b>双方各走 40 步都没有吃子也没有翻棋，就算和棋。</li>
+</ul>
+<h3>小提示</h3>
+<ul>
+<li>记住还剩什么。背面朝上的棋子，正好就是还没见过、也还没被吃的棋子。电脑也会这样算，棋盘上下两条栏会显示已被吃的棋子。</li>
+<li>翻棋是赌博。翻出对手的帅在你的兵旁边是大礼；你自己的帅在对手的兵旁边就危险了。</li>
+</ul>
+<h3>本游戏的操作</h3>
+<ul>
+<li><b>点一下背面朝上的棋子即可翻开。</b>点你自己正面朝上的棋子可以选取；绿点是可走的位置，红点是可吃的位置（带弧线的红点是台湾规则的炮跳吃）。点一个圆点就走棋。选了棋子之后，点其他地方只会取消选取，所以不会误翻棋。</li>
+<li>设置：规则（香港／台湾）、谁先翻、电脑等级、<b>棋子款式</b>（木头、象牙、翡翠、扁平、麻将牌）、<b>棋盘款式</b>（木纹、绿绒、纸张、夜晚）、棋子文字（汉字、英文字母或两者）、以及标出可动棋子的辅助圈。<b>提示</b>会显示一步好棋，<b>悔棋</b>会收回你和电脑各一步。</li>
+<li>未包括：大陆规则及“连吃”等自定规则。</li>
+</ul>
+</div>
+
+<div class="lg" data-l="ja" lang="ja">
+<h2>📖 暗棋（あんき）のルール（日本語）</h2>
+<p>暗棋（盲棋、半棋とも呼ばれます）は、中国将棋（シャンチー）の駒を使う遊びで、<b>シャンチー盤の半分（縦4×横8マス）</b>を使い、32個の駒をすべて<b>裏向き</b>に置いて始めます。裏返すまで駒の正体は分からないので、戦術と同じくらい運と記憶力が大切です。</p>
+<h3>駒（各16個）</h3>
+<table class="rt">
+<tr><th>駒</th><th>赤</th><th>黒</th><th>各色の数</th></tr>
+<tr><td>将（帥）</td><td class="cr">帥</td><td class="cb">將</td><td>1</td></tr>
+<tr><td>士</td><td class="cr">仕</td><td class="cb">士</td><td>2</td></tr>
+<tr><td>象</td><td class="cr">相</td><td class="cb">象</td><td>2</td></tr>
+<tr><td>車</td><td class="cr">俥</td><td class="cb">車</td><td>2</td></tr>
+<tr><td>馬</td><td class="cr">傌</td><td class="cb">馬</td><td>2</td></tr>
+<tr><td>砲</td><td class="cr">炮</td><td class="cb">砲</td><td>2</td></tr>
+<tr><td>兵（卒）</td><td class="cr">兵</td><td class="cb">卒</td><td>5</td></tr>
+</table>
+<h3>準備と色の決め方</h3>
+<ul>
+<li>32個の駒をよく混ぜ、<b>裏向き</b>のまま1マスに1個ずつ置きます。</li>
+<li>先手が駒を1つ<b>裏返し</b>ます。<b>出た駒の色が、その人の色</b>になり、相手はもう一方の色になります。次の手番は<b>相手</b>です。</li>
+</ul>
+<h3>自分の番にできること（次のどれか1つ）</h3>
+<ol>
+<li><b>裏返す</b>：裏向きの駒を1つ選んで表向きにします（残っている間は可能）。駒はそのマスに残ります。相手の色の駒が出てもかまいません。</li>
+<li><b>動かす</b>：表向きの自分の駒を上下左右に<b>1マス</b>、空いているマスへ動かします（斜めは不可）。</li>
+<li><b>取る</b>：表向きの相手の駒を自分の駒で取ります（取れる条件は下記）。取られた駒は盤から除かれ、取った駒がそのマスに入ります。</li>
+</ol>
+<p>裏向きの駒は取れず、どの動きにも影響されません（台湾ルールでは<b>砲</b>がその駒を「砲台」として使えます）。</p>
+<h3>香港ルール（初期設定）</h3>
+<p class="rank">將 &gt; 車 &gt; 馬 &gt; 砲 &gt; 士 &gt; 象 &gt; 卒</p>
+<ul>
+<li><b>砲を含むすべての駒</b>が、上下左右に<b>1マス</b>動き、1マス先の駒を取ります。飛び越えはありません。</li>
+<li>上の順位で、<b>同じか低い</b>順位の相手の駒を取れます（例：車は馬を取れますが、馬は車を取れません）。</li>
+<li><b>例外：</b><b>兵（卒）は将を取れます</b>が、<b>将は兵（卒）を取れません</b>。</li>
+</ul>
+<h3>台湾ルール（盤の上で選べます）</h3>
+<p class="rank">將 &gt; 士 &gt; 象 &gt; 車 &gt; 馬 &gt; 卒</p>
+<ul>
+<li>順位と兵・将の例外は同じですが、<b>砲</b>の動きが違います。砲は縦か横に、空いているマスを何マスでも<b>動けます</b>。</li>
+<li>砲は<b>飛び越えて取ります</b>：同じ縦か横の線上で、砲と目標の間に<b>ちょうど1つ</b>駒があることが必要です。間の駒（<b>砲台</b>）は、どの色でも、表でも裏でもかまいません。砲は目標のマスに着地します。</li>
+<li>砲は<b>どの順位の駒も</b>（将も）取れます。ただし<b>隣り合う駒は取れず</b>、駒を2つ飛び越えることもできず、裏向きの駒も取れません。</li>
+<li>砲は、兵（卒）以外の駒が隣に来れば<b>取られます</b>（砲の順位は兵（卒）のすぐ上です）。</li>
+</ul>
+<h3>勝ち・負け・引き分け</h3>
+<ul>
+<li>将は王ではありません。取っても<b>ゲームは終わりません</b>。</li>
+<li><b>動かせる手がなくなると負け</b>です。ふつうは自分の駒が全部取られたときです（裏向きの駒が残っていれば、いつでも1つ裏返せます）。</li>
+<li><b>引き分け（このゲームの独自ルール）</b>：取りも裏返しもないまま、双方が40手ずつ進むと引き分けです。</li>
+</ul>
+<h3>ヒント</h3>
+<ul>
+<li>残りを数えましょう。裏向きの駒は、まだ見ていない・取られていない駒そのものです。コンピューターもそう考えます。盤の上下の帯に、取られた駒が表示されます。</li>
+<li>裏返しは賭けです。自分の兵のそばで相手の将が出れば大チャンス、自分の将が相手の兵のそばで出れば危険です。</li>
+</ul>
+<h3>このゲームの使い方</h3>
+<ul>
+<li><b>裏向きの駒をタップすると裏返ります。</b>表向きの自分の駒をタップで選択すると、緑の点は移動先、赤い点は取れる駒（弧のついた赤い点は台湾ルールの砲の飛び越え）です。点をタップして指します。駒を選んだあと他の場所をタップしても選択が解除されるだけなので、うっかり裏返すことはありません。</li>
+<li>設定：ルール（香港／台湾）、先に裏返す人、コンピューターの強さ、<b>駒のスタイル</b>（木、象牙、翡翠、フラット、麻雀牌）、<b>盤のスタイル</b>（木目、緑フェルト、紙、夜）、駒の表示（漢字・英字・両方）、動かせる駒を円で示す補助。<b>ヒント</b>は よい1手を示し、<b>元に戻す</b>は自分の手と相手の返しを取り消します。</li>
+<li>含まれないもの：中国本土ルールと、「連続取り」などの独自ルール。</li>
+</ul>
+</div>
+
+<div class="lg" data-l="ko" lang="ko">
+<h2>📖 암기(暗棋) 규칙 (한국어)</h2>
+<p>암기(暗棋, 맹기·반치로도 불림)는 중국 장기(샹치)의 말을 쓰는 놀이로, <b>장기판의 절반(4줄 × 8칸)</b> 위에 32개의 말을 모두 <b>뒷면이 위로 오게</b> 놓고 시작합니다. 뒤집기 전에는 말이 무엇인지 알 수 없으므로, 전술만큼 운과 기억력이 중요합니다.</p>
+<h3>말 (각 16개)</h3>
+<table class="rt">
+<tr><th>말</th><th>홍(빨강)</th><th>흑(검정)</th><th>색마다 개수</th></tr>
+<tr><td>장군(將/帥)</td><td class="cr">帥</td><td class="cb">將</td><td>1</td></tr>
+<tr><td>사(士)</td><td class="cr">仕</td><td class="cb">士</td><td>2</td></tr>
+<tr><td>상(象)</td><td class="cr">相</td><td class="cb">象</td><td>2</td></tr>
+<tr><td>차(車)</td><td class="cr">俥</td><td class="cb">車</td><td>2</td></tr>
+<tr><td>마(馬)</td><td class="cr">傌</td><td class="cb">馬</td><td>2</td></tr>
+<tr><td>포(炮/砲)</td><td class="cr">炮</td><td class="cb">砲</td><td>2</td></tr>
+<tr><td>병·졸(兵/卒)</td><td class="cr">兵</td><td class="cb">卒</td><td>5</td></tr>
+</table>
+<h3>준비와 색 정하기</h3>
+<ul>
+<li>32개의 말을 잘 섞어 <b>뒷면이 위로 오게</b> 한 칸에 하나씩 놓습니다.</li>
+<li>먼저 두는 사람이 말 하나를 <b>뒤집습니다</b>. <b>나온 말의 색이 그 사람의 색</b>이 되고, 상대는 다른 색을 맡습니다. 그다음 차례는 <b>상대</b>입니다.</li>
+</ul>
+<h3>내 차례에는 다음 중 하나만 합니다</h3>
+<ol>
+<li><b>뒤집기</b>: 뒷면인 말을 하나 골라 앞면으로 뒤집습니다(남아 있는 동안). 말은 그 칸에 그대로 있습니다. 상대 색 말이 나와도 괜찮습니다.</li>
+<li><b>이동</b>: 앞면인 내 말을 위·아래·왼쪽·오른쪽으로 <b>한 칸</b>, 빈 칸으로 옮깁니다(대각선 불가).</li>
+<li><b>잡기</b>: 앞면인 상대 말을 내 말로 잡습니다(조건은 아래). 잡힌 말은 판에서 빠지고, 내 말이 그 칸으로 들어갑니다.</li>
+</ol>
+<p>뒷면인 말은 잡을 수 없고 어떤 움직임의 영향도 받지 않습니다(대만 규칙에서는 <b>포</b>가 그 말을 받침(포대)으로 쓸 수 있습니다).</p>
+<h3>홍콩 규칙 (기본)</h3>
+<p class="rank">將 &gt; 車 &gt; 馬 &gt; 砲 &gt; 士 &gt; 象 &gt; 卒</p>
+<ul>
+<li><b>포를 포함한 모든 말</b>이 위·아래·왼쪽·오른쪽으로 <b>한 칸</b> 움직이고 한 칸 앞의 말을 잡습니다. 뛰어넘기는 없습니다.</li>
+<li>위 순서에서 <b>같거나 낮은</b> 등급의 상대 말을 잡을 수 있습니다(예: 차는 마를 잡지만, 마는 차를 못 잡습니다).</li>
+<li><b>예외:</b> <b>병(졸)은 장군을 잡을 수 있고</b>, <b>장군은 병(졸)을 잡을 수 없습니다</b>.</li>
+</ul>
+<h3>대만 규칙 (판 위에서 선택)</h3>
+<p class="rank">將 &gt; 士 &gt; 象 &gt; 車 &gt; 馬 &gt; 卒</p>
+<ul>
+<li>등급과 병·장군 예외는 같지만 <b>포</b>가 다르게 움직입니다. 포는 가로나 세로로 빈 칸을 몇 칸이든 <b>이동</b>할 수 있습니다.</li>
+<li>포는 <b>뛰어넘어 잡습니다</b>: 같은 가로·세로 줄에서 포와 목표 사이에 <b>정확히 말이 하나</b> 있어야 합니다. 그 말(<b>포대</b>)은 어느 색이든, 앞면이든 뒷면이든 상관없습니다. 포는 목표 칸에 내려앉습니다.</li>
+<li>포는 <b>어떤 등급의 말도</b>(장군도) 잡을 수 있습니다. 하지만 <b>바로 옆의 말은 잡지 못하고</b>, 말 두 개를 넘을 수 없으며, 뒷면인 말도 잡지 못합니다.</li>
+<li>포는 병(졸)을 제외한 말이 옆으로 다가오면 <b>잡힙니다</b>(포의 등급은 병(졸) 바로 위입니다).</li>
+</ul>
+<h3>승리, 패배, 무승부</h3>
+<ul>
+<li>장군은 왕이 아닙니다. 잡아도 <b>게임이 끝나지 않습니다</b>.</li>
+<li><b>둘 수 있는 수가 없으면 집니다</b>. 보통은 내 말이 모두 잡혔을 때입니다(뒷면 말이 남아 있으면 언제든 하나를 뒤집을 수 있습니다).</li>
+<li><b>무승부(이 게임의 자체 규칙)</b>: 잡기도 뒤집기도 없이 양쪽이 각각 40수를 두면 무승부입니다.</li>
+</ul>
+<h3>요령</h3>
+<ul>
+<li>남은 말을 세어 보세요. 뒷면인 말은 아직 보지 못했고 잡히지도 않은 말 그대로입니다. 컴퓨터도 그렇게 계산합니다. 판의 위아래 띠에는 잡힌 말이 표시됩니다.</li>
+<li>뒤집기는 도박입니다. 내 병 옆에서 상대 장군이 나오면 큰 행운이고, 내 장군이 상대 병 옆에서 나오면 위험합니다.</li>
+</ul>
+<h3>이 게임 사용법</h3>
+<ul>
+<li><b>뒷면인 말을 탭하면 뒤집힙니다.</b> 앞면인 내 말을 탭하면 선택되고, 초록 점은 이동할 수 있는 칸, 빨간 점은 잡을 수 있는 말(호가 그려진 빨간 점은 대만 규칙의 포 뛰어넘기)입니다. 점을 탭해 둡니다. 말을 선택한 뒤 다른 곳을 탭하면 선택만 취소되므로 실수로 뒤집히지 않습니다.</li>
+<li>설정: 규칙(홍콩/대만), 먼저 뒤집는 사람, 컴퓨터 수준, <b>말 스타일</b>(나무, 상아, 비취, 플랫, 마작패), <b>판 스타일</b>(나무결, 초록 펠트, 종이, 밤), 말 표시(한자·영문·둘 다), 움직일 수 있는 말에 원을 표시하는 도우미. <b>힌트</b>는 좋은 수를 보여 주고 <b>되돌리기</b>는 내 수와 컴퓨터의 응수를 취소합니다.</li>
+<li>포함되지 않은 것: 중국 본토 규칙과 “연속 잡기” 같은 자체 규칙.</li>
+</ul>
+</div>
+
+</section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🀄 Banqi (暗棋, also called 盲棋 or half chess), the Chinese chess variant played on half a xiangqi board with all pieces face down. Two rule sets: Taiwanese (the cannon jumps) and Hong Kong (a different rank order). The computer only uses what is face up, plus the odds of what is still hidden. Drawings, sounds, rules and code are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Banqi (dark chess): the rules and the computer player, with no drawing so it can be tested on its own (tools/rulecheck.js).
+   Board: 4 rows x 8 columns, square index = row * 8 + col. A piece code is 1 + colour * 7 + type (colour 0 = Red, 1 = Black).
+   Types: 0 General, 1 Advisor, 2 Elephant, 3 Chariot, 4 Horse, 5 Cannon, 6 Soldier. fd[i] = 1 means the piece on square i is still face down.
+   Players are 0 and 1 (not colours): the colour of each player is decided by the first piece that gets flipped (pc[player]).
+   Variants: v = 0 Taiwanese (the cannon jumps over a screen), v = 1 Hong Kong (the cannon is an ordinary piece with its own rank). */
+const BQ_CH = [['帥', '仕', '相', '俥', '傌', '炮', '兵'], ['將', '士', '象', '車', '馬', '砲', '卒']], BQ_EN = ['General', 'Advisor', 'Elephant', 'Chariot', 'Horse', 'Cannon', 'Soldier'], BQ_AB = ['G', 'A', 'E', 'R', 'H', 'C', 'S'];
+const BQ_COUNT = [1, 2, 2, 2, 2, 2, 5];
+const BQ_RANK = [[7, 6, 5, 4, 3, 2, 1], [7, 3, 2, 6, 5, 4, 1]];                    // rank of each type, per variant (the Taiwanese cannon only matters as a target)
+const BQ_VAL = [[90, 50, 32, 28, 18, 34, 10], [90, 22, 14, 55, 40, 30, 8]];
+const bqCol = code => (code - 1) / 7 | 0, bqType = code => (code - 1) % 7;
+function bqNew(v, rnd) {
+  rnd = rnd || Math.random; const pool = []; for (let c = 0; c < 2; c++) for (let t = 0; t < 7; t++) for (let k = 0; k < BQ_COUNT[t]; k++) pool.push(1 + c * 7 + t);
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  return { b: Int8Array.from(pool), fd: new Uint8Array(32).fill(1), turn: 0, pc: [-1, -1], v: v | 0, half: 0, cap: [], n: 0 };
+}
+const bqClone = S => ({ b: S.b.slice(), fd: S.fd.slice(), turn: S.turn, pc: S.pc.slice(), v: S.v, half: S.half, cap: S.cap.slice(), n: S.n });
+/* may a piece of type a take a piece of type d? (not for the Taiwanese cannon, which only captures by jumping) */
+function bqCan(v, a, d) { if (a === 6 && d === 0) return true; if (a === 0 && d === 6) return false; return BQ_RANK[v][a] >= BQ_RANK[v][d]; }
+const bqDecode = m => ({ k: m & 3, f: (m >> 2) & 31, t: (m >> 7) & 31 });
+const bqEnc = (k, f, t) => k | f << 2 | t << 7;
+const BQ_DIR = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+/* all legal moves for the player to move: flips (kind 0), steps (1), captures (2); search = true adds a "pass" (3) standing in for any flip */
+function bqMoves(S, search) {
+  const out = [], p = S.turn, c = S.pc[p], b = S.b, fd = S.fd; let anyFd = false;
+  for (let i = 0; i < 32; i++) if (b[i] && fd[i]) { anyFd = true; if (!search) out.push(bqEnc(0, i, 0)); }
+  if (search && anyFd) out.push(bqEnc(3, 0, 0));
+  if (c < 0) return out;
+  for (let i = 0; i < 32; i++) {
+    const code = b[i]; if (!code || fd[i] || bqCol(code) !== c) continue; const t = bqType(code), r = i >> 3, cc = i & 7;
+    if (t === 5 && S.v === 0) {
+      for (const [dr, dc] of BQ_DIR) {
+        let r2 = r + dr, c2 = cc + dc; while (r2 >= 0 && r2 < 4 && c2 >= 0 && c2 < 8 && !b[r2 * 8 + c2]) { out.push(bqEnc(1, i, r2 * 8 + c2)); r2 += dr; c2 += dc; }
+        if (r2 < 0 || r2 >= 4 || c2 < 0 || c2 >= 8) continue; r2 += dr; c2 += dc;                      // the screen is in the way: look past it
+        while (r2 >= 0 && r2 < 4 && c2 >= 0 && c2 < 8 && !b[r2 * 8 + c2]) { r2 += dr; c2 += dc; }
+        if (r2 >= 0 && r2 < 4 && c2 >= 0 && c2 < 8) { const q = r2 * 8 + c2; if (!fd[q] && bqCol(b[q]) !== c) out.push(bqEnc(2, i, q)); }
+      }
+    } else {
+      for (const [dr, dc] of BQ_DIR) {
+        const r2 = r + dr, c2 = cc + dc; if (r2 < 0 || r2 >= 4 || c2 < 0 || c2 >= 8) continue; const q = r2 * 8 + c2, o = b[q];
+        if (!o) out.push(bqEnc(1, i, q)); else if (!fd[q] && bqCol(o) !== c && bqCan(S.v, t, bqType(o))) out.push(bqEnc(2, i, q));
+      }
+    }
+  }
+  return out;
+}
+/* the real game: flip a piece (assigns colours on the very first flip), move or capture */
+function bqApply(S, m) {
+  const { k, f, t } = bqDecode(m), p = S.turn;
+  if (k === 0) { S.fd[f] = 0; if (S.pc[p] < 0) { S.pc[p] = bqCol(S.b[f]); S.pc[1 - p] = 1 - S.pc[p]; } S.half = 0; }
+  else { const o = S.b[t]; if (o) { S.cap.push(o); S.half = 0; } else S.half++; S.b[t] = S.b[f]; S.b[f] = 0; S.fd[t] = 0; S.fd[f] = 0; }
+  S.turn = 1 - p; S.n++;
+}
+/* search helpers: cheap make/unmake of steps and captures (flips are searched as "pass") */
+function bqMake(S, m) { const { k, f, t } = bqDecode(m); let cap = 0; if (k === 1 || k === 2) { cap = S.b[t]; S.b[t] = S.b[f]; S.b[f] = 0; } S.turn = 1 - S.turn; return cap; }
+function bqUnmake(S, m, cap) { const { k, f, t } = bqDecode(m); S.turn = 1 - S.turn; if (k === 1 || k === 2) { S.b[f] = S.b[t]; S.b[t] = cap; } }
+/* what is still hidden, from public knowledge only: all pieces minus face-up pieces minus captured pieces */
+function bqUnseen(S) {
+  const left = new Int8Array(15); for (let c = 0; c < 2; c++) for (let t = 0; t < 7; t++) left[1 + c * 7 + t] = BQ_COUNT[t];
+  for (let i = 0; i < 32; i++) if (S.b[i] && !S.fd[i]) left[S.b[i]]--; for (const o of S.cap) left[o]--; return left;
+}
+function bqEval(S) {                         // from the point of view of the player to move; face-down pieces count the same for both sides
+  const c = S.pc[S.turn]; if (c < 0) return 0; let s = 0, v = BQ_VAL[S.v];
+  for (let i = 0; i < 32; i++) { const o = S.b[i]; if (!o || S.fd[i]) continue; const x = v[bqType(o)]; s += bqCol(o) === c ? x : -x; }
+  return s;
+}
+/* opt: {depth, level} -> {move, score, scores, moves}. Flips are scored as the average over what could be underneath. */
+function bqSearch(S0, opt) {
+  const S = bqClone(S0), me = S.turn; const depth = opt.depth || 3; let nodes = 0; const limit = opt.nodes || 400000;
+  const order = (mv) => mv.sort((x, y) => ((y & 3) === 2 ? 1 : 0) - ((x & 3) === 2 ? 1 : 0));
+  function q(alpha, beta, qd) { const st = bqEval(S); if (qd <= 0) return st; if (st >= beta) return st; if (st > alpha) alpha = st; for (const m of bqMoves(S, true).filter(x => (x & 3) === 2)) { const cap = bqMake(S, m), val = -q(-beta, -alpha, qd - 1); bqUnmake(S, m, cap); if (val >= beta) return val; if (val > alpha) alpha = val; } return alpha; }
+  function nm(d, alpha, beta) {
+    if (++nodes > limit) return bqEval(S); if (d <= 0) return q(alpha, beta, 2); const mv = order(bqMoves(S, true)); if (!mv.length) return -9999 + (depth - d); let best = -1e9;
+    for (const m of mv) { const cap = bqMake(S, m); const v = -nm(d - 1, -beta, -alpha); bqUnmake(S, m, cap); if (v > best) best = v; if (best > alpha) alpha = best; if (alpha >= beta) break; }
+    return best;
+  }
+  const moves = bqMoves(S0, false); if (!moves.length) return null; const scores = [];
+  const unseen = bqUnseen(S0); let total = 0; for (let k = 1; k <= 14; k++) total += unseen[k];
+  for (const m of moves) {
+    const d = bqDecode(m); let v;
+    if (d.k === 0) {                                                  // a flip: expected value over every piece it could be
+      v = 0; const t0 = S.turn;
+      for (let k = 1; k <= 14; k++) {
+        if (!unseen[k]) continue; const sv = { b: S.b, fd: S.fd, pc: S.pc.slice(), turn: S.turn }; const oldCode = S.b[d.f], oldPc = S.pc.slice();
+        S.b[d.f] = k; S.fd[d.f] = 0; if (S.pc[t0] < 0) { S.pc[t0] = bqCol(k); S.pc[1 - t0] = 1 - S.pc[t0]; }
+        S.turn = 1 - t0; const val = -nm(depth - 1, -1e9, 1e9); S.turn = t0; S.b[d.f] = oldCode; S.fd[d.f] = 1; S.pc[0] = oldPc[0]; S.pc[1] = oldPc[1];
+        v += val * unseen[k] / total;
+      }
+    } else { const cap = bqMake(S, m); v = -nm(depth - 1, -1e9, 1e9); bqUnmake(S, m, cap); }
+    scores.push(v);
+  }
+  let bi = 0; for (let i = 1; i < moves.length; i++) if (scores[i] > scores[bi] + 1e-9) bi = i;
+  return { move: moves[bi], score: scores[bi], scores, moves };
+}
+
+/* Banqi (dark chess). rules.js has the rules and the computer player (checked on its own); this file is the board, the input, the animation and the game flow.
+   A move is one integer: kind | from << 2 | to << 7 (kind 0 flip, 1 step, 2 capture). Squares are row * 8 + col on a 4 x 8 board. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.banqi.v1', { dark: true, sound: true, opp: 'cpu', variant: 'hk', vset: false, first: 'me', level: 'normal', labels: 'chinese', pieces: 'wood', board: 'wood', lang: '', help: true, wins: 0, losses: 0, draws: 0 }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+if (!st.vset) st.variant = 'hk';   // Hong Kong rules are the default until you choose one yourself
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+let lastFirst = st.first;
+settings([
+  { id: 'level', label: 'Computer level', type: 'select', options: [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard (thinks further ahead)']], def: 'normal' },
+  { id: 'first', label: 'Who flips first', type: 'select', options: [['me', 'Me'], ['cpu', 'Computer']], def: 'me' },
+  { id: 'labels', label: 'Piece labels', type: 'select', options: [['chinese', 'Chinese characters'], ['english', 'English letters (G A E R H C S)'], ['both', 'Characters + English letter']], def: 'chinese' },
+  { id: 'pieces', label: 'Piece style', type: 'select', options: [['wood', 'Wood'], ['ivory', 'Ivory and black'], ['jade', 'Jade'], ['flat', 'Flat colours'], ['tile', 'Mahjong tiles']], def: 'wood' },
+  { id: 'board', label: 'Board style', type: 'select', options: [['wood', 'Wood'], ['green', 'Green felt'], ['paper', 'Paper'], ['night', 'Night']], def: 'wood' },
+  { id: 'help', label: 'Ring the pieces that can move', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { const ch = lastFirst !== st.first; S0.save(); if (ch) newGame(); });
+
+const W = 624, H = 412, CS = 72, X0 = 24, Y0 = 62, R = 31;
+const cv = $('cv'), C = KIT.canvas(cv, W, H, 2), ctx = C.ctx;
+const FONT = '"Noto Serif CJK TC","Noto Serif CJK SC","PingFang TC","Microsoft JhengHei","Songti TC",serif';
+/* piece and board looks: pure data, so adding a style is adding a row */
+const PS = {
+  wood:  { sh: 'c', rim: '#7a4f1d', up: ['#fbeccb', '#e8cb92'], dn: ['#d9ab63', '#b78238'], dl: '#7a4f1d', ink: ['#b81d1d', '#171717'], ring: ['#b81d1d', '#171717'] },
+  ivory: { sh: 'c', rim: '#b9ad92', up: ['#ffffff', '#ece3cb'], dn: ['#3a4a5e', '#1b2430'], dl: '#8fa3b8', ink: ['#c62828', '#111111'], ring: ['#c62828', '#111111'] },
+  jade:  { sh: 'c', rim: '#0b4636', up: ['#d5f6e8', '#7fcfae'], dn: ['#35987a', '#1c6a52'], dl: '#0b4636', ink: ['#a31515', '#0b2a22'], ring: ['#a31515', '#0b2a22'] },
+  flat:  { sh: 'c', rim: 'rgba(0,0,0,.0)', up: null, dn: ['#64758b', '#64758b'], dl: '#a9b6c7', ink: ['#ffffff', '#ffffff'], ring: ['rgba(255,255,255,.7)', 'rgba(255,255,255,.7)'], solid: ['#c62828', '#262b33'] },
+  tile:  { sh: 'r', rim: '#14603c', up: ['#fffdf2', '#f1e9cf'], dn: ['#35a56a', '#1f7a4a'], dl: '#145a36', ink: ['#c4161c', '#12161c'], ring: ['rgba(0,0,0,0)', 'rgba(0,0,0,0)'] }
+};
+const BS = {
+  wood:  { frame: '#7a2323', tray: 'rgba(0,0,0,.22)', bd: '#dcb877', line: '#8a5f26', cap: 'rgba(255,255,255,.55)' },
+  green: { frame: '#16382a', tray: 'rgba(0,0,0,.25)', bd: '#2f7d52', line: '#b7e4c7', cap: 'rgba(255,255,255,.6)' },
+  paper: { frame: '#5a4631', tray: 'rgba(0,0,0,.2)', bd: '#f3ead3', line: '#5a4630', cap: 'rgba(255,255,255,.7)' },
+  night: { frame: '#0f1424', tray: 'rgba(255,255,255,.07)', bd: '#262f4d', line: '#6b7aa8', cap: 'rgba(255,255,255,.55)' }
+};
+const CNAME = ['Red', 'Black'], COLS = ['#c62828', '#1b1b1b'];
+let S = null, hist = [], me = 0, LM = [], sel = -1, anim = null, over = false, thinking = false, hintM = null, hintT = 0, last = -1, tClock = 0, token = 0, note = '';
+const cpu = () => st.opp === 'cpu';
+const sqXY = i => [X0 + ((i & 7) + .5) * CS, Y0 + ((i >> 3) + .5) * CS];
+function xyToIdx(x, y) { const c = Math.floor((x - X0) / CS), r = Math.floor((y - Y0) / CS); return c < 0 || r < 0 || c > 7 || r > 3 ? -1 : r * 8 + c; }
+const setMsg = t => { $('msg').textContent = t; };
+const pname = p => !cpu() ? 'Player ' + (p + 1) : p === me ? 'You' : 'The computer';
+const pcol = p => S.pc[p] < 0 ? '?' : CNAME[S.pc[p]];
+const desc = code => CNAME[bqCol(code)] + ' ' + BQ_EN[bqType(code)];
+
+/* ---------- starting and ending ---------- */
+function newGame() {
+  token++; O.hideAll(); S = bqNew(st.variant === 'hk' ? 1 : 0); hist = []; anim = null; over = false; thinking = false; hintM = null; last = -1; sel = -1; note = '';
+  me = cpu() ? (st.first === 'cpu' ? 1 : 0) : 0; lastFirst = st.first; bars(); nextTurn();
+}
+const takenBy = p => S.pc[p] < 0 ? 0 : S.cap.filter(c => bqCol(c) === S.pc[1 - p]).length;
+function hud() {
+  const a = cpu() ? me : 0, b = 1 - a;
+  $('l2').textContent = cpu() ? 'YOU (' + (S.pc[a] < 0 ? '?' : CNAME[S.pc[a]].toUpperCase()) + ')' : 'PLAYER 1 (' + (S.pc[0] < 0 ? '?' : CNAME[S.pc[0]].toUpperCase()) + ')';
+  $('l3').textContent = cpu() ? 'COMPUTER (' + (S.pc[b] < 0 ? '?' : CNAME[S.pc[b]].toUpperCase()) + ')' : 'PLAYER 2 (' + (S.pc[1] < 0 ? '?' : CNAME[S.pc[1]].toUpperCase()) + ')';
+  $('s1').textContent = over ? 'Game over' : cpu() ? (S.turn === me ? 'You' : 'Computer') : 'Player ' + (S.turn + 1); $('s2').textContent = 'took ' + takenBy(a); $('s3').textContent = 'took ' + takenBy(b);
+  $('s4').textContent = S.fd.reduce((x, y, i) => x + (y && S.b[i] ? 1 : 0), 0);
+  $('recLine').textContent = cpu() ? 'Record against the computer: ' + st.wins + ' won, ' + st.losses + ' lost, ' + st.draws + ' drawn' : 'Two players on one screen';
+}
+function bars() {
+  $('varBar').innerHTML = [['hk', 'Hong Kong (default)'], ['tw', 'Taiwanese (cannon jumps)']].map(([k, t]) => '<button class="btn sm' + (st.variant === k ? ' on' : '') + '" data-act="variant" data-k="' + k + '" type="button">' + t + '</button>').join('');
+  $('oppBar').innerHTML = [['cpu', '🤖 vs computer'], ['two', '👥 2 players']].map(([k, t]) => '<button class="btn sm' + (st.opp === k ? ' on' : '') + '" data-act="opp" data-k="' + k + '" type="button">' + t + '</button>').join('');
+}
+function nextTurn() {
+  hud(); if (over) return; LM = bqMoves(S); sel = -1;
+  if (!LM.length) return finish(1 - S.turn, pname(S.turn) + ' ' + (pname(S.turn) === 'You' ? 'have' : 'has') + ' no legal move left.');
+  if (S.half >= 80) return finish(-1, '40 moves each with no capture and no flip.');
+  const pre = note ? note + ' ' : '';
+  if (cpu() && S.turn !== me) { setMsg(pre + 'The computer is thinking…'); think(); return; }
+  const who = cpu() ? 'Your move' : 'Player ' + (S.turn + 1) + ' to move';
+  setMsg(pre + (S.pc[S.turn] < 0 && S.n > 0 ? who + ': flip a piece.' : S.n === 0 ? who + ': tap a face-down piece to flip it. Its colour will be yours.' : who));
+}
+function finish(w, why) {
+  over = true; let h;
+  if (w < 0) { h = 'It\'s a draw'; if (cpu()) st.draws++; }
+  else if (cpu()) { h = w === me ? 'You win! 🎉' : 'The computer wins'; if (w === me) st.wins++; else st.losses++; }
+  else h = 'Player ' + (w + 1) + ' wins! 🎉';
+  S0.save(); hud(); $('endH').textContent = h; $('endP').textContent = why; setMsg(h);
+  if (w >= 0 && (!cpu() || w === me)) { A.beep(660, .1, 'triangle', .12); A.beep(880, .1, 'triangle', .12, .1); A.beep(1320, .2, 'triangle', .12, .2); } else A.slide(400, 120, .5, 'sawtooth', .08);
+  setTimeout(() => { if (over) O.show('ovEnd'); }, 700);
+}
+
+/* ---------- playing a move ---------- */
+function playMove(m) {
+  token++; hintM = null; const d = bqDecode(m), p = S.turn;
+  hist.push({ S: bqClone(S), last, note }); sel = -1;
+  anim = { m, d, p, t: 0, code: S.b[d.f], from: sqXY(d.f), to: sqXY(d.t), jump: d.k === 2 && bqType(S.b[d.f]) === 5 && S.v === 0, victim: d.k === 2 ? S.b[d.t] : 0 };
+}
+function finishAnim() {
+  const a = anim, d = a.d, code = S.b[d.f], vict = a.victim; bqApply(S, a.m); anim = null; last = d.k === 0 ? d.f : d.t;
+  const who = pname(a.p);
+  if (d.k === 0) { note = who + (who === 'You' ? ' flipped a ' : ' flipped a ') + desc(code) + (S.n === 1 ? (cpu() ? (a.p === me ? ' (you are ' + CNAME[bqCol(code)] + ')' : ' (you are ' + CNAME[1 - bqCol(code)] + ')') : ' (Player 1 is ' + CNAME[bqCol(code)] + ')') : '') + '.'; A.beep(560, .06, 'triangle', .1); A.beep(840, .06, 'triangle', .08, .06); }
+  else if (d.k === 2) { note = who + (a.jump ? ' jumped and captured the ' : ' captured the ') + desc(vict) + ' with the ' + BQ_EN[bqType(code)] + '.'; A.noise(.08, .16); A.beep(170, .1, 'square', .07); }
+  else { note = who + ' moved the ' + desc(code) + '.'; A.beep(320, .05, 'triangle', .1); }
+  nextTurn();
+}
+function think() {
+  thinking = true; const my = token, lvl = st.level, snap = bqClone(S);
+  setTimeout(() => {
+    if (my !== token || over) { thinking = false; return; }
+    const r = bqSearch(snap, lvl === 'easy' ? { depth: 1 } : lvl === 'normal' ? { depth: 3 } : { depth: 4, nodes: 700000 }); thinking = false; if (my !== token || over || !r) return;
+    const best = Math.max(...r.scores), margin = lvl === 'easy' ? 12 : .25, pool = r.moves.filter((_, i) => r.scores[i] >= best - margin);
+    let m = pool[Math.floor(Math.random() * pool.length)]; if (lvl === 'easy' && Math.random() < .25) m = r.moves[Math.floor(Math.random() * r.moves.length)];
+    playMove(m);
+  }, 450);
+}
+function undo() {
+  if (anim || !hist.length) return; token++; thinking = false; let j = hist.length - 1;
+  if (cpu()) { while (j >= 0 && hist[j].S.turn !== me) j--; if (j < 0) return; }
+  const h = hist[j]; hist.length = j; S = bqClone(h.S); last = h.last; note = h.note || ''; over = false; O.hideAll(); anim = null; sel = -1; hintM = null; nextTurn();
+}
+function hint() {
+  if (over || anim || (cpu() && S.turn !== me)) return; setMsg('Thinking of a hint…');
+  setTimeout(() => { const r = bqSearch(bqClone(S), { depth: 3 }); if (!r) return; hintM = r.move; hintT = 3.5; setMsg('Hint: the blue ring is the piece to use' + (bqDecode(r.move).k === 0 ? ' (flip it).' : ' and the ring on a square is where to go.')); }, 30);
+}
+
+/* ---------- input ---------- */
+const canAct = () => !over && !anim && !thinking && (!cpu() || S.turn === me);
+cv.addEventListener('pointerdown', e => {
+  if (!canAct()) return; const p = C.pos(e), i = xyToIdx(p.x, p.y); if (i < 0) return; hintM = null;
+  if (sel >= 0) {
+    const m = LM.find(m => (m & 3) !== 0 && bqDecode(m).f === sel && bqDecode(m).t === i); sel = -1; if (m != null) playMove(m); return;      // anything else just cancels
+  }
+  const code = S.b[i]; if (!code) return;
+  if (S.fd[i]) { playMove(bqEnc(0, i, 0)); return; }
+  if (S.pc[S.turn] >= 0 && bqCol(code) === S.pc[S.turn]) { if (LM.some(m => (m & 3) !== 0 && bqDecode(m).f === i)) { sel = i; A.beep(520, .03, 'sine', .05); } else setMsg('That piece cannot move or capture right now.'); }
+  else if (S.pc[S.turn] >= 0) setMsg('That is an enemy piece. Select one of your own (' + CNAME[S.pc[S.turn]] + ').');
+});
+window.addEventListener('keydown', e => { if (e.code === 'Escape') sel = -1; else if (e.code === 'KeyU') undo(); });
+ui.actions(document.body, {
+  restart: newGame, undo, hint, closeov: () => O.hide('ovEnd'),
+  opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); }, variant: b => { st.variant = b.dataset.k; st.vset = true; S0.save(); newGame(); },
+  lang: b => { st.lang = b.dataset.k; S0.save(); showLang(); }
+});
+
+/* ---------- drawing ---------- */
+function label(g, code, x, y, r, ink) {
+  const t = bqType(code), c = bqCol(code), col = ink, lab = st.labels; g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (lab === 'english') { g.font = 'bold ' + Math.round(r * 1.05) + 'px sans-serif'; g.fillText(BQ_AB[t], x, y + 1); }
+  else if (lab === 'both') { g.font = 'bold ' + Math.round(r * 1.0) + 'px ' + FONT; g.fillText(BQ_CH[c][t], x, y - r * .1); g.font = 'bold ' + Math.round(r * .36) + 'px sans-serif'; g.fillText(BQ_AB[t], x, y + r * .62); }
+  else { g.font = 'bold ' + Math.round(r * 1.18) + 'px ' + FONT; g.fillText(BQ_CH[c][t], x, y + r * .06); }
+}
+function shp(g, x, y, r) { g.beginPath(); if ((PS[st.pieces] || PS.wood).sh === 'r') { const h = r * .94; g.roundRect ? g.roundRect(x - h, y - h, 2 * h, 2 * h, r * .3) : g.rect(x - h, y - h, 2 * h, 2 * h); } else g.arc(x, y, r, 0, 7); }
+function disc(g, x, y, r, code, down, sx) {
+  const P = PS[st.pieces] || PS.wood, c = down ? 0 : bqCol(code), tile = P.sh === 'r';
+  g.save(); g.translate(x, y); g.scale(sx == null ? 1 : sx, 1); g.translate(-x, -y);
+  g.fillStyle = 'rgba(0,0,0,.35)'; shp(g, x + 2, y + 4, r); g.fill();
+  if (P.rim !== 'rgba(0,0,0,.0)') { g.fillStyle = P.rim; shp(g, x, y, r); g.fill(); }
+  if (!down && P.solid) { g.fillStyle = P.solid[c]; shp(g, x, y, r * .96); g.fill(); }
+  else { const pair = down ? P.dn : P.up, gr = g.createRadialGradient(x - r * .3, y - r * .35, r * .1, x, y, r * 1.1); gr.addColorStop(0, pair[0]); gr.addColorStop(1, pair[1]); g.fillStyle = gr; shp(g, x, y, r * .92); g.fill(); }
+  if (down) {
+    g.strokeStyle = P.dl; g.lineWidth = 2; if (tile) { g.strokeRect(x - r * .5, y - r * .5, r, r); g.beginPath(); g.moveTo(x - r * .5, y - r * .5); g.lineTo(x + r * .5, y + r * .5); g.moveTo(x + r * .5, y - r * .5); g.lineTo(x - r * .5, y + r * .5); g.stroke(); }
+    else { g.beginPath(); g.arc(x, y, r * .62, 0, 7); g.stroke(); g.beginPath(); g.arc(x, y, r * .3, 0, 7); g.stroke(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; g.beginPath(); g.moveTo(x + Math.cos(a) * r * .62, y + Math.sin(a) * r * .62); g.lineTo(x + Math.cos(a) * r * .8, y + Math.sin(a) * r * .8); g.stroke(); } }
+  } else { if (!tile) { g.strokeStyle = P.ring[c]; g.lineWidth = Math.max(1.5, r * .07); g.beginPath(); g.arc(x, y, r * .8, 0, 7); g.stroke(); } label(g, code, x, y, r, P.ink[c]); }
+  g.restore();
+}
+function tray(g, y0, codes, title) {
+  const B = BS[st.board] || BS.wood; g.fillStyle = B.tray; g.beginPath(); g.roundRect ? g.roundRect(X0, y0, 8 * CS, 48, 10) : g.rect(X0, y0, 8 * CS, 48); g.fill();
+  g.fillStyle = B.cap; g.font = 'bold 11px sans-serif'; g.textAlign = 'left'; g.textBaseline = 'top'; g.fillText(title, X0 + 8, y0 + 3);
+  codes.forEach((c, k) => disc(g, X0 + 26 + k * 33, y0 + 30, 14, c, false));
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0); if (!S) return;
+  const B = BS[st.board] || BS.wood; g.fillStyle = B.frame; g.beginPath(); g.roundRect ? g.roundRect(0, 0, W, H, 16) : g.rect(0, 0, W, H); g.fill();
+  const a = cpu() ? me : 0, b = 1 - a, mine = S.pc[a] < 0 ? [] : S.cap.filter(c => bqCol(c) === S.pc[b]), theirs = S.pc[a] < 0 ? [] : S.cap.filter(c => bqCol(c) === S.pc[a]);
+  tray(g, 6, theirs, cpu() ? 'Taken from you' : 'Taken by Player 2'); tray(g, Y0 + 4 * CS + 8, mine, cpu() ? 'You have taken' : 'Taken by Player 1');
+  g.fillStyle = B.bd; g.fillRect(X0, Y0, 8 * CS, 4 * CS); g.strokeStyle = B.line; g.lineWidth = 1.4;
+  for (let k = 0; k <= 8; k++) { g.beginPath(); g.moveTo(X0 + k * CS, Y0); g.lineTo(X0 + k * CS, Y0 + 4 * CS); g.stroke(); } for (let k = 0; k <= 4; k++) { g.beginPath(); g.moveTo(X0, Y0 + k * CS); g.lineTo(X0 + 8 * CS, Y0 + k * CS); g.stroke(); }
+  g.lineWidth = 3; g.strokeRect(X0, Y0, 8 * CS, 4 * CS);
+  if (last >= 0) { const [x, y] = sqXY(last); g.fillStyle = 'rgba(255,230,80,.35)'; g.fillRect(x - CS / 2 + 1, y - CS / 2 + 1, CS - 2, CS - 2); }
+  const pulse = .5 + .5 * Math.sin(tClock * 6), movers = new Set(); if (canAct() && st.help) LM.forEach(m => { if ((m & 3) !== 0) movers.add(bqDecode(m).f); });
+  for (let i = 0; i < 32; i++) {
+    const code = S.b[i]; if (!code) continue; if (anim && (i === anim.d.f || (anim.d.k === 2 && i === anim.d.t && anim.t > .8))) continue; const [x, y] = sqXY(i);
+    if (anim && anim.d.k === 0 && i === anim.d.f) continue;
+    if (movers.has(i) && i !== sel) { g.strokeStyle = 'rgba(255,240,120,' + (.45 + .45 * pulse) + ')'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, R + 3, 0, 7); g.stroke(); }
+    if (i === sel) { g.strokeStyle = '#ffd23f'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, R + 4, 0, 7); g.stroke(); }
+    disc(g, x, y, R, code, !!S.fd[i]);
+  }
+  if (sel >= 0) { const [fx, fy] = sqXY(sel);
+    for (const m of LM) { const d = bqDecode(m); if (d.k === 0 || d.f !== sel) continue; const [x, y] = sqXY(d.t), jump = d.k === 2 && bqType(S.b[sel]) === 5 && S.v === 0;
+      if (jump) { g.strokeStyle = 'rgba(255,90,90,.9)'; g.lineWidth = 3; g.setLineDash([6, 6]); g.beginPath(); g.moveTo(fx, fy); g.quadraticCurveTo((fx + x) / 2, (fy + y) / 2 - 38, x, y); g.stroke(); g.setLineDash([]); }
+      g.fillStyle = d.k === 2 ? 'rgba(230,50,50,.9)' : 'rgba(40,170,80,.85)'; g.beginPath(); g.arc(x, y, d.k === 2 ? 13 + pulse * 2 : 9 + pulse * 2, 0, 7); g.fill(); if (d.k === 2) { g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); } } }
+  if (hintM != null && hintT > 0) { const d = bqDecode(hintM), [x, y] = sqXY(d.f); g.strokeStyle = 'rgba(70,200,255,' + (.6 + .4 * pulse) + ')'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, R + 5, 0, 7); g.stroke(); if (d.k !== 0) { const [x2, y2] = sqXY(d.t); g.beginPath(); g.arc(x2, y2, R - 4, 0, 7); g.stroke(); } }
+  if (anim) {
+    const an = anim, u = Math.min(1, an.t);
+    if (an.d.k === 0) { const x = an.from[0], y = an.from[1], sx = Math.abs(Math.cos(u * Math.PI)); disc(g, x, y, R + 2 * Math.sin(u * Math.PI), an.code, u < .5, Math.max(.04, sx)); }
+    else { const e = u * u * (3 - 2 * u), x = an.from[0] + (an.to[0] - an.from[0]) * e, y = an.from[1] + (an.to[1] - an.from[1]) * e - Math.sin(u * Math.PI) * (an.jump ? 34 : 5); disc(g, x, y, R, an.code, false); }
+  }
+}
+function update(dt) {
+  tClock += dt; if (hintT > 0) { hintT -= dt; if (hintT <= 0) hintM = null; }
+  if (anim) { anim.t += dt / (anim.d.k === 0 ? .4 : anim.jump ? .38 : .22); if (anim.t >= 1) finishAnim(); }
+}
+KIT.loop(update, draw).start();
+
+/* ---------- instructions language: your last choice, else the browser's language, else English ---------- */
+function showLang() {
+  const nav = (navigator.language || 'en').toLowerCase(), auto = /^zh-(hk|tw|mo|hant)/.test(nav) ? 'zh-Hant' : /^zh/.test(nav) ? 'zh-Hans' : /^ja/.test(nav) ? 'ja' : /^ko/.test(nav) ? 'ko' : 'en', l = st.lang || auto;
+  document.querySelectorAll('.lg').forEach(e => e.classList.toggle('on', e.dataset.l === l)); document.querySelectorAll('.langbar .btn').forEach(b => b.classList.toggle('on', b.dataset.k === l));
+}
+showLang();
+/* ---------- start ---------- */
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get LM() { return LM; }, get over() { return over; }, get anim() { return anim; }, get thinking() { return thinking; }, st, newGame, undo, playMove, hint, get me() { return me; },
+  xy: i => { const p = sqXY(i), r = cv.getBoundingClientRect(); return [r.left + p[0] / W * r.width, r.top + p[1] / H * r.height]; },
+  setPos(S2) { S = S2; hist = []; over = false; anim = null; thinking = false; token++; st.opp = 'two'; me = 0; note = ''; nextTurn(); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

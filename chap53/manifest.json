@@ -1,0 +1,31 @@
+{
+  "name": "Food Court Empire",
+  "short_name": "Food Court",
+  "description": "Buy food shops on Tidehaven High Street, collect rent, add shops and flagships, dodge the Lockup and bankrupt your rivals. A property-trading game against two to five players, people or computers, on an original board",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f3d3a",
+  "theme_color": "#0f3d3a",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

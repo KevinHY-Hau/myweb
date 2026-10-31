@@ -1,0 +1,31 @@
+{
+  "name": "Runes",
+  "short_name": "Runes",
+  "description": "A new dice-and-magic board game I invented: roll two dice, pick one, and its number casts a spell borrowed from chess, shogi, Othello, xiangqi, Senet or Ur. Capture the enemy Mage or hold the Throne",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1f2a52",
+  "theme_color": "#1f2a52",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

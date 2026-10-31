@@ -1,0 +1,31 @@
+{
+  "name": "Dama",
+  "short_name": "Dama",
+  "description": "Turkish and Arab draughts. Sixteen men each, no diagonals: move and capture forward and sideways, crown a flying king, and you must always take the biggest capture",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1d3b2a",
+  "theme_color": "#1d3b2a",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

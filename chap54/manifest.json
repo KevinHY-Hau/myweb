@@ -1,0 +1,31 @@
+{
+  "name": "Outbreak",
+  "short_name": "Outbreak",
+  "description": "Survive three zombie cities. Shoot the swarm, loot houses, rescue survivors, beat the bosses and uncover the plot behind the virus",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b2a1a",
+  "theme_color": "#1b2a1a",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

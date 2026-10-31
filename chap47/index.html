@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 47 · Mancala (Kalah, Oware, Mangala)</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4a2f17">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mancala">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.dicerow{display:flex;align-items:center;justify-content:center;gap:14px}
+#die{font-size:68px;line-height:1;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;border-radius:18px;border:5px solid #888;box-shadow:0 3px 8px rgba(0,0,0,.35);user-select:none;cursor:pointer}
+#die.roll{animation:dshake .18s linear infinite}
+@keyframes dshake{0%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-4px)}100%{transform:rotate(-8deg) translateY(0)}}
+#rollBtn{font-size:18px;padding:12px 22px}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}#die{width:76px;height:76px;font-size:54px}}
+.mcv{aspect-ratio:640/300}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Mancala (Kalah, Oware, Mangala)</h2>
+  <p>Chapter 47 · The seed-sowing family: pick up a pit, sow it round, capture the seeds. Kalah, West-African Oware, and the Turkish / Arab Mangala. Play the computer or a friend</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TURN</small><b id="s1">You</b></div>
+    <div class="tstat"><small id="s2l">YOUR STORE</small><b id="s2">0</b></div>
+    <div class="tstat"><small id="s3l">THEIR STORE</small><b id="s3">0</b></div>
+    <div class="tstat"><small>ON BOARD</small><b id="s4">48</b></div>
+  </div>
+  <div class="tmsg" id="msg">Tap one of your pits</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv mcv" aria-label="Mancala board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" id="undoBtn" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+  </div>
+  <div class="tbar"><span class="kl">Game:</span><span id="vBar"></span></div>
+  <div class="tbar" id="seedRow"><span class="kl">Seeds per pit:</span><span id="seedBar"></span></div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="tbar"><span class="kl">Who starts:</span><span id="firstBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 Rules of Mancala</h2>
+    <p>Two players, two rows of six pits (yours is the bottom row), and seeds. On your turn you pick up <b>all the seeds</b> of one of your pits and <b>sow</b> them, one per pit, anticlockwise: along your row to the right, then back along your opponent’s row to the left. The aim is to collect more seeds than your opponent. Tap a pit to play it.</p>
+    <h3>Kalah (the common Western game)</h3>
+    <ul>
+      <li>4 seeds in each pit (you can pick 3 to 6). Your <b>store</b> is the big pit at your right; the opponent’s store is on the left. Sow into your own store, skip your opponent’s.</li>
+      <li>If your last seed lands in <b>your store</b>, you move again.</li>
+      <li>If your last seed lands in an <b>empty pit on your side</b> and the pit opposite has seeds, you capture them and your last seed into your store.</li>
+      <li>The game ends when one side is empty. The other player puts all their remaining seeds in their own store. Most seeds wins.</li>
+    </ul>
+    <h3>Oware (Abapa rules, from Ghana)</h3>
+    <ul>
+      <li>4 seeds in each of 12 houses, no stores in the sowing (the big pits only keep your captured seeds). If a house has 12 or more seeds, you skip it when you go round.</li>
+      <li>If your last seed makes a house on your <b>opponent’s side</b> hold exactly <b>2 or 3</b>, you capture it, then check the house before it, and keep capturing backwards while the houses hold 2 or 3 (staying on their side).</li>
+      <li>If a capture would take <b>all</b> the opponent’s seeds (a grand slam), nothing is captured.</li>
+      <li>If your opponent has no seeds, you <b>must</b> make a move that gives them some. If you can’t, the game ends and you keep the seeds on your side.</li>
+      <li>The first player to capture <b>25</b> wins. 24 each is a draw.</li>
+    </ul>
+    <h3>Mangala (the Turkish / Arab treasure game)</h3>
+    <ul>
+      <li>4 stones in each pit, a <b>treasure</b> at each end. The <b>first stone goes back into the pit you picked up</b>, the rest go on round. A pit with a single stone just moves it to the next pit. Your own treasure gets a stone as you pass, your opponent’s doesn’t.</li>
+      <li>Last stone in <b>your treasure</b>: move again.</li>
+      <li>Last stone makes a pit on the <b>opponent’s side</b> hold an <b>even</b> number (2, 4, 6…): you capture that pit.</li>
+      <li>Last stone in an <b>empty pit on your side</b>: you capture the stones opposite plus your stone.</li>
+      <li>When a row is empty the game ends and <b>the player with the empty row takes what is left</b> on the other side. Most stones wins.</li>
+    </ul>
+    <h3>This version</h3>
+    <ul>
+      <li>You are the bottom row; the computer (Easy, Normal or Hard) or a friend (“Pass and play”) has the top row. Hint shows what the Hard computer would play.</li>
+      <li>These are the usual rules; houses differ (for example the Mangala “single stone” and end-of-game details). Oware stops after 400 moves with each side keeping its own seeds.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🌰 Mancala games are among the oldest in the world and are played from West Africa to Turkey and the Arab world. Kalah is the common Western version, Oware (Abapa rules) the classic from Ghana, and Mangala the Turkish treasure game (called al-manqala or mancala in the Levant and Egypt, house rules differ). Drawings, sounds, rules code and the computer player are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Mancala family: Kalah, Oware (Abapa) and Mangala (the Turkish / Arab "treasure" game). Board, sowing, captures, end of game and the computer player. No drawing.
+   One array of 14 numbers: 0..5 are player 0's pits (left to right along the bottom), 6 is player 0's store (right end),
+   7..12 are player 1's pits (right to left along the top), 13 is player 1's store (left end). Sowing goes 0,1,2,...,13,0 (anticlockwise).
+   The opposite pit of pit i is 12 - i. Oware has no real stores: 6 and 13 just hold what each player has captured. */
+const MC_STORE = [6, 13];
+const mcSide = i => i < 6 ? 0 : i > 6 && i < 13 ? 1 : -1;      // which player owns pit i (-1 for a store)
+function mcNew(v, seeds) {
+  const n = v === 'oware' ? 4 : (seeds || 4), b = new Int8Array(14);
+  for (let i = 0; i < 14; i++) b[i] = (i === 6 || i === 13) ? 0 : n;
+  return { v, b, turn: 0, over: false, winner: -1, draw: false, plies: 0, note: '', n };
+}
+function mcClone(S) { return { v: S.v, b: S.b.slice(), turn: S.turn, over: S.over, winner: S.winner, draw: S.draw, plies: S.plies, note: S.note, n: S.n }; }
+const mcPits = p => p === 0 ? [0, 1, 2, 3, 4, 5] : [7, 8, 9, 10, 11, 12];
+const mcSum = (S, p) => { let s = 0; for (const i of mcPits(p)) s += S.b[i]; return s; };
+const mcScore = (S, p) => S.b[MC_STORE[p]];
+/* the next position a seed lands in */
+function mcNext(S, pos, p, origin) {
+  let q = (pos + 1) % 14;
+  for (let g = 0; g < 3; g++) {
+    if (S.v === 'oware' ? (q === 6 || q === 13) : q === MC_STORE[1 - p]) q = (q + 1) % 14;
+    else if (S.v === 'oware' && q === origin) q = (q + 1) % 14;
+    else break;
+  }
+  return q;
+}
+/* Oware: does sowing pit i give the opponent any seeds? */
+function mcFeeds(S, i) { const p = mcSide(i); let n = S.b[i], q = i, got = false; while (n > 0) { q = mcNext(S, q, p, n >= 12 ? i : -1); if (mcSide(q) === 1 - p) got = true; n--; } return got; }
+function mcMoves(S) {
+  if (S.over) return []; const p = S.turn, out = [];
+  for (const i of mcPits(p)) if (S.b[i] > 0) out.push(i);
+  if (S.v === 'oware' && mcSum(S, 1 - p) === 0) return out.filter(i => mcFeeds(S, i));   // you must give the starving opponent something
+  return out;
+}
+/* play pit i for the player to move. Returns a trace for the screen: {pit, sow:[positions], caps:[{pos,n}], to:store, extra, over, sweep:[{pos,n,to}]} */
+function mcPlay(S, i) {
+  const p = S.turn, b = S.b, tr = { pit: i, sow: [], caps: [], to: MC_STORE[p], extra: false, over: false, sweep: [], first: -1 };
+  let n = b[i]; b[i] = 0; let last = i; S.plies++;
+  if (S.v === 'kalah') {
+    let q = i; while (n > 0) { q = mcNext(S, q, p, -1); b[q]++; tr.sow.push(q); n--; } last = q;
+    if (last === MC_STORE[p]) tr.extra = true;
+    else if (mcSide(last) === p && b[last] === 1 && b[12 - last] > 0) { const cn = b[12 - last] + 1; tr.caps.push({ pos: 12 - last, n: b[12 - last] }, { pos: last, n: 1 }); b[MC_STORE[p]] += cn; b[12 - last] = 0; b[last] = 0; }
+  } else if (S.v === 'mangala') {
+    let q = i;
+    if (n === 1) { q = mcNext(S, q, p, -1); b[q]++; tr.sow.push(q); n = 0; }
+    else { b[i]++; tr.sow.push(i); n--; tr.first = i; while (n > 0) { q = mcNext(S, q, p, -1); b[q]++; tr.sow.push(q); n--; } }
+    last = q;
+    if (last === MC_STORE[p]) tr.extra = true;
+    else if (mcSide(last) === 1 - p && b[last] % 2 === 0) { tr.caps.push({ pos: last, n: b[last] }); b[MC_STORE[p]] += b[last]; b[last] = 0; }
+    else if (mcSide(last) === p && b[last] === 1 && b[12 - last] > 0) { tr.caps.push({ pos: 12 - last, n: b[12 - last] }, { pos: last, n: 1 }); b[MC_STORE[p]] += b[12 - last] + 1; b[12 - last] = 0; b[last] = 0; }
+  } else {   // oware
+    let q = i; const origin = n >= 12 ? i : -1; while (n > 0) { q = mcNext(S, q, p, origin); b[q]++; tr.sow.push(q); n--; } last = q;
+    if (mcSide(last) === 1 - p && (b[last] === 2 || b[last] === 3)) {
+      const list = []; let k = last; while (mcSide(k) === 1 - p && (b[k] === 2 || b[k] === 3)) { list.push(k); k = k - 1; if (k < 0) break; }
+      let tot = 0; for (const x of list) tot += b[x];
+      if (tot < mcSum(S, 1 - p)) { for (const x of list) { tr.caps.push({ pos: x, n: b[x] }); b[x] = 0; } b[MC_STORE[p]] += tot; }   // taking everything (a grand slam) captures nothing
+      else tr.grand = true;
+    }
+  }
+  mcAfter(S, tr); return tr;
+}
+/* turn change, the end of the game and the winner */
+function mcAfter(S, tr) {
+  const p = S.turn, b = S.b, s0 = mcSum(S, 0), s1 = mcSum(S, 1);
+  const finish = () => { S.over = true; tr.over = true; const a = b[6], c = b[13]; S.draw = a === c; S.winner = a === c ? -1 : a > c ? 0 : 1; };
+  const sweep = (to, from) => { for (const pit of mcPits(from)) if (b[pit]) { tr.sweep.push({ pos: pit, n: b[pit], to: MC_STORE[to] }); b[MC_STORE[to]] += b[pit]; b[pit] = 0; } };
+  if (S.v === 'kalah') {
+    if (s0 === 0 || s1 === 0) { sweep(s0 === 0 ? 1 : 0, s0 === 0 ? 1 : 0); sweep(s1 === 0 ? 0 : 1, s1 === 0 ? 0 : 1); finish(); return; }
+    if (!tr.extra) S.turn = 1 - p;
+  } else if (S.v === 'mangala') {
+    if (s0 === 0 || s1 === 0) { const owner = s0 === 0 ? 0 : 1; sweep(owner, 1 - owner); finish(); return; }     // the player with the empty row takes what is left on the other side
+    if (!tr.extra) S.turn = 1 - p;
+  } else {
+    if (b[6] >= 25 || b[13] >= 25) { finish(); return; }
+    S.turn = 1 - p;
+    if (S.plies > 400) { sweep(0, 0); sweep(1, 1); finish(); return; }             // endless game: each side keeps its own seeds
+    if (mcMoves(S).length === 0) {                                                    // the player to move cannot move (and cannot feed): the other side keeps what it has
+      const owner = 1 - S.turn; sweep(owner, owner); sweep(S.turn, S.turn); finish(); return;
+    }
+  }
+}
+const mcWinnerText = S => S.draw ? 'A draw' : (S.winner === 0 ? 'Player 1' : 'Player 2') + ' wins';
+
+/* ---------- the computer ---------- */
+function mcEval(S, p) {
+  const q = 1 - p, sc = S.b[MC_STORE[p]] - S.b[MC_STORE[q]];
+  if (S.over) return sc > 0 ? 1000 + sc : sc < 0 ? -1000 + sc : 0;
+  const side = mcSum(S, p) - mcSum(S, q);
+  return sc * 1.0 + side * (S.v === 'oware' ? 0.12 : 0.3);
+}
+let mcNodes = 0, mcDeadline = 0;
+function mcSearch(S, depth, alpha, beta) {
+  mcNodes++;
+  if (S.over) return mcEval(S, S.turn);
+  if (depth <= 0) return mcEval(S, S.turn);
+  const p = S.turn, moves = mcMoves(S), kids = [];
+  for (const m of moves) { const T = mcClone(S); const tr = mcPlay(T, m); kids.push({ m, T, tr, k: (tr.extra ? 50 : 0) + tr.caps.reduce((a, c) => a + c.n, 0) * 3 + (T.b[MC_STORE[p]] - S.b[MC_STORE[p]]) }); }
+  kids.sort((a, b) => b.k - a.k);
+  let best = -1e9;
+  for (const o of kids) {
+    const T = o.T, v = T.over ? mcEval(T, p) : T.turn === p ? mcSearch(T, depth - 1, alpha, beta) : -mcSearch(T, depth - 1, -beta, -alpha);
+    if (v > best) best = v; if (best > alpha) alpha = best; if (alpha >= beta) break;
+    if ((mcNodes & 1023) === 0 && Date.now() > mcDeadline) break;
+  }
+  return best;
+}
+/* level: easy / normal / hard. Returns a pit number. */
+function mcChoose(S, level) {
+  const moves = mcMoves(S); if (moves.length <= 1) return moves[0];
+  const p = S.turn, cfg = { easy: [2, 0, 6], normal: [7, 0, 0.3], hard: [14, 900, 0] }[level || 'normal'];
+  let best = moves[0], bs = -1e9, scored = [];
+  mcNodes = 0; mcDeadline = Date.now() + (cfg[1] || 250);
+  for (let d = Math.min(3, cfg[0]); d <= cfg[0]; d++) {              // deepen step by step, keep the last complete answer
+    const res = []; let alpha = -1e9, timeUp = false;
+    for (const m of moves) {
+      const T = mcClone(S); const tr = mcPlay(T, m);
+      const v = T.over ? mcEval(T, p) : T.turn === p ? mcSearch(T, d - 1, -1e9, 1e9) : -mcSearch(T, d - 1, -1e9, 1e9);
+      res.push({ m, v: v + (Math.random() - .5) * 2 * cfg[2] }); if (Date.now() > mcDeadline && d > 3) { timeUp = true; break; }
+    }
+    if (timeUp) break; scored = res;
+    if (Date.now() > mcDeadline) break;
+  }
+  for (const o of scored) if (o.v > bs) { bs = o.v; best = o.m; }
+  return best;
+}
+if (typeof module !== 'undefined') module.exports = { MC_STORE, mcSide, mcNew, mcClone, mcPits, mcSum, mcScore, mcNext, mcMoves, mcPlay, mcChoose, mcEval, mcSearch, mcFeeds };
+
+/* Mancala: Kalah, Oware and Mangala. mc.js has the rules and the computer (checked on its own); this file is the board, the sowing animation, the input and the game flow. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.mancala.v1', { dark: true, sound: true, opp: 'cpu', v: 'kalah', seeds: 4, first: 'you', level: 'normal', speed: 'normal', look: 'glass', board: 'wood', rec: {}, games: 0 }), st = S0.st;
+if (!st.rec || typeof st.rec !== 'object') st.rec = {};
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+settings([
+  { id: 'level', label: 'Computer level', type: 'select', options: [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard (thinks about a second)']], def: 'normal' },
+  { id: 'speed', label: 'Sowing speed', type: 'select', options: [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']], def: 'normal' },
+  { id: 'look', label: 'Seeds', type: 'select', options: [['glass', 'Glass beads'], ['shell', 'Shells'], ['stone', 'Stones']], def: 'glass' },
+  { id: 'board', label: 'Board', type: 'select', options: [['wood', 'Wood'], ['stone', 'Sandstone'], ['night', 'Night']], def: 'wood' },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S0.save(); });
+
+const W = 640, H = 300, C = KIT.canvas($('cv'), W, H, 2), ctx = C.ctx, cv = $('cv');
+const VN = { kalah: 'Kalah', oware: 'Oware', mangala: 'Mangala' };
+const BOARDS = { wood: { bg: '#8a5a2b', rim: '#4a2f17', pit: '#4b2c12', pit2: '#6a4220', hi: '#f0b429' }, stone: { bg: '#c7ad82', rim: '#7d6643', pit: '#8a7352', pit2: '#a89068', hi: '#d9480f' }, night: { bg: '#2b3150', rim: '#12162b', pit: '#161a30', pit2: '#262c4c', hi: '#7ee0ff' } };
+const SEEDS = { glass: ['#e4572e', '#17a2b8', '#f2c14e', '#6a4fb3', '#2fa84f', '#ec7ab7'], shell: ['#f4e6d0', '#e9d3b5', '#f7efe2', '#dcc7a6', '#f1dec1', '#e5cfae'], stone: ['#6f6a64', '#8d867c', '#5a5550', '#a09a90', '#76706a', '#b0a99e'] };
+const SPEED = { slow: 340, normal: 230, fast: 110 };
+let S, view = new Int8Array(14), anim = null, hist = [], over = false, token = 0, thinking = false, hint = -1, hintT = 0, last = null, hover = -1, TS = 1;
+const cpuTurn = () => st.opp === 'cpu' && S.turn === 1;
+const me = () => st.opp === 'cpu' ? 0 : S.turn;                      // whose pits the screen lets you tap
+const sleep = (ms, f) => { const t = token; setTimeout(() => { if (t === token) f(); }, ms * TS); };
+
+/* ---------- geometry ---------- */
+const PX0 = 100, PP = 73.3, ROWY = [205, 95], PR = 31;
+function posXY(i) {
+  if (i === 6) return [588, 150]; if (i === 13) return [52, 150];
+  if (i < 6) return [PX0 + PP / 2 + i * PP, ROWY[0]]; return [PX0 + PP / 2 + (12 - i) * PP, ROWY[1]];
+}
+function pitAt(px, py) { for (let i = 0; i < 14; i++) { if (i === 6 || i === 13) continue; const [x, y] = posXY(i); if (Math.hypot(px - x, py - y) < PR + 9) return i; } return -1; }
+
+/* ---------- flow ---------- */
+function newGame() {
+  token++; O.hide('ovEnd'); anim = null; hist = []; over = false; thinking = false; hint = -1; last = null;
+  S = mcNew(st.v, st.seeds); st.games = (st.games || 0) + 1;
+  S.turn = st.opp === 'cpu' ? (st.first === 'cpu' ? 1 : st.first === 'alt' ? (st.games % 2 === 0 ? 1 : 0) : 0) : 0;
+  view = S.b.slice(); bars(); hud(); rec(); setMsg(prompt()); S0.save(); kick();
+}
+const who = p => st.opp === 'cpu' ? (p === 0 ? 'You' : 'The computer') : 'Player ' + (p + 1);
+const prompt = () => over ? '' : cpuTurn() ? 'The computer is thinking…' : (st.opp === 'cpu' ? 'Your turn. ' : who(S.turn) + ' to move. ') + 'Tap one of your pits.';
+function kick() {
+  const t = token; if (over || anim) return; hud();
+  if (cpuTurn()) { thinking = true; setMsg(prompt()); setTimeout(() => { if (t !== token) return; const pit = mcChoose(S, st.level); thinking = false; if (pit !== undefined) doMove(pit); }, 420 * TS); }
+}
+function snap() { return { S: mcClone(S), last }; }
+function doMove(pit) {
+  if (anim || over) return; hist.push(snap()); hint = -1; const p = S.turn, before = view.slice();
+  const tr = mcPlay(S, pit); last = { pit, p };
+  anim = { tr, p, ops: buildOps(tr, before), i: 0, t0: performance.now(), pit };
+}
+function buildOps(tr, before) {
+  const ops = [], sp = SPEED[st.speed] * TS, picked = before[tr.pit];
+  ops.push({ k: 'pick', pos: tr.pit, n: picked, dur: 120 * TS });
+  let prev = tr.pit; for (const q of tr.sow) { ops.push({ k: 'sow', from: prev, to: q, dur: sp }); prev = q; }
+  if (tr.caps.length) ops.push({ k: 'pause', dur: 260 * TS });
+  for (const c of tr.caps) ops.push({ k: 'cap', pos: c.pos, n: c.n, to: tr.to, dur: 360 * TS });
+  if (tr.grand) ops.push({ k: 'pause', dur: 500 * TS, say: 'Grand slam: a capture of everything is forfeited, nothing is taken.' });
+  if (tr.sweep.length) { ops.push({ k: 'pause', dur: 300 * TS }); for (const c of tr.sweep) ops.push({ k: 'cap', pos: c.pos, n: c.n, to: c.to, dur: 300 * TS, sweep: true }); }
+  return ops;
+}
+function applyOp(op) {
+  if (op.k === 'pick') view[op.pos] -= op.n;
+  else if (op.k === 'sow') { view[op.to]++; const lvl = anim.i; A.beep(380 + Math.min(lvl, 12) * 28, .05, 'triangle', .1); }
+  else if (op.k === 'cap') { view[op.pos] -= op.n; view[op.to] += op.n; A.beep(op.sweep ? 330 : 190, op.sweep ? .08 : .18, op.sweep ? 'sine' : 'sawtooth', op.sweep ? .08 : .12); }
+  else if (op.k === 'pause' && op.say) setMsg(op.say);
+}
+function finishAnim() {
+  const a = anim; anim = null; view = S.b.slice(); hud();
+  const tr = a.tr, p = a.p, notes = [];
+  const got = tr.caps.reduce((q, c) => q + c.n, 0);
+  if (tr.caps.length) notes.push(who(p) + (p === 0 && st.opp === 'cpu' ? ' capture ' : ' captures ') + got + '.');
+  if (tr.extra && !S.over) notes.push((p === 0 && st.opp === 'cpu' ? 'You move again!' : who(p) + ' moves again.'));
+  if (S.over) return endGame();
+  if (tr.grand) notes.push('Grand slam: nothing taken.');
+  setMsg((notes.join(' ') + ' ' + prompt()).trim()); kick();
+}
+function endGame() {
+  over = true; hud(); const a = S.b[6], b = S.b[13], youWon = S.winner === 0;
+  const key = st.v; st.rec[key] = st.rec[key] || [0, 0, 0];
+  if (st.opp === 'cpu') { st.rec[key][S.draw ? 2 : youWon ? 0 : 1]++; S0.save(); }
+  const h = S.draw ? 'A draw' : st.opp === 'cpu' ? (youWon ? 'You win! 🎉' : 'The computer wins') : who(S.winner) + ' wins!';
+  $('endH').textContent = h; $('endP').textContent = (st.opp === 'cpu' ? 'You ' : 'Player 1 ') + a + ', ' + (st.opp === 'cpu' ? 'computer ' : 'Player 2 ') + b + '.' + (S.v === 'oware' && S.plies > 400 ? ' (Stopped after 400 moves.)' : '');
+  setMsg(h); rec(); A.beep(880, .3, 'sine', .15); A.beep(1100, .3, 'sine', .15, .15); setTimeout(() => O.show('ovEnd'), 700 * TS);
+}
+function undo() {
+  if (anim || !hist.length || thinking && false) return; token++; thinking = false; over = false; O.hide('ovEnd');
+  const back = () => { const h = hist.pop(); S = h.S; last = h.last; };
+  back(); if (st.opp === 'cpu') while (S.turn !== 0 && hist.length) back();
+  view = S.b.slice(); hint = -1; hud(); setMsg(prompt()); kick();
+}
+function showHint() { if (over || anim || cpuTurn()) return; const m = mcChoose(S, 'hard'); if (m !== undefined) { hint = m; hintT = performance.now() + 3500; setMsg('Hint: the glowing pit.'); } }
+
+/* ---------- screen bits ---------- */
+function setMsg(t) { $('msg').textContent = t; }
+function hud() {
+  if (!S) return; const two = st.opp === 'two'; $('s1').textContent = over ? 'Over' : who(S.turn).replace('The computer', 'Computer') + (cpuTurn() ? ' 🤖' : '');
+  $('s2l').textContent = two ? 'P1 STORE' : 'YOUR STORE'; $('s3l').textContent = two ? 'P2 STORE' : 'THEIR STORE'; $('s2').textContent = (anim ? view : S.b)[6]; $('s3').textContent = (anim ? view : S.b)[13];
+  let n = 0; for (let i = 0; i < 14; i++) if (i !== 6 && i !== 13) n += (anim ? view : S.b)[i]; $('s4').textContent = n; $('undoBtn').disabled = !hist.length || !!anim;
+}
+function rec() { const r = st.rec[st.v] || [0, 0, 0]; $('recLine').textContent = VN[st.v] + (st.opp === 'cpu' ? ' record: ' + r[0] + ' won, ' + r[1] + ' lost, ' + r[2] + ' drawn' : ' (pass and play)'); }
+function bars() {
+  const mk = (id, arr, cur, act) => { $(id).innerHTML = arr.map(([k, t]) => '<button class="btn sm' + (String(cur) === String(k) ? ' on' : '') + '" data-act="' + act + '" data-k="' + k + '" type="button">' + t + '</button>').join(''); };
+  mk('vBar', [['kalah', 'Kalah'], ['oware', 'Oware'], ['mangala', 'Mangala']], st.v, 'v');
+  mk('seedBar', [3, 4, 5, 6].map(n => [n, String(n)]), st.seeds, 'seeds'); $('seedRow').style.display = st.v === 'oware' ? 'none' : '';
+  mk('oppBar', [['cpu', '🤖 You vs computer'], ['two', '👥 Pass and play']], st.opp, 'opp');
+  mk('firstBar', [['you', 'You'], ['cpu', 'Computer'], ['alt', 'Take turns']], st.first, 'first'); $('firstBar').parentNode.style.display = st.opp === 'cpu' ? '' : 'none';
+}
+
+/* ---------- input ---------- */
+const canPlay = () => !over && !anim && !thinking && !cpuTurn();
+function tap(pit) {
+  if (!canPlay() || pit < 0) return; const mine = mcSide(pit) === me(); if (!mine) { setMsg(st.opp === 'cpu' ? 'Those are the computer’s pits. Tap one of yours (bottom row).' : who(S.turn) + ' to move: tap a pit on your row.'); return; }
+  if (!mcMoves(S).includes(pit)) { setMsg(S.b[pit] === 0 ? 'That pit is empty.' : S.v === 'oware' ? 'You must give your opponent seeds if you can. Pick a pit that reaches their side.' : 'You can’t play that one.'); return; }
+  doMove(pit);
+}
+cv.addEventListener('pointerdown', e => { const p = C.pos(e); tap(pitAt(p.x, p.y)); });
+cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { const p = C.pos(e); hover = pitAt(p.x, p.y); } });
+cv.addEventListener('pointerleave', () => { hover = -1; });
+ui.actions(document.body, {
+  restart: newGame, undo, hint: showHint, closeov: () => O.hide('ovEnd'),
+  v: b => { st.v = b.dataset.k; S0.save(); newGame(); }, seeds: b => { st.seeds = +b.dataset.k; S0.save(); newGame(); }, opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); }, first: b => { st.first = b.dataset.k; S0.save(); newGame(); }
+});
+window.addEventListener('keydown', e => { if (/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; if (e.key === 'u') undo(); else if (e.key === 'h') showHint(); else if (e.key >= '1' && e.key <= '6') { const k = +e.key - 1; tap(me() === 0 ? k : 12 - k); } });
+
+/* ---------- drawing ---------- */
+function seedColour(i, k) { return SEEDS[st.look][(i * 7 + k * 3 + (k >> 2)) % 6]; }
+function seed(g, x, y, r, col) {
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + 1, y + 1.6, r, 0, 7); g.fill();
+  if (st.look === 'stone') { g.fillStyle = col; g.beginPath(); g.ellipse(x, y, r, r * .85, (x * 7) % 3, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1; g.stroke(); return; }
+  const gr = g.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r); gr.addColorStop(0, '#ffffff'); gr.addColorStop(.3, col); gr.addColorStop(1, 'rgba(0,0,0,.55)');
+  g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  if (st.look === 'shell') { g.strokeStyle = 'rgba(120,90,50,.55)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - r * .7, y); g.lineTo(x + r * .7, y); g.stroke(); }
+}
+function seedsIn(g, i, n, cx, cy, big) {
+  const rr = big ? 6.5 : 6.2, lim = big ? 62 : 26, gold = 2.399963;
+  for (let k = 0; k < Math.min(n, big ? 60 : 40); k++) {
+    const r = Math.min(lim, 3 + 4.1 * Math.sqrt(k + 1)), a = k * gold + i * 1.7, x = cx + r * Math.cos(a) * (big ? .55 : 1), y = cy + r * Math.sin(a) * (big ? 1.7 : 1);
+    seed(g, x, y, rr, seedColour(i, k));
+  }
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0); if (!S) return; const t = performance.now(), B = BOARDS[st.board] || BOARDS.wood;
+  // step the sowing animation
+  if (anim) { let op = anim.ops[anim.i], dirty = false; while (op && t - anim.t0 >= op.dur) { applyOp(op); dirty = true; anim.t0 += op.dur; anim.i++; op = anim.ops[anim.i]; } if (!op) finishAnim(); else if (dirty) hud(); }
+  const V = anim ? view : S.b;
+  g.fillStyle = B.rim; g.fillRect(0, 0, W, H); const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, B.bg); gr.addColorStop(1, B.rim);
+  g.fillStyle = B.bg; g.beginPath(); g.roundRect ? g.roundRect(8, 8, W - 16, H - 16, 26) : g.rect(8, 8, W - 16, H - 16); g.fill();
+  // stores
+  for (const i of [13, 6]) { const [x, y] = posXY(i); g.fillStyle = B.pit; g.beginPath(); g.ellipse(x, y, 38, 122, 0, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 3; g.stroke();
+    if (S.turn === (i === 6 ? 0 : 1) && !over) { g.strokeStyle = B.hi; g.lineWidth = 3; g.globalAlpha = .5; g.beginPath(); g.ellipse(x, y, 41, 125, 0, 0, 7); g.stroke(); g.globalAlpha = 1; }
+    seedsIn(g, i, V[i], x, y + 14, true); g.fillStyle = 'rgba(255,255,255,.9)'; g.font = 'bold 26px sans-serif'; g.textAlign = 'center'; g.fillText(String(V[i]), x, y - 80); }
+  // pits
+  const mine = canPlay() ? mcMoves(S) : [];
+  for (let i = 0; i < 14; i++) { if (i === 6 || i === 13) continue; const [x, y] = posXY(i);
+    g.fillStyle = B.pit; g.beginPath(); g.arc(x, y, PR, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 3; g.stroke();
+    g.fillStyle = B.pit2; g.beginPath(); g.arc(x, y + 2, PR - 6, 0, 7); g.fill();
+    if (last && !anim && last.pit === i) { g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, PR + 3, 0, 7); g.stroke(); }
+    seedsIn(g, i, V[i], x, y, false);
+    g.fillStyle = 'rgba(255,255,255,.88)'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText(String(V[i]), x, y + (i < 6 ? PR + 17 : -PR - 8));
+    if (mine.includes(i) && mcSide(i) === me()) { const pu = .5 + .5 * Math.sin(t / 220); g.strokeStyle = B.hi; g.lineWidth = 3; g.globalAlpha = .45 + .45 * pu; g.beginPath(); g.arc(x, y, PR + 5 + pu * 2, 0, 7); g.stroke(); g.globalAlpha = 1; }
+    if (hover === i && canPlay() && mine.includes(i)) { g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(x, y, PR, 0, 7); g.fill(); }
+    if (hint === i && hintT > t) { const pu = .5 + .5 * Math.sin(t / 130); g.strokeStyle = 'rgba(90,200,255,' + (.6 + .4 * pu) + ')'; g.lineWidth = 5; g.beginPath(); g.arc(x, y, PR + 7, 0, 7); g.stroke(); }
+  }
+  // the seed in flight
+  if (anim) { const op = anim.ops[anim.i]; if (op) { const k = Math.min(1, (t - anim.t0) / op.dur);
+    if (op.k === 'sow') { const [x0, y0] = posXY(op.from), [x1, y1] = posXY(op.to), x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 22; seed(g, x, y, 8, seedColour(anim.i, anim.i)); }
+    else if (op.k === 'cap') { const [x0, y0] = posXY(op.pos), [x1, y1] = posXY(op.to), x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 30; seed(g, x, y, 11, '#f2c14e'); g.fillStyle = '#222'; g.font = 'bold 12px sans-serif'; g.textAlign = 'center'; g.fillText(String(op.n), x, y + 4); }
+    else if (op.k === 'pick') { const [x, y] = posXY(op.pos); g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, PR + 2 + k * 6, 0, 7); g.stroke(); } } }
+  // the frame shows whose turn it is
+  g.strokeStyle = over ? 'transparent' : (S.turn === 0 ? '#f0b429' : '#4fc3f7'); g.lineWidth = 5; g.beginPath(); g.moveTo(8, S.turn === 0 ? H - 5 : 5); g.lineTo(W - 8, S.turn === 0 ? H - 5 : 5); g.stroke();
+}
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get view() { return view; }, get over() { return over; }, get busy() { return !!anim || thinking; }, get anim() { return !!anim; }, get st() { return st; }, get hist() { return hist.length; },
+  ts: x => { TS = x; }, tap, play: pit => { tap(pit); }, xy: i => { const [x, y] = posXY(i), r = cv.getBoundingClientRect(); return [r.left + x / W * r.width, r.top + y / H * r.height]; },
+  setBoard: (arr, turn) => { S.b.set(arr); S.turn = turn === undefined ? S.turn : turn; view = S.b.slice(); hud(); setMsg(prompt()); kick(); }, newGame, undo, hint: showHint
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

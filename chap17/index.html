@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 17 · Royal Regions</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Royal Regions">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:620px;--rline:rgba(0,0,0,.28);--rthick:#1f2328;--rbad:#dc2626}
+:root[data-theme="dark"]{--rline:rgba(0,0,0,.25);--rthick:#0b0f14}
+.rwrap{display:flex;flex-direction:column;gap:10px}
+.rhead{display:flex;gap:8px}
+.rstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
+.rstat small{display:block;font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.rstat b{font-size:17px;color:var(--accent-light)}
+.rboardwrap{position:relative}
+.rb{--n:7;--fs:40px;display:grid;grid-template-columns:repeat(var(--n),1fr);grid-template-rows:repeat(var(--n),1fr);width:100%;aspect-ratio:1;border:3px solid var(--rthick);border-radius:6px;overflow:hidden;outline:none;user-select:none;-webkit-user-select:none;touch-action:manipulation;font-size:var(--fs);background:var(--rthick)}
+.rc{position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#111;border:1px solid var(--rline);line-height:1;background-clip:padding-box}
+.rc.tT{border-top:3px solid var(--rthick)}.rc.tR{border-right:3px solid var(--rthick)}.rc.tB{border-bottom:3px solid var(--rthick)}.rc.tL{border-left:3px solid var(--rthick)}
+.rc .ic{font-size:.62em;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.rc .x{font-size:.42em;font-weight:800;color:rgba(0,0,0,.45)}
+.rc .auto{width:.14em;height:.14em;border-radius:50%;background:rgba(0,0,0,.28)}
+.rc .let{position:absolute;top:2px;left:3px;font-size:.22em;font-weight:800;color:rgba(0,0,0,.55)}
+.rc.bad{box-shadow:inset 0 0 0 3px var(--rbad)}
+.rc.bad .ic{animation:rshake .25s}
+.rc.hint{animation:rpulse 1s 2}
+@keyframes rshake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+@keyframes rpulse{50%{box-shadow:inset 0 0 0 4px #f59e0b}}
+.rmsg{min-height:2.6em;font-size:14px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.rbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.rbar .kl{color:var(--muted);font-size:14px}
+.rbar .btn.on{background:var(--accent);color:#000}
+.rpanel{margin-top:2px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Royal Regions</h2>
+  <p>Chapter 17 · Place one crown in every row, column and colour region, and never let two crowns touch</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="rwrap">
+  <div class="rhead">
+    <div class="rstat"><small>TIME</small><b id="tm">0:00</b></div>
+    <div class="rstat"><small>SIZE</small><b id="sz">7×7</b></div>
+    <div class="rstat"><small>BEST</small><b id="bt">-</b></div>
+    <div class="rstat"><small>PLACED</small><b id="pl">0/7</b></div>
+  </div>
+  <div class="rboardwrap">
+    <div id="rb" class="rb" tabindex="0" aria-label="Royal Regions board"></div>
+    <div class="ov" id="ovWin"><h3>Solved!</h3><p id="winTxt"></p><div><button class="btn primary" data-act="new" type="button">New puzzle</button> <button class="btn" data-act="winClose" type="button">Look at board</button></div></div>
+    <div class="ov" id="ovPause"><h3>Paused</h3><p>The board is hidden while paused.</p><button class="btn primary" data-act="pause" type="button">Resume</button></div>
+  </div>
+  <div class="rmsg" id="rmsg">Tap a square once for a ✕ (a square that cannot hold a crown), twice for a crown.</div>
+  <div class="rbar">
+    <button class="btn sm" data-act="undo" id="bUndo" type="button">↶ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="clear" type="button">🧹 Clear</button>
+    <button class="btn sm" data-act="pause" type="button">⏸ Pause</button>
+  </div>
+  <div class="rbar rmenu"><span class="kl">New:</span><span id="sizes"></span><button class="btn sm" data-act="daily" type="button">📅 Daily</button></div>
+  <div id="panel" class="rpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">Rules: one crown in every row, every column and every colour. No two crowns may touch, not even diagonally. Tap once for ✕, twice for a crown, a third time to clear. Keys: Z undo, H hint, P pause.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 This is a classic logic puzzle (it is known as Star Battle or Queens). The puzzles are made by my own generator and each one has exactly one solution. Code, icons and colours are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else last = performance.now(); });
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Royal Regions generator. N x N board cut into N connected colour regions. Put N crowns: exactly one in every row, column and region,
+   and no two crowns touch (not even diagonally). The generator keeps trying until the puzzle has EXACTLY ONE solution. */
+const QGEN = (() => {
+  function mulberry(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  /* count solutions (stops at `limit`). region: array N*N of region ids 0..N-1 */
+  function count(N, region, limit, found) {
+    let n = 0; const cols = new Array(N).fill(-1);
+    function rec(r, colMask, regMask) {
+      if (n >= limit) return;
+      if (r === N) { n++; if (found && n === 1) found.push(cols.slice()); return; }
+      for (let c = 0; c < N; c++) {
+        if (colMask >> c & 1) continue;
+        if (r > 0 && Math.abs(cols[r - 1] - c) <= 1) continue;      // touches the crown in the row above (straight below or diagonal)
+        const g = region[r * N + c]; if (regMask >> g & 1) continue;
+        cols[r] = c; rec(r + 1, colMask | 1 << c, regMask | 1 << g); cols[r] = -1;
+      }
+    }
+    rec(0, 0, 0); return n;
+  }
+  function randomCrowns(N, rnd) {
+    const cols = new Array(N).fill(-1);
+    function rec(r, mask) {
+      if (r === N) return true;
+      const order = [...Array(N).keys()]; for (let i = N - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+      for (const c of order) { if (mask >> c & 1) continue; if (r > 0 && Math.abs(cols[r - 1] - c) <= 1) continue; cols[r] = c; if (rec(r + 1, mask | 1 << c)) return true; cols[r] = -1; }
+      return false;
+    }
+    return rec(0, 0) ? cols : null;
+  }
+  /* grow N regions, one from each crown, by adding random neighbouring cells until the board is full */
+  function growRegions(N, cols, rnd) {
+    const reg = new Array(N * N).fill(-1), front = [];
+    for (let r = 0; r < N; r++) reg[r * N + cols[r]] = r;
+    const nb = i => { const r = (i / N) | 0, c = i % N, o = []; if (r > 0) o.push(i - N); if (r < N - 1) o.push(i + N); if (c > 0) o.push(i - 1); if (c < N - 1) o.push(i + 1); return o; };
+    let left = N * N - N; const sizes = new Array(N).fill(1);
+    while (left) {
+      // pick a region (small ones a bit more often), then a random free neighbour of it
+      const cand = []; for (let i = 0; i < N * N; i++) if (reg[i] >= 0) for (const j of nb(i)) if (reg[j] < 0) cand.push([reg[i], j, 1 / (1 + sizes[reg[i]] * 0.35)]);
+      let tot = 0; cand.forEach(c => tot += c[2]); let x = rnd() * tot, pick = cand[cand.length - 1];
+      for (const c of cand) { x -= c[2]; if (x <= 0) { pick = c; break; } }
+      reg[pick[1]] = pick[0]; sizes[pick[0]]++; left--;
+    }
+    return reg;
+  }
+  const nbOf = (N, i) => { const r = (i / N) | 0, c = i % N, o = []; if (r > 0) o.push(i - N); if (r < N - 1) o.push(i + N); if (c > 0) o.push(i - 1); if (c < N - 1) o.push(i + 1); return o; };
+  /* is the region still one connected piece if we take `drop` out of it? */
+  function connectedWithout(N, region, id, drop) {
+    let start = -1, total = 0; for (let i = 0; i < N * N; i++) if (region[i] === id && i !== drop) { total++; if (start < 0) start = i; }
+    if (!total) return false;
+    const seen = new Set([start]), q = [start];
+    while (q.length) { const c = q.pop(); for (const j of nbOf(N, c)) if (region[j] === id && j !== drop && !seen.has(j)) { seen.add(j); q.push(j); } }
+    return seen.size === total;
+  }
+  /* returns {N, region, sol} with exactly one solution, or null if it ran out of tries.
+     Method: start from random regions, then repeatedly find a WRONG answer and nudge one of its crown squares into a
+     neighbouring region, which kills that wrong answer. Keep going until only the intended answer is left. */
+  function make(N, seed, tries) {
+    const rnd = mulberry(seed);
+    for (let t = 0; t < (tries || 40); t++) {
+      const cols = randomCrowns(N, rnd); if (!cols) continue;
+      const region = growRegions(N, cols, rnd), isCrown = i => cols[(i / N) | 0] === i % N;
+      let cur = count(N, region, 40);
+      for (let it = 0; it < 400 && cur > 1; it++) {
+        const found = []; count(N, region, 2, found);               // first answer found; compare with intended
+        let alt = found[0], same = true; for (let r = 0; r < N; r++) if (alt[r] !== cols[r]) same = false;
+        if (same) { const f2 = []; let k = 0; const cc = new Array(N).fill(-1);
+          // the first answer IS the intended one: look for a different one by banning the intended crown in a random row
+          const row = Math.floor(rnd() * N); const saved = region[row * N + cols[row]]; region[row * N + cols[row]] = -9;   // temporarily remove that crown square from play
+          const g2 = []; count2(N, region, g2); region[row * N + cols[row]] = saved; if (!g2.length) continue; alt = g2[0]; }
+        const diff = []; for (let r = 0; r < N; r++) if (alt[r] !== cols[r]) diff.push(r * N + alt[r]);
+        if (!diff.length) continue;
+        const cell = diff[Math.floor(rnd() * diff.length)], from = region[cell];
+        const targets = []; for (const j of nbOf(N, cell)) if (region[j] !== from && region[j] >= 0) targets.push(region[j]);
+        if (!targets.length || isCrown(cell) || !connectedWithout(N, region, from, cell)) continue;
+        const to = targets[Math.floor(rnd() * targets.length)]; region[cell] = to;
+        const n2 = count(N, region, 40);
+        if (n2 <= cur || rnd() < 0.05) cur = n2; else region[cell] = from;
+      }
+      if (cur === 1) { const f = []; count(N, region, 2, f); return { N, region, sol: f[0], seed, tries: t + 1 }; }
+    }
+    return null;
+  }
+  /* like count() but a square with region -9 is forbidden; returns one solution in `out` */
+  function count2(N, region, out) {
+    const cols = new Array(N).fill(-1); let done = false;
+    function rec(r, colMask, regMask) {
+      if (done) return; if (r === N) { out.push(cols.slice()); done = true; return; }
+      for (let c = 0; c < N; c++) { if (colMask >> c & 1) continue; if (r > 0 && Math.abs(cols[r - 1] - c) <= 1) continue; const g = region[r * N + c]; if (g < 0 || (regMask >> g & 1)) continue;
+        cols[r] = c; rec(r + 1, colMask | 1 << c, regMask | 1 << g); cols[r] = -1; }
+    }
+    rec(0, 0, 0);
+  }
+  return { mulberry, count, make };
+})();
+if (typeof module !== 'undefined') module.exports = QGEN;
+
+/* made by gen.js (tools/genall.js); every puzzle has exactly one solution, re-checked by tools/verify.py */
+const PUZ={"5":[{"r":"BBBACBBBBCDBCCCDEEECEEEEE","s":"31402"},{"r":"CAAABCCBBBCCCDBCCDDBCEEDD","s":"24031"},{"r":"BAAACBBBACDDDECDDDEEDDDEE","s":"20413"},{"r":"DAACBDACCBDDCBBDDCEEDDDEE","s":"14203"},{"r":"AAACCABBCCADDDCDDDCCDDDEE","s":"02413"},{"r":"CAAAACDBBACDDEECDDDEDDEEE","s":"13024"},{"r":"CBBDACBBDDCBBDDEEBDDEEEDD","s":"42031"},{"r":"AACCBAACBBACCBBCCCEDEEEED","s":"03142"},{"r":"BBAAABBBCCEBBCCEDDCCEECCC","s":"31420"},{"r":"AAABBABBBBDBDDCDDDDEDEEEE","s":"02413"},{"r":"ACCCBAACBBCCCCCCEDDDCEEDD","s":"03142"},{"r":"BCCAABCCCDBCCCDEEECDEEEDD","s":"30241"},{"r":"AAABBCABBBCDDDBCCDDDCCDDE","s":"13024"},{"r":"CCAAACCBDDCCCDDCCEDDCEEDD","s":"42031"},{"r":"BBBBABBBCADEECCDEEECDEEEC","s":"41302"},{"r":"AAABBAAABBCCADBCDDDDDDDEE","s":"13024"},{"r":"BBAAADBCCADBECADEECCDDEEE","s":"41302"},{"r":"BBAAABBACABDACABDDCCDDEEE","s":"20314"},{"r":"ACBBBACBBDCCBBDCCEBDEEEDD","s":"03142"},{"r":"BAAAABAADDEECDDEECDDEEEDD","s":"30241"},{"r":"BBBAABBCACBBCCCBEDCCEEDDD","s":"31420"},{"r":"CAABBCAABBCCABBCCCBDCCEBD","s":"13042"},{"r":"AAAAAAAACBAACCBDDDBBDDEEE","s":"14203"},{"r":"CACCBCCCCBDCCCBDDCCCDDEEE","s":"14203"},{"r":"AAAAAABACCDBEECDBECCBBEEE","s":"31402"},{"r":"AAAAABDAACBDACCDDDCCDDDCE","s":"20314"},{"r":"AAAAAADBBBDDBBCDDEBEDDEEE","s":"02413"},{"r":"EEAAAEEBDACEBDAEEEDDEEEDD","s":"42031"},{"r":"ADBBCDDBBCDCCCCDDDECEEEEC","s":"02413"},{"r":"AAAAAABBCCADDCCDDDDEDDDEE","s":"02413"}],"6":[{"r":"ABBBBBAACBBBCCCCBBCCCDBBCCDDEEFFFFEE","s":"041352"},{"r":"AAAAAABAAACCBDEAECDDEEECDEEEEEDFFFEE","s":"305142"},{"r":"AABBBBAABBBBACCBBBCCDDBBCCDDDEFFFFFE","s":"041352"},{"r":"AAAAABACDFFBACDFFFECDDFFEEEDFFEEEFFF","s":"251304"},{"r":"BBBBCABDBBCCDDDCCCDFDEECDFDEEEFFFEEE","s":"524031"},{"r":"ACCCCBCCCCDBECCCDDECCDDDEEFDDDEEFFDD","s":"052413"},{"r":"AAAAABAABBBBCACCDBCCCCDDFFEEDDFEEDDD","s":"142530"},{"r":"CBBBAACBBDDDCCBDDEFCBDEEFCFFFEFFFFEE","s":"420351"},{"r":"BBAAEEBBBACEBBAACEBDDCCEBDDEEEDDFEEE","s":"304152"},{"r":"BAAAACBBBEACDBBECCDDEEECDDEEECFEEEEC","s":"425130"},{"r":"BBBAAABBBBBACBBBAACBBDAACCDDAEFFDDEE","s":"420351"},{"r":"BBBAAABBBBAACBBEAAFDDEEAFFDEEEFFDEEE","s":"530241"},{"r":"BAAAAABCACDABCCCDDFEEDDDFEEEEDFFEEED","s":"402531"},{"r":"FFAABBFFACBBFFECBEFDEEEEFDDEEEFFDEEE","s":"253140"},{"r":"BBBAAEBDBBCEDDDECEDDEEEEDDDEEEFFFFFE","s":"304152"},{"r":"BBCAAABCCCCDFCCCDDFCEDDDFFEEFDFFFFFD","s":"402531"},{"r":"BBAAADBBAADDBBCAADFFEEEDFFEEEEFFFFFE","s":"402531"},{"r":"CCAAAACCABBECDABEECDDEEEFFEEEEFFEEEE","s":"530241"},{"r":"BAAAAABCCCCEBDCCEEDDCCEEDFFFFEFFFFFF","s":"403152"},{"r":"AAAAABAAAAABAECCCDEECDDDEFFFFDEFFFFF","s":"152403"},{"r":"AAAABBAACBBBDDCBEBDDCBEEEEEEEFEEEFFF","s":"142035"},{"r":"BBADDDBCACDDBCCCCDEECEFDEEEEFFEFFFFF","s":"203514"},{"r":"BAAAAABBAAAADBAACEDBBEEEDFEEEEDFFFFE","s":"314052"},{"r":"BBBBAACBBBDDCCCCDDCEDDDDCEEDDDCEEDFD","s":"520314"},{"r":"BBBAAABBBAAACCCCAACCDCDDEEDDDFEEEDDF","s":"302415"},{"r":"ACCBBBCCCCBBCCCFBBCCFFFDEEEFFDEFFFFF","s":"042513"},{"r":"BCCCCABBCCCCBCCCCCBDEEECBEEEEEFFFFFF","s":"503142"},{"r":"ABBBBBCCCBDBCCEEDDCCEEFDCFEEFDCFFFFF","s":"031524"},{"r":"ACBBDDCCBBDDCCCBBDCCDDDDEEEEDDEEEEDF","s":"031425"},{"r":"BBBDAABBDDDADDDDCCEEEDDDEFFDDDEFFFDD","s":"415302"},{"r":"BBBACCBAAACCBBCCCCBBDCCEDDDCCEFFFEEE","s":"304251"},{"r":"ABBBBCBBBBBCBEDDBCEEDDFFEEDFFFFFFFFF","s":"025314"},{"r":"AABBBBCABBBBCABFBECDDFFEFFFFEEFFFFEE","s":"140253"},{"r":"BBAACCBAAACEBAAECEDDFECEDDFEEEDFFEEE","s":"304152"},{"r":"AAAABDACDABDCCDDDDCCCDDEEEEEEEFEEEEE","s":"241350"},{"r":"BBBBBACCBBBECDEEEECDDDEEFFFFEEFFFFFE","s":"530241"},{"r":"ADDDBCAADBBCFDDDCCFFDDECFFDDEEFFFFEE","s":"035241"},{"r":"ACCCCBAAACBBECCCBBEECFBDEEFFFFEFFFFF","s":"042513"},{"r":"AABBBDCCBBDDCEEBDDEEEEDDEEEEEDFFFFFD","s":"130524"},{"r":"AAAABBAAABBBDDCBBFDDDEFFDEEEEFEEEFFF","s":"142035"}],"7":[{"r":"BAAAAAABBBAACCEEBBBBCEBBBDDCEEEEFDDEEFEFDDEEFFFGG","s":"3164025"},{"r":"ABDDCCCABBDDCCBBBDDCCBBEDDFCEEEDFFCEDDDDFFEEEDGFF","s":"0253164"},{"r":"CCCAAAACCCAABDEECCDDDEEECCDDEEEFFDFEEFFFFFEGGFFFF","s":"3526041"},{"r":"AAAAACCAABDCCCFFDDEECFFFDEEGFFFDDEGFFFGGGGFFFGGGG","s":"0263514"},{"r":"CCAAABBCCABBBDCCDDDDDCEEDDDFCEEDFDFEEEFFFFEGEEEFF","s":"3504261"},{"r":"CCAAAAACCCDABBCCCDAEECDDDEEECCDEEEEFFDEEEEGGGEEEE","s":"4613502"},{"r":"DDAAAAADDDBBAADDDBCCCDGDFEEEGGFFEEEGGGFFFEGGGGFFE","s":"2460531"},{"r":"AABBBCCDABCCCCDDDCCCEFDCCFCEFFFFFFEFFFFGGGFFFGGGG","s":"0241635"},{"r":"DBBBBACDDBBBCCEDDFBCCEEDFFFFEEGFFFFEEGFFFFGGGFFFF","s":"5362041"},{"r":"CCCAABBCCCCBBDCCGDDDDCGGFFDDEGGFFFGGGGGFFGGGGGGGG","s":"3516042"},{"r":"BBBBAAACBBBBBACDDBBFAEDDDGFFEEDGGFFEGGGGGFEGGGGGG","s":"5203164"},{"r":"BBAAAAABDDADAADDDADDCEDDDDCCEEDDDCFEEFFFCFGGGFFFF","s":"5063142"},{"r":"ABBBBBCDDDBEBCDDEEEBCFDDEECCFFDEECGFFDGECGFGGGGGG","s":"0362415"},{"r":"CCABBBBCCCBBBDCCCCDBDCCCCDBDECGDDDDEEGGFFGEEEGGGG","s":"2416053"},{"r":"DDDAAAADDBACCADDCCCCAFDDCCCCFDEECGCFEEGGGCEEEGGCC","s":"6251304"},{"r":"DAABBCCDDDBCCCDDEECCCDDEEECFDDEEECFDGEEFCFDGGGFFF","s":"1350462"},{"r":"CCCAAABCCCCBBBCCCCDDDCCEEFDFECEEFDFEEEFFFFGFFFFFF","s":"3615240"},{"r":"CCCCCBACCCCBBAECCCBBDECCFDDDEGCFFFDGGFFFFDGGGGGFD","s":"6425031"},{"r":"ACCCCBBCCCBBBDCCCCDBDEEFFDDDGEEFFFDGEEFFFDGGFFFFF","s":"0536241"},{"r":"AAAAAAAAAAADDBAACCCDDCCCCDDDFCCEDDDFCGGGDGFFFFGGG","s":"1625304"},{"r":"CCCAAAACCAAABBCDDDDDFEEDDFFFEEDFFFFEEDDFFFGGGDDFF","s":"4603152"},{"r":"AAAACCCAAACCBBDAFFCEEDAFFEEEDDDFFEEGGGFFFEGGGGFFE","s":"2640531"},{"r":"AAAABBBAACCBBFCCCCCFFCDEECEFDDEEEEFDEEEFFFGEEEEFF","s":"2531460"},{"r":"AABBBBBABBBEEBACEEEBBCCCEEEDFFEEEEEFFFGGGEFFFGGGE","s":"0316425"},{"r":"BBBBBCADBBBBCCDDDBCCCDDDEEECDDFEEEEFFFEEEEGFFFFEE","s":"6351420"},{"r":"AAAADDDAAACCBDACCCCBDAECCCGDAEEEGGGGFFEGGGGGGGGGG","s":"0526314"},{"r":"BBCCAAABCCCCCCEECCCCDEECCDDDEECCCCDGEEFCCFGGGFFFF","s":"4035162"},{"r":"DDBBCCADDBBBCCDDFCCCCDDFFCCCDFFFECCDFFGCCCFFGGGGC","s":"6250413"},{"r":"ACCBBBBCCCBBDBCCCCDDDCCCCDDDEECCDFDEFFFDFFEFFFFFG","s":"0425136"},{"r":"CCAAAAACCBAAAACCCAAEACCDDAEAFFFDEEEFFDDDGEFFDDDGE","s":"4203615"},{"r":"ABBCCCCABBBCCCBBBBCCCDDDBBCCDDDDEEEDDDDEFFGGDDEFF","s":"0352461"},{"r":"AABCCCCDABCCCCDDCCCCCDDDCCEEDDDFFEEFDFFFEEFFFFFFG","s":"0241536"},{"r":"CCCAAABCCCAABBCCCCABDCCCEEBDCEEEBBDFEEEBGDFFEGGGG","s":"3516204"},{"r":"AAAAAABDDAABBBCDDDDBBDDDEEEBDFFGEEEFFGGEEEFGGGEEE","s":"4602513"},{"r":"CAAABBBCCCCCBBCCCBBBBCCDDBFBDCDDEFFDDDEEFFDDDGGFF","s":"1502463"},{"r":"BBCCAAABCCCEEACCCCEEACCEEEEDFGGGEEEFFGGGGEFGGGGGG","s":"5026413"},{"r":"CCAABBDCCCAABDCCCABBDCCCDDDDCCCEDDDCFEEEDDFFFGGDD","s":"2506314"},{"r":"AAACCCBAACCCCBECCCCBBEEEEFDDEEFFFFFEEEFFFFGFFFFFF","s":"2635140"},{"r":"DBBBAAADDBBEAADDDEEECDFDDEEEFFDDDEEFFFDGEEFFGGGGE","s":"4260513"},{"r":"BBBBBBABBBCCCCBBDCCCCBBDCCCCBBDDGECFBDDGEEFDDGGGE","s":"6142503"}],"8":[{"r":"BBBCCCCABCCCEECCBBCCCEEEBBDFCCEEFFFFCHEEGFFFHHEEGGFFHHHEGFFHHHHH","s":"70426315"},{"r":"AAAAAAAABBBBAAADBCCBDDADEECCCDDDEEEECDDDFFEEEDDDFEEEEHHGFEEEEHHH","s":"40263175"},{"r":"BBDADCCCBDDDDCCCDDDDDCFFDGDDEEFFDGEEEEEFGGGGGEHFGGGGGEHHGGGHHHHH","s":"30524716"},{"r":"AAAAAAABCACAAABBCCCAABBBCCEDDDBBECEEDDDDECEEFDDDEEEFFGDGEEHGGGGG","s":"36150472"},{"r":"AAAAAAAABCCCAADDBBCCDDDDECCCCDDDECECDDDDEEEEEDFFGGGGEDHFGGGEEDHF","s":"40352716"},{"r":"AAAEBBBBAADEEEBECADEEEBEFADDEBBEFDDHEEEEFDFHGEGEFFFHGGGGFHHHHGGG","s":"16035274"},{"r":"AAACBBBBACACCCBBCCCCCCCCCCCCCCDDCGGEEEEDFGEEHHDDGGGHHDDDGHHHHDDD","s":"16375024"},{"r":"CCCCBBAACCCBBDDACEEDDDDFCEEEDDFFEEEEEDGFEEEGEGGFEEGGGGGGEEGGGHHG","s":"63041725"},{"r":"ABBCCCCCAABBCCCCEBBBDCHCEEBBDFHCEEBDDFHCEGBFFFHCEGGFFHHHGGFFFHHH","s":"03741526"},{"r":"CCCAABBBCCCDDDBBCCCDDDEECGGGDGEECCGGGGGEFFGGGGEEGGGGGGHHGGGHHHHH","s":"36147025"},{"r":"BBBBBBBABBBBBBAADBBBBCCADBBCCCCADDBCFECCDFFFFECEHFGGGEEEHHGGGGGE","s":"73605241"},{"r":"ACCBBBBBCCCCBBBBCCCBBBFBDDDDDDFFDDDDDEGFDDDGDDGFDDDGGGGFHHHGGGGG","s":"06135742"},{"r":"CCCBBBAACCCCBBBACBBBBDDACCCDDDEECDDDEEEEFFFDEEEGFFFEEEEGFFHHHHHG","s":"64035172"},{"r":"CCAAABBBCAAEABBDCFAEEDDDCFEEDDDDFFEEEEDDFFEEEEDDHHGGGEEDHHHGGGGD","s":"36075142"},{"r":"CCCCABBBCCCCCDDBCEECDDDBEEEEEGDDFFHEEGGGFFHHGGGGFFHHGGGGHHHHGGGG","s":"47063152"},{"r":"AAABBCCCEABBBBCCEADDDCCCEADDCCFFEHHGGCFGHHHGGGFGHGGGGGGGHHGGGGGG","s":"25730641"},{"r":"CCCCAAABCCAAAABBCCACAABBCCCCDDDDGGCEDDDDGGGEDDEFGGGEDDEFHGGEEEEF","s":"46153720"},{"r":"BBBBCCCABBBCCCCDBCCCCCCDCCEECEDDCFFEEEEDFFFFEEEGFFFHGGGGFFFHHHHG","s":"70264153"},{"r":"AAABBBCCEEBBDDCCEEGGDCCCEEGGDCCCEGGGHCCFGGHHHFCFGGGHHFFFGGGHHHFF","s":"13640725"},{"r":"BBAAAAAABBAAGACCBBBGGECEBDGGGEEEBDDDGGGEDDFDGGGEHHDDGGGGHHHHHHGG","s":"40617253"},{"r":"AAAAAAAAAAAAAACBADAAACCBDDEEECCCFDEEEEGGFFFEEGGGFFFGGGGGFHFGGGGG","s":"37504261"},{"r":"CCAAABBBCCCABBBDECCABGDDEFFFGGGDEEFGGGGGHEFGGGGGHHFHGGGGHHHHGGGG","s":"46170253"},{"r":"AAAABBBBAAACBBBBDACCCCBBDADDCCBBDDDDCEBBFDDDEEEEFHDDEGEGHHHEEGGG","s":"36425071"},{"r":"AAAAAABBAAAABABBCAAABBBBCCCDDBBBFFFDDEBBHFFFFEGBHFFFFEGBHHFFFFGG","s":"47035261"},{"r":"CCDDDDAABCDDDDAABCCDDDDECCGGDDDEFFGGGDDEFFGGGDHHFGGGGGHHFGGGGHHH","s":"60247135"},{"r":"BBBBEEEABCBEEEEDCCBEEDEDCEEEDDDDGGGEEFDDGHHHHFDFGGHHHFFFGHHHHHFF","s":"72063514"},{"r":"AAACCCEEABBCCCCEACCCCCCEDDDCCCCEDGFFCFEEDGGFFFEHGGGGFFHHGGGFFHHH","s":"02417536"},{"r":"DACCCCBBDAACBBBBDDCCBHBFDEECBHBFDEEHHHFFEEGGGHHFEHHHGHHHHHHHHHHH","s":"15302746"},{"r":"AAABBBCCAABBBBCCAAABEECCADABBECCDDDBEEECDDFFGEEEDDFFGGEEHHGGGGGG","s":"24716350"},{"r":"CCCCBAAACCCBBBBACEEDDDDDEEEEHHHDEEGEHHDDEEGGGHFFGGGHHHHFGGHHHHHF","s":"53071624"},{"r":"BBBBBAAABBBABBBACCAAAAAACCCCEEEDCCCFEEEECCFFHHHHCGGHHHHHGGHHHHHH","s":"62075314"},{"r":"AAAACCCCBAAACCCCBBAECCCCDDDEEECFEEDEECCFEEEEGFFFEEEEGGFFEEEEGGFH","s":"20513647"},{"r":"AABBBBBBABBBCBBBAABBCCCFDEECCCCFDEECECCFEEECEFFFHEEEEGFFHHHGGGGF","s":"13604752"},{"r":"BBCCCCAEBBCCCCCEBCCCCCEEBDFCCCEEBDFHEEEEFFFHHHEEFFHHGGGEFFHHHHGE","s":"60417253"},{"r":"BBBAAAAABEEEADDABBECDDDDEEEEEEFDGEEEEEFDGEEGGGFFGEGGFFFFGGGGHFFF","s":"50371624"},{"r":"BBBBAAACDBBBACCCDDDBCCCCDDDBHCCCEEDHHHHCGGDHFHFCGGHHFFFCGHHHHFFF","s":"53720614"},{"r":"BBBBAAAADDBBBCEADBBDCCEEDDDDCHEEDDFDHHHEDFFHHHHEGFHHHHHEFFHHHHHH","s":"63517204"},{"r":"ACCCDBBBCCDCDEEBCCDCDDEBCCDDDDEECFFFFDEEGFFFFFFEGFGGHFHHGGGGHHHH","s":"07136425"},{"r":"BBBAAAAABFFFDDEABBFDDDECFFFFDDEEFFFDDGEEHHFHDGGGHHFHGGGGHHHHHHGG","s":"30746251"},{"r":"AAAABBBBCCCACEBBCCCCCEEECCEDDEEECEEEEEFFCCEEEFFFGHEEHHFFHHHHHFFF","s":"26135704"}],"9":[{"r":"BAAAAAAAABBBAACCCCDBBBAAAACDBBEAAAACDDDEEFFFFGDDGGFFFFGDGGGFFFFGGGIGGHFFGGGIGHHHH","s":"518047263"},{"r":"CCBBBBBAACCDDBEBAECCDDDEEEEDDDFFFEEEDFFFFFFEFDFFFIFFFFGGFFIIFIIGGHHHIFIIGHHIIIIII","s":"840275136"},{"r":"BBBAAAAADBGGGAADDDCCCGAADFDCCGGEEDFDHGGGEEFFFHGGGGGFFFHIIGGFFFFHHIGGFFFFHIIIGFFFF","s":"602857413"},{"r":"AABBBBBBBADBBBCBCCADBBBCCCCADDDBCCCCEFFDDDCCCEFFHHGGGCEFHHHGHGCFFFHHHHGIFFHHHHIII","s":"146302758"},{"r":"BBBDDACCCBDDDDCCEEBBBDDCCEEDDDDDCEEEFDFGDCEEEFFFGGGIEEFFHHGIIEEFFHGGIIEEFFHIIIIIE","s":"506381427"},{"r":"BBBBBCAACBEBCCCCCCEEBCCCCCCECCCCCCDCEEEFCCDDDEEEFFGGDDEEIFFFGGGHIIIFFFGGIIIIFFGGG","s":"625714803"},{"r":"BBBBBBAACBBBBABACCBBBFAAACCDDBFAFCCCDEEFAFCCCDEHFFFGCCDEHFFFGCCDDHHFGGGGDHHHHIIGG","s":"718024635"},{"r":"ACCCDDDBBCCCCDDDBBCCCEDDDDFCCCEEDDDFEEEEFFFFFEEGGGGHFHEEGGGGHFHGGGGGHHHHIIGGGHHHH","s":"082537461"},{"r":"EBBAAAAAAEEBBBAAAAEEEFBBAACDEFFFFAFIDEEFFFFFIGGGFFIIIIGGFFFHIIIGHHHHHIIIGHHHHIIII","s":"638024157"},{"r":"FEEBBBAAAFEEEEBCCCFEEEEBCCDFEEEDDDDDFFEEEDDDDFFHHIDDGGFFHHIGGGGHHHHIIGGGHHHIIIIGG","s":"857420613"},{"r":"DDCCCAAABDDDCCEEEBDDDCCEEEEDCCCCEEEEDDEEEEEGIDDFEEGGGIHFFEEEGGIHHHEEGGGIHHHGGGGII","s":"583042617"},{"r":"AAAAACCBBAAAACCCBBAADCCCCCBDDDCGGGCCDDDIGGGCEDHFIGGGGGDHHIGGGGGDHHIIGGGGIIIIGGGGG","s":"475082613"},{"r":"DDDAAAAAADDAAACCCBDDDFACECCDDDFFEEEEDDDFFEEEEDDDDFFFEHDGFFFFEEHGGIFFFFHHGIIIIIHHH","s":"385064172"},{"r":"AADDDDDBBAAADDDDEBACFFFFDEECCFDDDDEEFFFFDGDEHFFFGGGDHHFFGGGGHHHFGGGGGHHHFIIIGHHHH","s":"081572463"},{"r":"BBBBBDAAABBBBBDCCCBBBBBDCCCEBBBDDCCCEEBBDDDCCGEEEFFDFCGGGIIFFFCHGIIFFFFFHGIIFFFFF","s":"648517203"},{"r":"BBDAAACCCBDDDEECCCDDDDEECECDDFDEEEEGDDFFFEEEGFFFFEEEEGFFFHHHGGGFFFFHHGGIFFHHHHGGI","s":"306152748"},{"r":"DDBBBAECCDDDBBBECCDDDFBEECCDDDFEECCCDFFFGEEECDFFGGECCCDGFFGGCCCGGGGGHHCCGGIIHHHHH","s":"538071462"},{"r":"ACCCCBBBBDDDCCCBFFDDDDCCCFFDDDDDECCFDDDDDEEEFGGDDEEEFFGGDEEEHFHGGGGIEHFHGGGIIIHHH","s":"064257183"},{"r":"BBBBBCCCADBBFBCCCCDDDFFFCCCDFFFFCCCEDDFFCCCEEFFFFFCGGEFFFFFGGEEHFHHHHGIEHHHHIIIIE","s":"816073524"},{"r":"DDCCCCAAADCCCBBBBBDCDCCCBBBDDDEECBBBDDEEEEEEEDDDEEEFEEGDDHHFFEEGHHHFFFFEGGHIIFFFF","s":"753186024"},{"r":"AAACCCBBBACCCCBBEBAAADCCBEEDADDCCBBEDDDDCCEEEFFDFCHEEEGFFFFHEEEGGHHHHHEEGGGHIHHHH","s":"185273064"},{"r":"FFBBBBAADFFBBBBADDFBBBEBCDDFBFEEEEDDFFFEEEDDDFFGEEDDDDFFGGEEEDEHHIGGEDDEHHIGGEEEE","s":"746851302"},{"r":"AACCCCCBBDDCCCCCCBDDDCCECCCFDEEEEEECFFEEEEEECFFFGEEHECFFFGGHHEHIFGGGHHHHIIIIHHHHH","s":"086152473"},{"r":"DDBBBBBBADDDCCCBBBDDDCCCCBEDGDCGGEEEDGGGGGHEEFFFGHHHHHFGGGHHHHHFFFGHHHHHFFIHHHHHH","s":"864071352"},{"r":"AAAAAAAACBAADDDAACAAADDDDFCGGEEEEDFFGGEGEDDFFGGGGEEDFFGGGEEEEHHIGGGEHEHHIIGGHHHHH","s":"308647251"},{"r":"BBBBBBCCABBBBBCCCCBBEBEECCCDEEBEEHCCDDEEEHHCCDFGGGHIIIDGGGHHHIIGGHHHHHHIGGHHHHHII","s":"826041357"},{"r":"AAAACCCCCAAAABCCCCAAEADDCCCFAEADDDCCFAEEEDDCCFFEEEEGGGFFEEEEGGGHFFEEEGGGHHHEEEGGI","s":"247531608"},{"r":"CCCBBBBAECDDBBBEEECCDDBBBEECDDDDGGGECDDFFGGEEFDFFGGGEGFFFGGGGGGFHFHGGGGGIHHHHHHHH","s":"751482630"},{"r":"ACCCCCBBBCCCCCBBFFEECCCDBFFEECCCDBFFEEECIDDFFGGIIIFFFFGGIIIIHHHGGIIIIIHIIIIIIIIII","s":"063528174"},{"r":"BBBCCAAAAEBBCCDDDDEECCCDDDDEEEECCDFHEEEECFFFHEEEECCFFHEEGGCIFHHGGGGCIHHHGGGGIIIIH","s":"513607284"}],"10":[{"r":"AAAAAABBBFAAAAABBBCFGGAAABCCCFGGABBBDDFFGGAAEEFFFFGAAAAEEFFFGGEEAEEEFFGGHEEEIIIFGGHEEEHHIIGJHHHHHIII","s":"3586470291"},{"r":"CCBBBBBBBACCCCCDDBBDCCECDDDDDDFCEEEDDDDDFFFFEEEGGGHFHFFEGGGGHFHFFEEGGGHHHHJEIIGGHHHHJIIGGJHHHJJJJJJJ","s":"9706418253"},{"r":"DAAAACCCCCDDDAAACCCBDDCCCCCCCCDDDECEEFFFDDEEEEFFFFHDFFFFFFFFHFFFFGGFFFHHIIIGGGGGJHIIGGGGGGJHIIIIIIII","s":"4972586130"},{"r":"ABBBBCCCCCBBBCCCCCDCEEEEDDCDDCEEEEDDDDDCEEDEDDDDDDEEDDDDJFFFIEHHHHJGFFIHHHHJJJFFIIHHHHHJFFIHHJJJJJFF","s":"0268397415"},{"r":"AABBBBBBDDACBBBBFFFDACBBBBFFFDGGBEFFFFFDGGBEFFFHFFGGGEEEEHFFGGGIIHHHHHGGIIHHHHHHGGIIIIHHHHGGGJJJJHHH","s":"0519382746"},{"r":"DDACCCCEEBDDDCCCCEEBFFDDCECEGGFDDDCEEEGGFFDFCCEEEGFFFFFEEHEGFFFFHEHHGGFFFFHHHHGIFFJJHHHIIIFFJJJHHHHI","s":"2941608573"},{"r":"AAAAAAABBBAAAAAABBDCAAAAAABBDCEEEABBBDDDEEEABGBDDFEEEEBGGDFFEEGGGGGFFFGGGGHHHJJFIGGGHJHJJFIIIHHJJJJJ","s":"3697182405"},{"r":"BBBBBCCAAABBBDDDCACCBDBDDCCCCCBDDDDDCCCCDDDDDCCECCDFDDDGEEEEFFFFGGEEEEFFFGGGHHHHFFFIGIHHHHFFIIIIHJJH","s":"9052714638"},{"r":"CCBBBBAAAACCCBFDDDAACCCFFDDDDACCCEFDFFDGEEEEFDFFDGEHFFFFFFDGHHHFFFFIGGHFFFFFFIIGHHHFFIFIIGHHFFFIIIIJ","s":"6315248079"},{"r":"BBBBBBBBACBBBBBBBBCCBBBBBDDCCCBBBDBDDDCCBDDDDDDECCFFGGDDEEHHIFFGGJEEHHIIIGGJHHHHIGGGGJJJHHIIIIGJJJHH","s":"8293714605"},{"r":"BBBBBAAAAABBBBBBACCCBBBDDFAFFCBDBDDFFFFFDDDDGGEFFFHDDDDGGFFFHHHDGGGGFFHHDDGGGGFFHHHHGIIGFFJIIIIIIIFF","s":"7293684150"},{"r":"DDBBBBBAAADDDDBCCCCADDDDBBCEIADDFFFFCEIADFFFFEEEIGFFFHHHEIIGHFHHHHEIIGHHHHHHEEIIHHHHHHIEIIJHHHHHIIII","s":"7461529380"},{"r":"DDDDDCCAAADDDCCCCAABDDDDCEEAEEFFDDDEEEEEGFFFHHHEEEGFFGHGHEJJGGGGGGHHJJIIIIGGHHJJIIIIIJJJJJIIIIIJJJJJ","s":"7942813605"},{"r":"CCCCCBBBDACCCBBBDDDDCCBBDDDDFFCCCCDDDDDFCECGDDDFFFCGGGDDDDFHIGIGDDDHHHIIIGDHDHHHIIIJHHDHHHIIIJJHHHHH","s":"9506183724"},{"r":"AABBBBBDDDCCBBBBDDDDECBBBDDDDDEEEBBDDDFDEEEGFFDDFDEEEGGFFFFFJJGGGHFHFHJIIIIHHHFHJIJIIIIHHHJJJJIIIHHH","s":"0517284963"},{"r":"BBBBEEAAADBBBEEEEAADCBBEEAAAADCEEEEFFADDEEFFEFFFGDEEEFFFHFGGJEHHFFHGGGJEHHFHHGGGJJJHHHHGGIJJJJHHHHHI","s":"6208147593"},{"r":"AAAAAABBBBAAAAAABBBBEAACCAABBBEEACCCCDBBEEAECCCDFFEEEEIDDDDFEHGGIDDIFFHHHGIIDIFFHHHGIIIIFFHJGGGIIIII","s":"5847392061"},{"r":"CCCCAAABBBCCCCCAFFFBCEEEEADFFFCCEEEDDFHFEEEGGGFFHHEEEGGGFHHHIEGGIGFHJHIIIIIGGHJJIIJJJJJJJJIIIIIJJJJJ","s":"4905263718"},{"r":"BBBBCCAAAABBBGCCCAAABDDGECCCCCDDGGEEECFCDGGEEEEEFFIGGGGEEFFFIGGGEEEEFHIGGEEEEFFHIGGEEGEFHHIIGGGGEFJJ","s":"6251473908"},{"r":"DDAAACCCEEDDDDCCBBEEDDDDCCBBEEDDCCCJBEEEFFFGCJEEHEFGGGJJJEHHGGGGJJEEHHGGGGJJHHHHIIGIJJHHHHIIIIJJJHHH","s":"4751902836"},{"r":"EDDBBBBCAAEDDDBBBCACEDDDDBBCCCEDDGDBBBCHEEGGDBBFFHGGGGGBBHFHGGGGIIIHFHGIIIIIHHHHGGGIIIHHJHGGGIIJJJJH","s":"9472081635"},{"r":"AAAACCCCBBAAEAAACCCBAAEAACCDDBAEEAEECDDDFEEEEEEEDDFFEEEEDDDDFFFEGEIDDHFFFGGIIHHHFFFFFFIIIHJFFFIIIIHH","s":"2957314860"},{"r":"CACBBBBFFFCCCCBBBBFFCCECBBDFFFCEEEBDDDDFEEEHHHGGGFEEHHHHGGGFEEHHHHGGIIHHHHHHHIIIHHHHHHIIIIHHHHHHJIII","s":"1405297386"},{"r":"BBBBBBBACCBBBBBBDCCCBEEBBDDCCCBEEBDDDDDCBEEEEEDDCCBEEEHEDDCFBGGHHEHDCFBGGHHHHFCFGGIIHHHFFFGJIIIIIFFF","s":"7086492531"}]};
+
+/* Royal Regions on the kit. Puzzles (PUZ) are made offline by gen.js; each has exactly one solution. */
+(() => {
+const { $, store, ui, rng, sfx, settings } = KIT;
+const S = store('kevinhyhau.ch17.v1', { dark: true, sound: true, icon: 'crown', pal: 'pastel', order: 'xfirst', letters: false, dim: true, size: 7, best: {}, daily: { d: '', t: 0 }, game: null }), st = S.st;
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovWin', 'ovPause']);
+const ICONS = { crown: '👑', star: '⭐', heart: '❤️', flower: '🌸', cat: '🐱', gem: '💎', rocket: '🚀', bee: '🐝', apple: '🍎', chess: '♛' };
+const PALS = {
+  pastel: ['#fca5a5', '#fdba74', '#fde047', '#bef264', '#86efac', '#5eead4', '#7dd3fc', '#a5b4fc', '#d8b4fe', '#f9a8d4'],
+  bold: ['#ef4444', '#f97316', '#eab308', '#84cc16', '#16a34a', '#0d9488', '#0284c7', '#4f46e5', '#9333ea', '#db2777'],
+  safe: ['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7', '#bdbdbd', '#a7e3c4', '#ffb3a1'],
+  earth: ['#d6a77a', '#a3b18a', '#e9c46a', '#e76f51', '#8ab17d', '#b5838d', '#6d9dc5', '#c9ada7', '#9a8c98', '#f4a261']
+};
+settings([
+  { id: 'icon', label: 'Icon', type: 'select', options: [['crown', '👑 Crown'], ['star', '⭐ Star'], ['heart', '❤️ Heart'], ['flower', '🌸 Flower'], ['cat', '🐱 Cat'], ['gem', '💎 Gem'], ['rocket', '🚀 Rocket'], ['bee', '🐝 Bee'], ['apple', '🍎 Apple'], ['chess', '♛ Chess queen']], def: 'crown' },
+  { id: 'pal', label: 'Colours', type: 'select', options: [['pastel', 'Pastel'], ['bold', 'Bold'], ['safe', 'Colour-blind friendly'], ['earth', 'Earth']], def: 'pastel' },
+  { id: 'letters', label: 'Show a letter on each region', type: 'check', def: false },
+  { id: 'order', label: 'First tap places', type: 'select', options: [['xfirst', '✕ first, then icon'], ['iconfirst', 'icon first, then ✕']], def: 'xfirst' },
+  { id: 'dim', label: 'Dim squares an icon rules out', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); if (G) { paintAll(); } });
+
+const AL = 'ABCDEFGHIJ';
+/* ---------- puzzle + symmetry (flips and transpose keep every rule) ---------- */
+function symmetry(N, k) { const fr = k & 1, fc = k & 2, T = k & 4, map = new Array(N * N);
+  for (let i = 0; i < N * N; i++) { let r = (i / N) | 0, c = i % N; if (fr) r = N - 1 - r; if (fc) c = N - 1 - c; if (T) [r, c] = [c, r]; map[i] = r * N + c; } return map; }
+let G = null; const cells = [];
+function load(N, idx, tseed, daily) {
+  const p = PUZ[N][idx], r = rng.mulberry(tseed), map = symmetry(N, Math.floor(r() * 8));
+  const region = new Array(N * N), sol = new Array(N * N).fill(false);
+  for (let i = 0; i < N * N; i++) region[map[i]] = AL.indexOf(p.r[i]);
+  for (let row = 0; row < N; row++) sol[map[row * N + +p.s[row]]] = true;
+  const perm = rng.shuffle(r, [...Array(10).keys()]);                      // which palette colour each region gets
+  G = { N, idx, tseed, daily: !!daily, region, sol, perm, marks: new Array(N * N).fill(0), hist: [], secs: 0, hints: 0, done: false, paused: false, hintCell: -1 };
+  st.size = N;
+}
+const pick = N => Math.floor(Math.random() * PUZ[N].length);
+function newGame(N) { N = N || st.size; load(N, pick(N), (Math.random() * 4294967296) >>> 0, false); start(); }
+function dailyGame() { const seed = rng.dailySeed('royal'), sizes = [6, 7, 8, 9], N = sizes[seed % 4]; load(N, Math.floor(rng.mulberry(seed)() * PUZ[N].length), seed, true); start(); }
+function start() { O.hideAll(); build(); paintAll(); persist(); }
+
+/* ---------- board ---------- */
+const rb = $('rb');
+function build() {
+  const N = G.N; rb.innerHTML = ''; cells.length = 0; rb.style.setProperty('--n', N);
+  for (let i = 0; i < N * N; i++) {
+    const el = KIT.el('div', { class: 'rc' }); el.dataset.i = i; const r = (i / N) | 0, c = i % N, g = G.region[i];
+    if (r === 0 || G.region[i - N] !== g) el.classList.add('tT'); if (r === N - 1 || G.region[i + N] !== g) el.classList.add('tB');
+    if (c === 0 || G.region[i - 1] !== g) el.classList.add('tL'); if (c === N - 1 || G.region[i + 1] !== g) el.classList.add('tR');
+    rb.appendChild(el); cells.push(el);
+  }
+  fit(); buildSizes();
+}
+function fit() { if (G) rb.style.setProperty('--fs', (rb.clientWidth / G.N) + 'px'); }
+window.addEventListener('resize', fit);
+function buildSizes() { const h = $('sizes'); if (h.children.length) { [...h.children].forEach(b => b.classList.toggle('on', +b.dataset.n === G.N && !G.daily)); return; }
+  for (let n = 5; n <= 10; n++) { const b = KIT.el('button', { class: 'btn sm', type: 'button', 'data-act': 'size', 'data-n': n }, n + '×' + n); h.appendChild(b); } buildSizes(); }
+
+/* ---------- rules ---------- */
+function crowns() { const o = []; G.marks.forEach((m, i) => { if (m === 2) o.push(i); }); return o; }
+function badSet() {
+  const N = G.N, cs = crowns(), bad = new Set();
+  for (let a = 0; a < cs.length; a++) for (let b = a + 1; b < cs.length; b++) {
+    const i = cs[a], j = cs[b], ri = (i / N) | 0, rj = (j / N) | 0, ci = i % N, cj = j % N;
+    if (ri === rj || ci === cj || G.region[i] === G.region[j] || (Math.abs(ri - rj) <= 1 && Math.abs(ci - cj) <= 1)) { bad.add(i); bad.add(j); }
+  }
+  return bad;
+}
+function ruledOut() {   // squares an icon attacks (row, column, region, the 8 neighbours)
+  const N = G.N, s = new Set();
+  crowns().forEach(i => { const r = (i / N) | 0, c = i % N;
+    for (let k = 0; k < N * N; k++) { if (k === i) continue; const rr = (k / N) | 0, cc = k % N; if (rr === r || cc === c || G.region[k] === G.region[i] || (Math.abs(rr - r) <= 1 && Math.abs(cc - c) <= 1)) s.add(k); } });
+  return s;
+}
+function solved() { const cs = crowns(); return cs.length === G.N && badSet().size === 0; }
+
+/* ---------- paint ---------- */
+function paint(i, bad, out) {
+  const el = cells[i], m = G.marks[i], pal = PALS[st.pal] || PALS.pastel;
+  el.style.background = pal[G.perm[G.region[i]]];
+  let h = '';
+  if (st.letters && i === firstOf(G.region[i])) h += '<span class="let">' + AL[G.region[i]] + '</span>';
+  if (m === 2) h += '<span class="ic">' + (ICONS[st.icon] || '👑') + '</span>'; else if (m === 1) h += '<span class="x">✕</span>'; else if (st.dim && out.has(i)) h += '<span class="auto"></span>';
+  if (el._h !== h) { el._h = h; el.innerHTML = h; }
+  el.classList.toggle('bad', bad.has(i)); el.classList.toggle('hint', G.hintCell === i);
+}
+const firstCache = {}; function firstOf(g) { const k = G.idx + '|' + G.tseed + '|' + g; if (firstCache[k] === undefined) firstCache[k] = G.region.indexOf(g); return firstCache[k]; }
+function paintAll() {
+  if (!G) return; const bad = badSet(), out = st.dim ? ruledOut() : new Set();
+  for (let i = 0; i < G.N * G.N; i++) paint(i, bad, out);
+  KIT.setText($('sz'), G.N + '×' + G.N + (G.daily ? ' · Daily' : '')); KIT.setText($('pl'), crowns().length + '/' + G.N);
+  const b = st.best[G.N]; KIT.setText($('bt'), b ? fmt(b) : '-'); KIT.setText($('tm'), fmt(G.secs)); $('bUndo').disabled = !G.hist.length || G.done;
+  $('rmsg').textContent = bad.size ? 'Some icons break a rule (shown in red).' : G.done ? 'Solved!' : 'Tap once for ✕, twice for ' + (ICONS[st.icon] || '👑') + ', a third time to clear.';
+}
+const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+/* ---------- actions ---------- */
+function snap() { G.hist.push(G.marks.slice()); if (G.hist.length > 300) G.hist.shift(); }
+function tap(i) {
+  if (!G || G.done || G.paused) return; snap(); G.hintCell = -1;
+  const m = G.marks[i], seq = st.order === 'xfirst' ? [0, 1, 2] : [0, 2, 1]; G.marks[i] = seq[(seq.indexOf(m) + 1) % 3];
+  A.beep(G.marks[i] === 2 ? 700 : 420, .05, 'triangle', .07); after();
+}
+function after() { paintAll(); persist(); if (!G.done && solved()) win(); }
+function undo() { if (!G || G.done || !G.hist.length) return; G.marks = G.hist.pop(); G.hintCell = -1; paintAll(); persist(); }
+function clearAll() { if (!G || G.done) return; snap(); G.marks.fill(0); G.hintCell = -1; paintAll(); persist(); }
+function hint() {
+  if (!G || G.done || G.paused) return; const N = G.N, rows = [];
+  for (let r = 0; r < N; r++) { const c = G.sol.findIndex((v, i) => v && ((i / N) | 0) === r); if (G.marks[c] !== 2) rows.push(c); }
+  if (!rows.length) return; snap();
+  const c = rows[Math.floor(Math.random() * rows.length)], r = (c / N) | 0;
+  for (let k = 0; k < N; k++) if (G.marks[r * N + k] === 2) G.marks[r * N + k] = 0;       // a wrong icon in that row goes away
+  G.marks[c] = 2; G.hintCell = c; G.hints++; A.slide(400, 900, .15, 'triangle', .08); after();
+}
+function win() {
+  G.done = true; const t = G.secs; let msg = 'Time ' + fmt(t) + ' · hints ' + G.hints;
+  if (!G.hints) { if (!st.best[G.N] || t < st.best[G.N]) { st.best[G.N] = t; msg += ' · 🏆 new best'; } } else msg += ' · (best times count only without hints)';
+  if (G.daily && !G.hints) st.daily = { d: new Date().toISOString().slice(0, 10), t };
+  $('winTxt').textContent = msg; O.show('ovWin'); st.game = null; S.save(); paintAll();
+  [523, 659, 784, 1047].forEach((f, i) => A.beep(f, .14, 'triangle', .12, i * .08));
+}
+function persist() { if (!G || G.done) return; st.game = { N: G.N, idx: G.idx, tseed: G.tseed, daily: G.daily, marks: G.marks, secs: G.secs, hints: G.hints }; S.save(); }
+function pause() { if (!G || G.done) return; G.paused = !G.paused; if (G.paused) { O.show('ovPause'); persist(); } else O.hide('ovPause'); }
+
+let last = performance.now();
+setInterval(() => { const now = performance.now(), dt = now - last; last = now;
+  if (G && !G.done && !G.paused && !document.hidden && dt < 3000) { G.acc = (G.acc || 0) + dt; while (G.acc >= 1000) { G.acc -= 1000; G.secs++; } KIT.setText($('tm'), fmt(G.secs)); if (G.secs % 5 === 0) persist(); } }, 250);
+document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
+
+rb.addEventListener('pointerdown', e => { const c = e.target.closest('.rc'); if (c) { e.preventDefault(); tap(+c.dataset.i); } });
+ui.actions(document.body, { undo, hint, clear: clearAll, pause, new: () => newGame(), winClose: () => O.hide('ovWin'), size: b => newGame(+b.dataset.n), daily: dailyGame });
+window.addEventListener('keydown', e => { if (!G || e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase(); if (k === 'z') undo(); else if (k === 'h') hint(); else if (k === 'p') pause(); });
+
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+(function boot() {
+  const g = st.game;
+  try { if (g && PUZ[g.N] && PUZ[g.N][g.idx] && g.marks.length === g.N * g.N) { load(g.N, g.idx, g.tseed, g.daily); G.marks = g.marks.map(x => (x === 1 || x === 2 ? x : 0)); G.secs = g.secs | 0; G.hints = g.hints | 0; build(); paintAll(); if (solved()) newGame(); return; } } catch (e) {}
+  newGame();
+})();
+KIT.hook({ get G() { return G; }, load, tap, hint, undo, solved, badSet, newGame, PUZ, symmetry });
+})();
+
+</script>
+</body>
+<script src="../nav.js"></script>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "Morris",
+  "short_name": "Morris",
+  "description": "Nine Men's Morris, the old game of mills: place nine stones, slide them, fly when you are down to three, and take a stone every time you make three in a row. Play the computer at four levels or a friend on one screen",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#5a3410",
+  "theme_color": "#5a3410",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 49 · Shatranj</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3a2a14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shatranj">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.dicerow{display:flex;align-items:center;justify-content:center;gap:14px}
+#die{font-size:68px;line-height:1;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;border-radius:18px;border:5px solid #888;box-shadow:0 3px 8px rgba(0,0,0,.35);user-select:none;cursor:pointer}
+#die.roll{animation:dshake .18s linear infinite}
+@keyframes dshake{0%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-4px)}100%{transform:rotate(-8deg) translateY(0)}}
+#rollBtn{font-size:18px;padding:12px 22px}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}#die{width:76px;height:76px;font-size:54px}}
+.cv.sh{cursor:pointer}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Shatranj</h2>
+  <p>Chapter 49 · Chess as it was played in Persia and the Arab world a thousand years ago. Same board, but a slow Ferz, a leaping Alfil, no castling, no double pawn step, and you can also win by taking every enemy piece</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TURN</small><b id="s1">White</b></div>
+    <div class="tstat"><small>MOVE</small><b id="s2">1</b></div>
+    <div class="tstat"><small>W–B PIECES</small><b id="s3">15–15</b></div>
+    <div class="tstat"><small>QUIET</small><b id="s4">0/120</b></div>
+  </div>
+  <div class="tmsg" id="msg">Your move</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="Shatranj board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">White wins</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="flip" type="button">🔃 Flip</button>
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+  </div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="tbar"><span class="kl">Level:</span><span id="lvBar"></span></div>
+  <div class="tbar" id="colRow"><span class="kl">You are:</span><span id="colBar"></span></div>
+  <div class="moves" id="moves"></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 Rules of Shatranj</h2>
+    <p>The ancestor of chess. Same 8×8 board and the same aim: <b>checkmate</b> the enemy king. But three pieces are different and the game is slower and more about patient attack.</p>
+    <h3>The pieces</h3>
+    <ul>
+      <li><b>King (♚)</b> and <b>Rook (♜)</b> and <b>Knight (♞)</b> move as in chess. There is <b>no castling</b>.</li>
+      <li><b>Ferz (♛ symbol)</b> is the “queen” of the time, but weak: one step <b>diagonally</b> only.</li>
+      <li><b>Alfil (♝ symbol)</b> is the “elephant”: it <b>leaps exactly two squares diagonally</b>, jumping over anything. So it only ever reaches 8 squares of the same colour.</li>
+      <li><b>Pawn (♟)</b> steps one square forward (<b>no double step</b>, no en passant) and captures diagonally. At the far end it becomes a <b>Ferz</b>.</li>
+      <li>Set-up: Rook, Knight, Alfil, King, Ferz, Alfil, Knight, Rook. The kings face each other on the d-file.</li>
+    </ul>
+    <h3>How you win</h3>
+    <ul>
+      <li><b>Checkmate.</b></li>
+      <li><b>Stalemate:</b> in the classical rule, the player with no legal move (and not in check) <b>loses</b>. A setting turns it into a draw.</li>
+      <li><b>Bare king:</b> take all of the enemy’s other pieces and you win, unless the bared player can answer on the very next move by taking <b>your</b> last piece too (then it is a draw).</li>
+    </ul>
+    <h3>Draws in this version</h3>
+    <ul>
+      <li>The same position three times, or 120 half-moves (plies) with no capture and no pawn move.</li>
+    </ul>
+    <h3>Playing here</h3>
+    <ul>
+      <li>Tap a piece and then a square, or drag it. Dots show legal moves. Tap a piece to see what it does.</li>
+      <li>Pass and play lets two people share the screen. The computer is a casual player: Easy makes mistakes, Hard thinks about 1.5 seconds per move.</li>
+      <li>Shatranj rules differed by time and place; this is the common modern reconstruction.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">♟ Shatranj came from India and Persia and was the chess of the Islamic world from about the 7th century, long before the modern queen and bishop. Rules follow the common reconstruction (as in xboard and Pychess); the stalemate rule varies by source, so there is a setting for it. Drawings, sounds, rules code and the computer player are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Shatranj (medieval Arab chess). Rules and computer player, no drawing.
+   Board: Int8Array(64), index = row*8 + col, row 0 = rank 8 (Black's back rank), col 0 = file a.
+   Pieces: +1..+6 White, -1..-6 Black.  1 pawn, 2 knight, 3 alfil, 4 rook, 5 ferz, 6 king.
+   state = { b, turn: 1|-1, baredBy: 0|1|-1, half, end: null | {winner, why} } */
+'use strict';
+const SH = { P: 1, N: 2, A: 3, R: 4, F: 5, K: 6 };
+const SH_LET = ' PNARFK';
+const SH_VAL = [0, 100, 350, 150, 650, 200, 0];
+const SH_WIN = 29000, SH_MATE = 30000, SH_INF = 1e6;
+let SH_STALE_LOSS = true;          // stalemate: the stalemated side loses (classical). false = draw
+let SH_MAX_HALF = 120;             // no capture / pawn move for this many plies = draw
+
+/* ---------- tables ---------- */
+const T_KN = [], T_KG = [], T_FZ = [], T_AL = [], T_RAY = [], CEN = [];
+(function () {
+  const inb = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+  for (let sq = 0; sq < 64; sq++) {
+    const r = sq >> 3, c = sq & 7, kn = [], kg = [], fz = [], al = [], rays = [];
+    for (const [dr, dc] of [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]) if (inb(r + dr, c + dc)) kn.push((r + dr) * 8 + c + dc);
+    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) if (inb(r + dr, c + dc)) kg.push((r + dr) * 8 + c + dc);
+    for (const [dr, dc] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) { if (inb(r + dr, c + dc)) fz.push((r + dr) * 8 + c + dc); if (inb(r + 2 * dr, c + 2 * dc)) al.push((r + 2 * dr) * 8 + c + 2 * dc); }
+    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ray = []; for (let k = 1; inb(r + dr * k, c + dc * k); k++) ray.push((r + dr * k) * 8 + c + dc * k); rays.push(ray); }
+    T_KN[sq] = kn; T_KG[sq] = kg; T_FZ[sq] = fz; T_AL[sq] = al; T_RAY[sq] = rays; CEN[sq] = Math.min(r, 7 - r) + Math.min(c, 7 - c);
+  }
+})();
+
+/* ---------- states ---------- */
+function shFromRows(rows, turn, extra) { // rows: 8 strings of 8 chars from rank 8 down. Upper = White, lower = Black, '.' = empty
+  const b = new Int8Array(64);
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const ch = rows[r][c]; if (ch === '.' || ch === ' ') continue; const t = SH_LET.indexOf(ch.toUpperCase()); b[r * 8 + c] = ch === ch.toUpperCase() ? t : -t; }
+  return Object.assign({ b, turn: turn === -1 || turn === 'b' ? -1 : 1, baredBy: 0, half: 0, end: null }, extra || {});
+}
+function shStart() {
+  return shFromRows(['rnakfanr', 'pppppppp', '........', '........', '........', '........', 'PPPPPPPP', 'RNAKFANR'], 1);
+}
+const shCopy = s => ({ b: s.b.slice(), turn: s.turn, baredBy: s.baredBy, half: s.half, end: s.end });
+const shKey = s => s.turn + ':' + s.baredBy + ':' + Array.prototype.join.call(s.b, ',');
+const shSq = sq => 'abcdefgh'[sq & 7] + (8 - (sq >> 3));
+const shSqOf = name => (8 - +name[1]) * 8 + 'abcdefgh'.indexOf(name[0]);
+function shCount(b, side) { let n = 0; for (let i = 0; i < 64; i++) if (b[i] * side > 0 && b[i] * side !== 6) n++; return n; }
+
+/* ---------- attacks and generation (on a raw board) ---------- */
+function attacked(b, sq, by) { // is sq attacked by side `by`?
+  const r = sq >> 3, c = sq & 7;
+  // pawns of `by` stand one row "behind" sq from their point of view: White pawns move to lower rows, so they sit at row+1
+  const pr = r + by; if (pr >= 0 && pr < 8) { if (c > 0 && b[pr * 8 + c - 1] === by) return true; if (c < 7 && b[pr * 8 + c + 1] === by) return true; }
+  for (const t of T_KN[sq]) if (b[t] === 2 * by) return true;
+  for (const t of T_KG[sq]) if (b[t] === 6 * by) return true;
+  for (const t of T_FZ[sq]) if (b[t] === 5 * by) return true;
+  for (const t of T_AL[sq]) if (b[t] === 3 * by) return true;
+  for (const ray of T_RAY[sq]) for (const t of ray) { const q = b[t]; if (q === 0) continue; if (q === 4 * by) return true; break; }
+  return false;
+}
+const enc = (f, t, c, p) => f | (t << 6) | ((c + 8) << 12) | (p << 16);
+const mF = m => m & 63, mT = m => (m >> 6) & 63, mC = m => ((m >> 12) & 15) - 8, mP = m => m >> 16;
+function gen(b, side, caps, out) { // pseudo-legal moves. caps = only captures and promotions
+  for (let sq = 0; sq < 64; sq++) {
+    const p = b[sq]; if (p * side <= 0) continue; const t = p * side;
+    if (t === 1) {
+      const fr = (sq >> 3) - side; // forward row
+      const to = fr * 8 + (sq & 7), promo = (fr === 0 && side === 1) || (fr === 7 && side === -1) ? 1 : 0;
+      if (b[to] === 0 && (!caps || promo)) out.push(enc(sq, to, 0, promo));
+      for (const dc of [-1, 1]) { const cc = (sq & 7) + dc; if (cc < 0 || cc > 7) continue; const tt = fr * 8 + cc; if (b[tt] * side < 0) out.push(enc(sq, tt, b[tt], promo)); }
+    } else if (t === 4) {
+      for (const ray of T_RAY[sq]) for (const to of ray) { const q = b[to]; if (q === 0) { if (!caps) out.push(enc(sq, to, 0, 0)); continue; } if (q * side < 0) out.push(enc(sq, to, q, 0)); break; }
+    } else {
+      const tab = t === 2 ? T_KN : t === 3 ? T_AL : t === 5 ? T_FZ : T_KG;
+      for (const to of tab[sq]) { const q = b[to]; if (q * side > 0) continue; if (q === 0) { if (!caps) out.push(enc(sq, to, 0, 0)); } else out.push(enc(sq, to, q, 0)); }
+    }
+  }
+  return out;
+}
+function kingSq(b, side) { for (let i = 0; i < 64; i++) if (b[i] === 6 * side) return i; return -1; }
+function legalRaw(b, side) { // legal moves as ints, using a scratch copy
+  const ps = gen(b, side, false, []), out = [];
+  for (const m of ps) {
+    const f = mF(m), t = mT(m), pc = b[f], cap = b[t];
+    b[t] = mP(m) ? 5 * side : pc; b[f] = 0;
+    const ks = Math.abs(pc) === 6 ? t : kingSq(b, side);
+    if (ks >= 0 && !attacked(b, ks, -side)) out.push(m);
+    b[f] = pc; b[t] = cap;
+  }
+  return out;
+}
+
+/* ---------- public rules API ---------- */
+const mObj = m => ({ f: mF(m), t: mT(m), c: mC(m), p: mP(m), m });
+function shLegal(s) { return legalRaw(s.b, s.turn).map(mObj); }
+function shInCheck(s, side) { side = side || s.turn; const k = kingSq(s.b, side); return k >= 0 && attacked(s.b, k, -side); }
+function shApply(s, mv) {
+  const m = typeof mv === 'number' ? mv : mv.m;
+  const f = mF(m), t = mT(m), c = mC(m), b = s.b.slice(), pc = b[f], side = s.turn;
+  b[t] = mP(m) ? 5 * side : pc; b[f] = 0;
+  const ns = { b, turn: -side, baredBy: 0, half: (c || Math.abs(pc) === 1) ? 0 : s.half + 1, end: null };
+  const mine = shCount(b, side), theirs = shCount(b, -side);
+  if (s.baredBy) ns.end = shCount(b, s.baredBy) === 0 ? { winner: 0, why: 'bare-draw' } : { winner: s.baredBy, why: 'bare' };
+  else if (c && theirs === 0) { if (mine === 0) ns.end = { winner: 0, why: 'bare-draw' }; else ns.baredBy = side; }
+  return ns;
+}
+function shResult(s) { // { over, winner (1 | -1 | 0 draw), why }
+  if (s.end) return { over: true, winner: s.end.winner, why: s.end.why };
+  const ms = legalRaw(s.b, s.turn);
+  if (!ms.length) {
+    if (shInCheck(s)) return { over: true, winner: -s.turn, why: 'mate' };
+    if (s.baredBy) return { over: true, winner: s.baredBy, why: 'bare' };
+    return SH_STALE_LOSS ? { over: true, winner: -s.turn, why: 'stalemate' } : { over: true, winner: 0, why: 'stalemate-draw' };
+  }
+  if (s.half >= SH_MAX_HALF) return { over: true, winner: 0, why: 'moves' };
+  return { over: false };
+}
+function shName(s, mv) { // e.g. Nb1-c3, Ra1xa8, e7-e8=F
+  const f = mF(mv.m), t = mT(mv.m), p = Math.abs(s.b[f]);
+  return (p === 1 ? '' : SH_LET[p]) + shSq(f) + (mv.c ? 'x' : '-') + shSq(t) + (mv.p ? '=F' : '');
+}
+function shPerft(s, d) { if (d === 0) return 1; let n = 0; for (const m of legalRaw(s.b, s.turn)) n += shPerft(shApply(s, m), d - 1); return n; }
+function shSetStaleLoss(v) { SH_STALE_LOSS = !!v; }
+function shSetMaxHalf(v) { SH_MAX_HALF = v; }
+
+/* ---------- evaluation ---------- */
+function evalBoard(b, me, cnt0, cnt1) { // from `me`'s point of view
+  let sc = 0, k0 = -1, k1 = -1;
+  const endg = cnt0 + cnt1 <= 5;
+  for (let sq = 0; sq < 64; sq++) {
+    const p = b[sq]; if (!p) continue; const s = p > 0 ? 1 : -1, t = p * s; let v = SH_VAL[t];
+    if (t === 1) { const adv = s === 1 ? 6 - (sq >> 3) : (sq >> 3) - 1; v += adv * 8 + (adv >= 4 ? 25 * (adv - 3) : 0); }
+    else if (t === 2) v += CEN[sq] * 6;
+    else if (t === 5) v += CEN[sq] * 2;
+    else if (t === 3) v += CEN[sq] * 2;
+    else if (t === 6) { if (endg) v += CEN[sq] * 8; if (s === 1) k0 = sq; else k1 = sq; }
+    sc += s * v;
+  }
+  sc *= me;
+  const mine = me === 1 ? cnt0 : cnt1, theirs = me === 1 ? cnt1 : cnt0;
+  if (theirs === 1 && mine >= 2) sc += 90; if (mine === 1 && theirs >= 2) sc -= 90;
+  if (theirs <= 1 && mine > theirs && k0 >= 0 && k1 >= 0) { // the stronger side walks its king over
+    const d = Math.abs((k0 >> 3) - (k1 >> 3)) + Math.abs((k0 & 7) - (k1 & 7)); sc += (14 - d) * 4;
+  }
+  return sc;
+}
+
+/* ---------- search ---------- */
+function shBest(state, level, opts) {
+  opts = opts || {};
+  const b = state.b.slice(), rootSide = state.turn;
+  const cnt = [shCount(b, 1), shCount(b, -1)], ci = s => (s === 1 ? 0 : 1);
+  let nodes = 0, abort = false, deadline = 0;
+  const rootMoves = legalRaw(b, rootSide);
+  if (!rootMoves.length) return null;
+  if (rootMoves.length === 1) return mObj(rootMoves[0]);
+  if (state.baredBy) { // we are the bared king: only a reply that takes the other side's last piece saves us
+    const sv = rootMoves.filter(m => mC(m) && cnt[ci(-rootSide)] === 1);
+    return mObj((sv.length ? sv : rootMoves)[Math.floor(Math.random() * (sv.length || rootMoves.length))]);
+  }
+  function make(m, side) {
+    const f = mF(m), t = mT(m), c = mC(m); b[t] = mP(m) ? 5 * side : b[f]; b[f] = 0; if (c) cnt[ci(-side)]--;
+  }
+  function unmake(m, side) {
+    const f = mF(m), t = mT(m), c = mC(m); b[f] = mP(m) ? side : b[t]; b[t] = c; if (c) cnt[ci(-side)]++;
+  }
+  const kingOf = side => { for (let i = 0; i < 64; i++) if (b[i] === 6 * side) return i; return -1; };
+  const safe = side => attacked(b, kingOf(side), -side);
+  function order(ms, side, first) {
+    const sc = ms.map(m => {
+      let s = 0; const c = Math.abs(mC(m)); if (c) s = 10000 + SH_VAL[c] * 10 - SH_VAL[Math.abs(b[mF(m)])]; if (mP(m)) s += 9000; if (m === first) s += 1e6; return s;
+    });
+    const idx = ms.map((_, i) => i).sort((x, y) => sc[y] - sc[x]); return idx.map(i => ms[i]);
+  }
+  function counterBare(side) { // `side` just bared the other; true when the other can take our last piece in one reply
+    if (cnt[ci(side)] !== 1) return false;
+    const rep = gen(b, -side, true, []);
+    for (const m of rep) { if (!mC(m)) continue; make(m, -side); const bad = safe(-side); unmake(m, -side); if (!bad) return true; }
+    return false;
+  }
+  function childValue(m, side, depth, alpha, beta, ply) { // value for `side` after playing legal move m
+    make(m, side);
+    let v;
+    if (mC(m) && cnt[ci(-side)] === 0) v = cnt[ci(side)] === 0 ? 0 : (counterBare(side) ? 0 : SH_WIN - ply);
+    else v = -search(depth - 1, -beta, -alpha, -side, ply + 1);
+    unmake(m, side); return v;
+  }
+  function qs(alpha, beta, side, ply) {
+    nodes++;
+    const stand = evalBoard(b, side, cnt[0], cnt[1]);
+    if (ply > 14 || stand >= beta) return stand;
+    if (stand > alpha) alpha = stand;
+    const ms = order(gen(b, side, true, []), side, 0);
+    for (const m of ms) {
+      make(m, side);
+      if (safe(side)) { unmake(m, side); continue; }
+      unmake(m, side);
+      const v = childValue(m, side, 1, alpha, beta, ply); // depth 1 -> search(0) -> qs
+      if (v >= beta) return v; if (v > alpha) alpha = v;
+    }
+    return alpha;
+  }
+  let rootBest = 0;
+  function search(depth, alpha, beta, side, ply) {
+    if ((++nodes & 2047) === 0 && deadline && Date.now() > deadline) abort = true;
+    if (abort) return 0;
+    const inCheck = safe(side);
+    if (depth <= 0 && !(inCheck && ply < 30)) return qs(alpha, beta, side, ply);
+    if (depth <= 0) depth = 1;
+    const ms = order(gen(b, side, false, []), side, ply === 0 ? rootBest : 0);
+    let best = -SH_INF, any = false;
+    for (const m of ms) {
+      make(m, side);
+      if (safe(side)) { unmake(m, side); continue; }
+      unmake(m, side); any = true;
+      const v = childValue(m, side, depth, alpha, beta, ply);
+      if (abort) return 0;
+      if (v > best) { best = v; if (ply === 0) rootBest = m; if (v > alpha) alpha = v; if (alpha >= beta) break; }
+    }
+    if (!any) return inCheck ? -(SH_MATE - ply) : (SH_STALE_LOSS ? -(SH_MATE - ply) : 0);
+    return best;
+  }
+  if (level === 'easy') { // one ply plus quiescence, with noise
+    let bestM = rootMoves[0], bs = -SH_INF;
+    for (const m of rootMoves) { const v = childValue(m, rootSide, 1, -SH_INF, SH_INF, 0) + (Math.random() - .5) * 360; if (v > bs) { bs = v; bestM = m; } }
+    return mObj(bestM);
+  }
+  const maxD = level === 'hard' ? 9 : 3;
+  if (level === 'hard') deadline = Date.now() + (opts.ms || 1500);
+  let done = rootMoves[0], doneScore = 0;
+  rootBest = rootMoves[0];
+  for (let d = 1; d <= maxD; d++) {
+    const v = search(d, -SH_INF, SH_INF, rootSide, 0);
+    if (abort) break; done = rootBest; doneScore = v;
+    if (Math.abs(v) > SH_WIN - 50) break; // a forced win or loss is already found
+  }
+  const o = mObj(done); o.score = doneScore; o.nodes = nodes; return o;
+}
+
+if (typeof module !== 'undefined') module.exports = { SH, shStart, shFromRows, shLegal, shApply, shResult, shInCheck, shPerft, shBest, shKey, shSq, shSqOf, shName, shCount, shCopy, shSetStaleLoss, shSetMaxHalf };
+
+/* Shatranj. shatranj.js has the rules and the computer (checked on its own); this file is the board, the input and the game flow. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.shatranj.v1', { dark: true, sound: true, opp: 'cpu', colour: 'white', level: 'normal', stale: 'loss', board: 'brown', pieces: 'symbols', coords: true, dots: true, rec: [0, 0] }), st = S0.st;
+if (!Array.isArray(st.rec) || st.rec.length !== 2) st.rec = [0, 0];
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+settings([
+  { id: 'stale', label: 'Stalemate', type: 'select', options: [['loss', 'The stalemated player loses (classical)'], ['draw', 'Draw (as in modern chess)']], def: 'loss' },
+  { id: 'board', label: 'Board colours', type: 'select', options: [['brown', 'Brown'], ['green', 'Green'], ['blue', 'Blue'], ['grey', 'Grey']], def: 'brown' },
+  { id: 'pieces', label: 'Pieces', type: 'select', options: [['symbols', 'Symbols'], ['letters', 'Letters']], def: 'symbols' },
+  { id: 'dots', label: 'Show legal-move dots', type: 'check', def: true },
+  { id: 'coords', label: 'Show coordinates', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { shSetStaleLoss(st.stale === 'loss'); S0.save(); hud(); });
+shSetStaleLoss(st.stale === 'loss');
+
+const W = 640, M = 32, SQ = 72, cv = $('cv'), C = KIT.canvas(cv, W, W, 2), ctx = C.ctx;
+const THEMES = { brown: { l: '#f0d9b5', d: '#b58863', f: '#3a2a1a', c: '#e5d5b8' }, green: { l: '#eeeed2', d: '#769656', f: '#26352a', c: '#cfd8cf' }, blue: { l: '#dee3e6', d: '#8ca2ad', f: '#22313a', c: '#cbd8df' }, grey: { l: '#e8e8e8', d: '#9a9a9a', f: '#2a2a2a', c: '#d0d0d0' } };
+const GL = [0, '♟', '♞', '♝', '♜', '♛', '♚'], LT = [0, 'P', 'N', 'A', 'R', 'F', 'K'];
+const NAMES = [0, 'Pawn', 'Knight', 'Alfil', 'Rook', 'Ferz', 'King'];
+const INFO = [0, 'Pawn: one step forward, captures diagonally, becomes a Ferz at the end.', 'Knight: moves like the chess knight.', 'Alfil: leaps exactly two squares diagonally, over anything.', 'Rook: slides along rows and columns.', 'Ferz: one step diagonally.', 'King: one step in any direction. No castling.'];
+let TS = 1, S, hist = [], log = [], reps = {}, sel = -1, L = [], last = null, hintMv = null, hintT = 0, anim = null, over = false, thinking = false, token = 0, me = 1, flip = false, drag = null, res = null;
+const cpu = () => st.opp === 'cpu';
+const human = () => !over && (!cpu() || S.turn === me);
+const sleep = (ms, f) => { const t = token; setTimeout(() => { if (t === token) f(); }, ms * TS); };
+const sideName = s => cpu() ? (s === me ? 'You' : 'The computer') : (s === 1 ? 'White' : 'Black');
+
+/* ---------- flow ---------- */
+function newGame() {
+  token++; O.hide('ovEnd'); S = shStart(); hist = []; log = []; reps = {}; reps[shKey(S)] = 1; sel = -1; L = shLegal(S); last = null; hintMv = null; anim = null; over = false; thinking = false; res = null;
+  me = st.colour === 'random' ? (Math.random() < .5 ? 1 : -1) : st.colour === 'black' ? -1 : 1; flip = cpu() && me === -1;
+  bars(); hud(); rec(); setMsg(turnMsg()); kick();
+}
+function turnMsg() {
+  const side = S.turn; let t = cpu() ? (side === me ? 'Your move.' : 'The computer is thinking…') : (side === 1 ? 'White' : 'Black') + ' to move.';
+  if (S.baredBy) t = (cpu() ? (S.turn === me ? 'Your' : 'The computer’s') : (side === 1 ? 'White’s' : 'Black’s')) + ' king is bare. One reply: take the last enemy piece to draw, or lose.';
+  else if (shInCheck(S)) t = 'Check! ' + t;
+  return t;
+}
+function kick() {
+  if (over) return; hud();
+  if (cpu() && S.turn !== me) {
+    thinking = true; const t = token;
+    setTimeout(() => { if (t !== token) return; const m = shBest(S, st.level, { ms: 1500 * Math.min(1, TS * 4) }); thinking = false; if (t === token && m) doMove(m, true); }, 350 * TS);
+  }
+}
+function doMove(mv, byCpu) {
+  hist.push({ S, log: log.length, last, reps: Object.assign({}, reps) }); const name = shName(S, mv), p = Math.abs(S.b[mv.f]);
+  log.push(name); anim = { from: mv.f, to: mv.t, t0: performance.now(), dur: 200 * TS, ch: S.b[mv.f] }; last = { f: mv.f, t: mv.t };
+  const wasBare = S.baredBy; S = shApply(S, mv); const k = shKey(S); reps[k] = (reps[k] || 0) + 1; sel = -1; hintMv = null; L = shLegal(S);
+  if (mv.c) A.beep(190, .09, 'triangle', .14); else A.beep(330, .05, 'sine', .1);
+  res = shResult(S); if (!res.over && reps[k] >= 3) res = { over: true, winner: 0, why: 'repetition' };
+  hud(); moveList();
+  if (res.over) { over = true; return endGame(); }
+  setMsg((mv.p ? 'Pawn promotes to a Ferz. ' : '') + turnMsg()); if (shInCheck(S)) A.beep(520, .12, 'square', .1); kick();
+}
+function endGame() {
+  const w = res.winner, you = cpu() ? (w === 0 ? 0 : (w === me ? 1 : -1)) : null; let h, p;
+  const wn = w === 1 ? 'White' : 'Black';
+  if (w === 0) h = 'Draw'; else if (cpu()) h = you > 0 ? 'You win' : 'The computer wins'; else h = wn + ' wins';
+  p = { mate: 'Checkmate.', stalemate: 'Stalemate: in the classical rule the stalemated king loses.', 'stalemate-draw': 'Stalemate: a draw.', bare: 'Bare king: all the other pieces are gone.', 'bare-draw': 'Both sides are down to a bare king, so it is a draw.', moves: '120 plies without a capture or pawn move.', repetition: 'The same position came up three times.' }[res.why] || '';
+  if (cpu()) { if (you > 0) st.rec[0]++; else if (you < 0) st.rec[1]++; }
+  $('endH').textContent = h; $('endP').textContent = p + ' ' + Math.ceil(log.length / 2) + ' moves played.'; setMsg(h + '. ' + p); rec(); S0.save(); O.show('ovEnd'); A.beep(you < 0 ? 200 : 600, .3, 'triangle', .15);
+}
+function undo() {
+  if (!hist.length) return; token++; thinking = false; over = false; O.hide('ovEnd'); res = null;
+  let h = hist.pop(); S = h.S;
+  while (cpu() && S.turn !== me && hist.length) { h = hist.pop(); S = h.S; }
+  log.length = h.log; last = h.last; reps = h.reps; sel = -1; L = shLegal(S); hintMv = null; anim = null; hud(); moveList(); setMsg(turnMsg()); kick();
+}
+function showHint() { if (!human()) return; const m = shBest(S, 'hard', { ms: 700 }); if (m) { hintMv = m; hintT = performance.now() + 3500; setMsg('Hint: the blue squares show a good move.'); } }
+const setMsg = t => { $('msg').textContent = t; };
+function hud() {
+  $('s1').textContent = over ? '–' : (cpu() ? (S.turn === me ? 'You' : 'Computer') : (S.turn === 1 ? 'White' : 'Black'));
+  $('s2').textContent = Math.floor(log.length / 2) + 1; $('s3').textContent = shCount(S.b, 1) + '–' + shCount(S.b, -1); $('s4').textContent = S.half + '/120';
+}
+function rec() { $('recLine').textContent = cpu() ? 'You: ' + st.rec[0] + ' wins, ' + st.rec[1] + ' losses' : 'Pass and play'; }
+function moveList() {
+  let h = ''; for (let i = 0; i < log.length; i += 2) h += '<b>' + (i / 2 + 1) + '.</b> ' + log[i] + (log[i + 1] ? ' <i>' + log[i + 1] + '</i>' : '') + '  ';
+  const el = $('moves'); el.innerHTML = h; el.scrollTop = el.scrollHeight;
+}
+function bars() {
+  const mk = (id, arr, cur, act) => { $(id).innerHTML = arr.map(([k, t]) => '<button class="btn sm' + (String(cur) === String(k) ? ' on' : '') + '" data-act="' + act + '" data-k="' + k + '" type="button">' + t + '</button>').join(''); };
+  mk('oppBar', [['cpu', '🤖 Computer'], ['two', '👥 Pass and play']], st.opp, 'opp'); mk('lvBar', [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']], st.level, 'lv'); mk('colBar', [['white', 'White'], ['black', 'Black'], ['random', 'Random']], st.colour, 'col');
+  $('colRow').style.display = cpu() ? '' : 'none'; $('lvBar').parentNode.style.display = cpu() ? '' : 'none';
+}
+ui.actions(document.body, {
+  hint: showHint, undo, restart: newGame, closeov: () => O.hide('ovEnd'), flip: () => { flip = !flip; },
+  opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); }, lv: b => { st.level = b.dataset.k; S0.save(); bars(); }, col: b => { st.colour = b.dataset.k; S0.save(); newGame(); }
+});
+
+/* ---------- input ---------- */
+const sqXY = s => { const c = s & 7, r = s >> 3; return flip ? [M + (7 - c) * SQ, M + (7 - r) * SQ] : [M + c * SQ, M + r * SQ]; };
+const sqAt = p => { const c = Math.floor((p.x - M) / SQ), r = Math.floor((p.y - M) / SQ); if (c < 0 || c > 7 || r < 0 || r > 7) return -1; return flip ? (7 - r) * 8 + (7 - c) : r * 8 + c; };
+const mine = sq => S.b[sq] * S.turn > 0;
+function tryMove(f, t) {
+  const m = L.find(x => x.f === f && x.t === t); if (!m) { sel = -1; setMsg('Illegal move. ' + turnMsg()); A.beep(160, .12, 'square', .1); return; } doMove(m);
+}
+cv.addEventListener('pointerdown', e => {
+  const p = C.pos(e), sq = sqAt(p); if (sq < 0 || !human() || anim && performance.now() - anim.t0 < anim.dur) return;
+  cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+  if (sel >= 0 && sel !== sq && L.some(m => m.f === sel && m.t === sq)) { tryMove(sel, sq); return; }
+  if (mine(sq)) { sel = sq; drag = { sq, x: p.x, y: p.y, sx: p.x, sy: p.y, moved: false }; const t = Math.abs(S.b[sq]); setMsg(INFO[t] + (L.some(m => m.f === sq) ? '' : ' (No legal move now.)')); return; }
+  if (sel >= 0) { setMsg('Illegal move. ' + turnMsg()); A.beep(160, .12, 'square', .1); } sel = -1;
+});
+cv.addEventListener('pointermove', e => { if (!drag) return; const p = C.pos(e); drag.x = p.x; drag.y = p.y; if (Math.hypot(p.x - drag.sx, p.y - drag.sy) > 10) drag.moved = true; });
+cv.addEventListener('pointerup', e => { if (!drag) return; const p = C.pos(e), sq = sqAt(p), d = drag; drag = null; if (d.moved && sq >= 0 && sq !== d.sq) tryMove(d.sq, sq); });
+cv.addEventListener('pointercancel', () => { drag = null; });
+
+/* ---------- drawing ---------- */
+const inkCache = {};
+function inkCenter(g, s) {
+  const k = g.font + '|' + s; if (k in inkCache) return inkCache[k];
+  g.save(); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; const m = g.measureText(s); g.restore();
+  return inkCache[k] = (m.actualBoundingBoxRight === undefined || (m.actualBoundingBoxRight === 0 && m.actualBoundingBoxLeft === 0)) ? null : { dx: (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2, dy: (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2 };
+}
+function piece(g, x, y, v, a) {
+  const white = v > 0, t = Math.abs(v); g.save(); g.globalAlpha = a == null ? 1 : a; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = white ? '#f7f3e6' : '#2a2622'; g.strokeStyle = white ? '#2a2622' : '#e8e2d0'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, SQ * .4, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = white ? '#2a2622' : '#f2ecda';
+  if (st.pieces === 'letters') { g.font = 'bold 36px sans-serif'; g.fillText(LT[t], x, y + 2); }
+  else {
+    g.font = '44px "Segoe UI Symbol","Noto Sans Symbols 2","DejaVu Sans","Apple Symbols",serif'; const s = GL[t] + '︎', c = inkCenter(g, s);   // fonts differ in side space (iPhone, Windows, Android), so centre the visible ink, not the text box
+    if (c) { g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText(s, x - c.dx, y - c.dy + 3); } else g.fillText(s, x, y + 3);
+  }
+  g.restore();
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / W, 0, 0); if (!S) return;
+  const T = THEMES[st.board] || THEMES.brown, t = performance.now();
+  g.fillStyle = T.f; g.beginPath(); g.roundRect ? g.roundRect(0, 0, W, W, 12) : g.rect(0, 0, W, W); g.fill();
+  for (let s = 0; s < 64; s++) { const [x, y] = sqXY(s); g.fillStyle = ((s & 7) + (s >> 3)) % 2 ? T.d : T.l; g.fillRect(x, y, SQ, SQ); }
+  if (st.coords) { g.fillStyle = T.c; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; for (let i = 0; i < 8; i++) { const f = flip ? 7 - i : i, r = flip ? 7 - i : i; g.fillText('abcdefgh'[f], M + i * SQ + SQ / 2, W - M / 2 + 1); g.fillText(String(8 - r), M / 2, M + i * SQ + SQ / 2); } }
+  const tint = (s, col) => { const [x, y] = sqXY(s); g.fillStyle = col; g.fillRect(x, y, SQ, SQ); };
+  if (last) { tint(last.f, 'rgba(255,220,60,.38)'); tint(last.t, 'rgba(255,220,60,.5)'); }
+  if (hintMv && hintT > t) { tint(hintMv.f, 'rgba(60,150,255,.5)'); tint(hintMv.t, 'rgba(60,150,255,.5)'); }
+  const ck = !over && shInCheck(S) ? S.b.findIndex(v => v === 6 * S.turn) : -1;
+  if (ck >= 0) { const [x, y] = sqXY(ck), gr = g.createRadialGradient(x + SQ / 2, y + SQ / 2, 4, x + SQ / 2, y + SQ / 2, SQ * .62); gr.addColorStop(0, 'rgba(255,40,40,.85)'); gr.addColorStop(1, 'rgba(255,40,40,0)'); g.fillStyle = gr; g.fillRect(x, y, SQ, SQ); }
+  if (sel >= 0) tint(sel, 'rgba(80,200,120,.55)');
+  const dragging = drag && drag.moved;
+  for (let s = 0; s < 64; s++) {
+    const v = S.b[s]; if (!v) continue; if (anim && anim.to === s && t - anim.t0 < anim.dur) continue; if (dragging && drag.sq === s) continue;
+    const [x, y] = sqXY(s); piece(g, x + SQ / 2, y + SQ / 2, v);
+  }
+  if (anim) { const k = (t - anim.t0) / anim.dur; if (k < 1) { const [x0, y0] = sqXY(anim.from), [x1, y1] = sqXY(anim.to), e = 1 - (1 - k) * (1 - k); piece(g, x0 + (x1 - x0) * e + SQ / 2, y0 + (y1 - y0) * e + SQ / 2, S.b[anim.to]); } else anim = null; }
+  if (sel >= 0 && st.dots && human()) for (const m of L) {
+    if (m.f !== sel) continue; const [x, y] = sqXY(m.t);
+    if (S.b[m.t]) { g.strokeStyle = 'rgba(220,40,40,.8)'; g.lineWidth = 5; g.beginPath(); g.arc(x + SQ / 2, y + SQ / 2, SQ * .44, 0, 7); g.stroke(); }
+    else { g.fillStyle = 'rgba(20,20,20,.38)'; g.beginPath(); g.arc(x + SQ / 2, y + SQ / 2, SQ * .13, 0, 7); g.fill(); }
+  }
+  if (dragging) piece(g, drag.x, drag.y - 8, S.b[drag.sq]);
+  if (thinking) { g.fillStyle = 'rgba(255,255,255,.6)'; g.fillRect(M, W - 5, (W - 2 * M) * ((t / 1200) % 1), 3); }
+}
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get over() { return over; }, get res() { return res; }, get log() { return log; }, get st() { return st; }, get thinking() { return thinking; }, get flip() { return flip; }, get me() { return me; },
+  ts: x => { TS = x; }, newGame,
+  xy: name => { const [x, y] = sqXY(shSqOf(name)), r = cv.getBoundingClientRect(); return [r.left + (x + SQ / 2) / W * r.width, r.top + (y + SQ / 2) / W * r.height]; },
+  play: (a, b) => { const m = L.find(x => shSq(x.f) === a && shSq(x.t) === b); if (m) doMove(m); return !!m; },
+  setPos: (rows, turn, extra) => { token++; S = shFromRows(rows, turn, extra); L = shLegal(S); hist = []; log = []; reps = {}; reps[shKey(S)] = 1; over = false; res = null; last = null; sel = -1; thinking = false; O.hide('ovEnd'); hud(); setMsg(turnMsg()); kick(); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

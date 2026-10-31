@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 57 · Mahjong Puzzles</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d3d27">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MJ Puzzles">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:1.4em;font-weight:700;font-size:14px;text-align:center}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.tbar .btn.big{padding:11px 18px;font-size:16px}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.pzcard{background:linear-gradient(#14583a,#0d3d27);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;gap:10px;color:#f3f3ee}
+.pzq{font-size:16px;font-weight:800;text-align:center;line-height:1.3}
+.pzctx{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.pzctx span{background:rgba(0,0,0,.28);border-radius:999px;padding:2px 10px;font-size:12.5px}
+.pzhand{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;align-items:flex-end;padding:8px 4px;background:rgba(0,0,0,.2);border-radius:10px;min-height:60px}
+.pzhand .grp{display:inline-flex;gap:1px;margin:0 5px;padding:2px 3px;border-radius:6px;background:rgba(255,255,255,.07)}
+.pzhand .gap{width:12px}
+.pzhand .lab{flex-basis:100%;text-align:center;font-size:11px;color:rgba(255,255,255,.7);margin-top:2px}
+.tl{background:none;border:0;padding:0;display:inline-block;position:relative;-webkit-tap-highlight-color:transparent;font:inherit;color:inherit}
+button.tl{cursor:pointer}
+.tl img{display:block;width:clamp(26px,8vw,38px);height:auto;border-radius:4px;transition:transform .12s}
+.sm .tl img,.tl.s img{width:clamp(20px,5.6vw,26px)}
+.tl.sel img{transform:translateY(-9px);box-shadow:0 0 0 3px #ffd84a}
+.tl.drawn img{box-shadow:0 0 0 2px rgba(255,255,255,.7)}
+.tl.win img{box-shadow:0 0 0 3px #ffd84a}
+.tl.hl img{box-shadow:0 0 0 3px #7fd6ff}
+.tl.ok img{box-shadow:0 0 0 3px #5fe08a}.tl.bad img{box-shadow:0 0 0 3px #ff6a6a;opacity:.75}.tl.miss img{box-shadow:0 0 0 3px #ffb347}.tl.off img{opacity:.35}
+.tl .n{position:absolute;right:-2px;top:-6px;background:#ffd84a;color:#000;border-radius:999px;font-size:10px;font-weight:800;padding:0 5px;line-height:15px}
+.pzpick{display:flex;flex-direction:column;gap:6px;align-items:center}
+.pgrid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px 3px;width:100%;max-width:440px}
+.pgrid .tl img{width:100%}
+.prow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}.prow .tl img{width:clamp(38px,12vw,54px)}
+.abtn{background:var(--panel2);color:#fff;border:2px solid rgba(255,255,255,.25);border-radius:12px;padding:10px 18px;font-size:19px;font-weight:800;cursor:pointer;min-width:72px}
+.abtn.off{opacity:.35}.abtn.ok{border-color:#5fe08a;background:rgba(95,224,138,.25)}
+.pzexp{font-size:13.5px;line-height:1.5}
+.pzexp .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:5px 0;border-bottom:1px dashed rgba(255,255,255,.2)}
+.pzexp .row.best{background:rgba(255,216,74,.12);border-radius:8px;padding:5px 6px}
+.pzexp .row b{color:#ffd84a}.pzexp .tl img{width:26px}
+.pzexp ul{list-style:none;margin:4px 0;padding:0}.pzexp li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dashed rgba(255,255,255,.2)}.pzexp li b{color:#ffd84a}
+.good{color:#7dffa6}.warn{color:#ffb347}.badc{color:#ff8a8a}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Mahjong Puzzles</h2>
+  <p>Chapter 57 · Work out which tiles win, which tile to throw, how many faan or tai a hand is worth, and which winning tile scores most, in Hong Kong or Taiwan style</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap pzwrap">
+  <div class="thead">
+    <div class="tstat"><small id="lb1">POINTS</small><b id="s1">0</b></div>
+    <div class="tstat"><small id="lb2">STREAK</small><b id="s2">0</b></div>
+    <div class="tstat"><small id="lb3">SOLVED</small><b id="s3">0</b></div>
+    <div class="tstat"><small id="lb4">LEVEL</small><b id="s4">Easy</b></div>
+  </div>
+  <div class="tbar"><span class="kl">🌐</span><span id="langBar"></span></div>
+  <div class="tbar"><span class="kl" id="lbRules">Rules:</span><span id="ruleBar"></span></div>
+  <div class="tbar" id="modeBar"></div>
+  <div class="tbar"><span class="kl" id="lbLevel">Level:</span><span id="lvBar"></span></div>
+  <div class="pzcard" id="card">
+    <div class="pzq" id="q"></div>
+    <div class="pzctx" id="ctx"></div>
+    <div class="pzhand" id="hand"></div>
+    <div class="pzpick" id="pick"></div>
+    <div class="tmsg" id="msg"></div>
+    <div class="tbar" id="acts"></div>
+    <div class="pzexp" id="exp"></div>
+  </div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules"></section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🧩 These puzzles use the same Hong Kong and Taiwan scoring rules as chapter 55, so house rules at your table may differ. The puzzle maker, answer checker, tile pictures and scoring code are my own. Not included: seven pairs, nine gates and the rarer limit hands.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Mahjong, part 1: tiles, winning shapes, shanten (how far from winning) and scoring for Hong Kong (faan) and Taiwan (tai) rules.
+   Pure functions, no drawing, no randomness. Tiles are numbers: 0-8 characters, 9-17 circles, 18-26 bamboo, 27-30 winds (E S W N), 31-33 dragons (red, green, white), 34-41 flowers. */
+const MJ = (function () {
+  const WIND = 27, DRAG = 31, FL = 34, ORPH = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+  const NUM = '一二三四五六七八九', SUIT = ['萬', '筒', '索'], HON = ['東', '南', '西', '北', '中', '發', '白'], FLN = ['梅', '蘭', '菊', '竹', '春', '夏', '秋', '冬'];
+  const tn = k => k < 27 ? (k % 9 + 1) + SUIT[Math.floor(k / 9)] : k < 34 ? HON[k - 27] : FLN[k - 34];
+  const isHon = k => k >= 27 && k < 34, isTerm = k => k < 27 && (k % 9 === 0 || k % 9 === 8), isFl = k => k >= 34;
+  const counts = arr => { const c = new Array(34).fill(0); for (const k of arr) if (k < 34) c[k]++; return c; };
+
+  /* ---------- winning shapes ---------- */
+  function decomp(c, nSets, all) { // every way to split the counts c into nSets sets plus one pair
+    const out = [], sets = [], seen = new Set(); let pair = -1, tot = 0; for (let i = 0; i < 34; i++) tot += c[i]; if (tot !== nSets * 3 + 2) return out;
+    function go(i) {
+      while (i < 34 && c[i] === 0) i++;
+      if (i >= 34) { if (pair >= 0 && sets.length === nSets) { const key = pair + ':' + sets.map(s => s[0] + s[1]).sort().join(','); if (!seen.has(key)) { seen.add(key); out.push({ pair, sets: sets.map(s => s.slice()) }); } } return !all && out.length > 0; }
+      if (c[i] >= 3 && sets.length < nSets) { c[i] -= 3; sets.push(['p', i]); const r = go(i); sets.pop(); c[i] += 3; if (r) return true; }
+      if (i < 27 && i % 9 <= 6 && c[i + 1] > 0 && c[i + 2] > 0 && sets.length < nSets) { c[i]--; c[i + 1]--; c[i + 2]--; sets.push(['c', i]); const r = go(i); sets.pop(); c[i]++; c[i + 1]++; c[i + 2]++; if (r) return true; }
+      if (pair < 0 && c[i] >= 2) { c[i] -= 2; pair = i; const r = go(i); pair = -1; c[i] += 2; if (r) return true; }
+      return false;
+    }
+    go(0); return out;
+  }
+  const isOrph = c => { let tot = 0, dup = 0; for (let i = 0; i < 34; i++) tot += c[i]; if (tot !== 14) return false; for (const k of ORPH) { if (c[k] === 0) return false; if (c[k] >= 2) dup++; } return dup === 1; };
+  const hasWin = (c, nSets, orph) => (orph && isOrph(c)) || decomp(c, nSets, false).length > 0;
+  function waits(c, nSets, orph) { // c = the hand without its last tile; which tiles would complete it?
+    const out = []; for (let k = 0; k < 34; k++) { if (c[k] >= 4) continue; c[k]++; if (hasWin(c, nSets, orph)) out.push(k); c[k]--; } return out;
+  }
+
+  /* ---------- shanten: 0 = one tile from winning, -1 = won ---------- */
+  function shanten(c, m0, N, orph) {
+    let best = 99; const cc = c.slice();
+    (function go(i, m, t, pr) {
+      while (i < 34 && cc[i] === 0) i++;
+      if (i >= 34) { const s = 2 * N - 2 * m - Math.min(t, N - m) - pr; if (s < best) best = s; return; }
+      if (best <= -1) return;
+      if (cc[i] >= 3) { cc[i] -= 3; go(i, m + 1, t, pr); cc[i] += 3; }
+      if (i < 27 && i % 9 <= 6 && cc[i + 1] && cc[i + 2]) { cc[i]--; cc[i + 1]--; cc[i + 2]--; go(i, m + 1, t, pr); cc[i]++; cc[i + 1]++; cc[i + 2]++; }
+      if (!pr && cc[i] >= 2) { cc[i] -= 2; go(i, m, t, 1); cc[i] += 2; }
+      if (cc[i] >= 2) { cc[i] -= 2; go(i, m, t + 1, pr); cc[i] += 2; }
+      if (i < 27 && i % 9 <= 7 && cc[i + 1]) { cc[i]--; cc[i + 1]--; go(i, m, t + 1, pr); cc[i]++; cc[i + 1]++; }
+      if (i < 27 && i % 9 <= 6 && cc[i + 2]) { cc[i]--; cc[i + 2]--; go(i, m, t + 1, pr); cc[i]++; cc[i + 2]++; }
+      cc[i]--; go(i, m, t, pr); cc[i]++;
+    })(0, m0, 0, 0);
+    if (orph && m0 === 0) { let d = 0, p = 0; for (const k of ORPH) { if (c[k] > 0) d++; if (c[k] > 1) p = 1; } best = Math.min(best, 13 - d - p); }
+    return best;
+  }
+
+  /* ---------- scoring ---------- */
+  const HKT = [0, 2, 4, 8, 16, 24, 32, 48, 64, 96, 128], HKLIM = 10;
+  const hkPay = f => HKT[Math.min(HKLIM, Math.max(1, f))];
+  const TWBASE = 30, TWTAI = 10;
+  function normMelds(ms) { return ms.map(m => ({ t: m.t === 'chi' ? 'c' : m.t === 'pon' ? 'p' : 'k', k: m.k, conc: m.t === 'akong', open: m.t !== 'akong' })); }
+  /* o: {rules, N, cnt (concealed incl. the winning tile), melds [{t:'chi'|'pon'|'kong'|'akong',k}], flowers [], win, self, seat 0-3, rnd 0-3, kongDraw, last, rob, heaven, earth} */
+  function score(o) {
+    const hk = o.rules === 'hk', nConc = o.N - o.melds.length; let best = null;
+    const flowerItems = items => {
+      const fl = o.flowers, A = fl.filter(k => k < 38).length, B = fl.filter(k => k >= 38).length;
+      if (!hk && fl.length === 8) { items.push(['八仙過海 All 8 flowers', 8]); return; }
+      if (hk && fl.length === 0) items.push(['無花 No flowers', 1]);
+      let seatN = 0; for (const k of fl) if ((k - 34) % 4 === o.seat) seatN++;
+      if (seatN) items.push(['正花 Seat flower' + (seatN > 1 ? 's ×' + seatN : ''), seatN]);
+      if (A === 4) items.push(['花槓 Flower set (plum, orchid…)', 2]); if (B === 4) items.push(['花槓 Flower set (seasons)', 2]);
+    };
+    const common = (items) => {
+      if (o.kongDraw && o.self) items.push(['槓上開花 Win on kong tile', 1]);
+      if (o.last) items.push([o.self ? '海底撈月 Last-tile draw' : '河底撈魚 Last-discard win', 1]);
+      if (o.rob) items.push(['搶槓 Robbing a kong', 1]);
+    };
+    const fin = (items, limit, name) => {
+      let v = 0; for (const it of items) v += it[1]; if (hk && v > HKLIM) v = HKLIM; if (hk && limit) v = HKLIM;
+      const r = { v, items, limit: !!limit, unit: hk ? 'faan' : 'tai', name: name || '' }; if (!best || r.v > best.v) best = r;
+    };
+    if (hk && o.melds.length === 0 && isOrph(o.cnt)) { const it = [['十三么 Thirteen orphans', HKLIM]]; common(it); if (o.heaven) it.push(['天糊 Heavenly hand', 0]); fin(it, true, '十三么'); }
+    const ds = decomp(o.cnt.slice(), nConc, true);
+    let dokuCnt = null;
+    for (const d of ds) {
+      const sets = normMelds(o.melds).concat(d.sets.map(s => ({ t: s[0], k: s[1], conc: !(s[0] === 'p' && s[1] === o.win && !o.self), open: false }))), items = [], P = d.pair;
+      const pungs = sets.filter(s => s.t !== 'c'), chows = sets.filter(s => s.t === 'c'), kongs = sets.filter(s => s.t === 'k');
+      const suits = new Set(); let honors = P >= 27; if (P < 27) suits.add(Math.floor(P / 9)); for (const s of sets) { if (s.k >= 27) honors = true; else suits.add(Math.floor(s.k / 9)); }
+      const openMelds = o.melds.some(m => m.t !== 'akong'), conc = !openMelds;
+      let limit = false, lname = '';
+      const allPung = chows.length === 0, allTH = allPung && P >= 27 + 0 && false;
+      const termHon = allPung && [P].concat(sets.map(s => s.k)).every(k => isTerm(k) || isHon(k)), onlyTerm = termHon && !honors;
+      const dr = pungs.filter(s => s.k >= DRAG), wd = pungs.filter(s => s.k >= WIND && s.k < DRAG);
+      const cp = pungs.filter(s => s.conc).length;
+      if (hk) {
+        if (!openMelds) items.push(o.self ? ['門前清 Concealed hand', 1] : ['門前清 Concealed hand', 1]);
+        if (o.self) items.push(['自摸 Self-draw', 1]);
+        flowerItems(items); common(items);
+        if (chows.length === sets.length && P < 27 && !honors) items.push(['平糊 All chows', 1]);
+        if (allPung) items.push(['對對糊 All pungs', 3]);
+        if (suits.size === 0) { items.push(['字一色 All honours', HKLIM]); limit = true; }
+        else if (suits.size === 1 && !honors) items.push(['清一色 One suit', 7]);
+        else if (suits.size === 1 && honors) items.push(['混一色 Suit + honours', 3]);
+        if (onlyTerm) { items.push(['清幺九 All terminals', HKLIM]); limit = true; } else if (termHon && suits.size > 0) { items.push(['混幺九 Terminals & honours', 8]); }
+        if (dr.length === 3) items.push(['大三元 Big three dragons', 8]); else if (dr.length === 2 && P >= DRAG && P < 34) items.push(['小三元 Small three dragons', 5]); else for (const s of dr) items.push(['番子 Dragon pung ' + tn(s.k), 1]);
+        if (wd.length === 4) { items.push(['大四喜 Big four winds', HKLIM]); limit = true; }
+        else if (wd.length === 3 && P >= WIND && P < DRAG) items.push(['小四喜 Small four winds', 6]);
+        else for (const s of wd) { if (s.k === WIND + o.seat) items.push(['門風 Seat wind ' + tn(s.k), 1]); if (s.k === WIND + o.rnd) items.push(['圈風 Round wind ' + tn(s.k), 1]); }
+        if (cp === 4) { items.push(['坎坎糊 Four concealed pungs', HKLIM]); limit = true; } else if (cp === 3) items.push(['三暗刻 Three concealed pungs', 3]);
+        if (kongs.length === 4) { items.push(['十八羅漢 Four kongs', HKLIM]); limit = true; }
+        if (o.heaven) { items.push(['天糊 Heavenly hand', HKLIM]); limit = true; } else if (o.earth) { items.push(['地糊 Earthly hand', HKLIM]); limit = true; }
+      } else {
+        if (!openMelds) { items.push(['門清 Concealed hand', 1]); if (o.self) items.push(['不求人 Concealed self-draw', 1]); }
+        if (o.self) items.push(['自摸 Self-draw', 1]);
+        flowerItems(items); common(items);
+        if (chows.length === sets.length && P < 27 && !honors && o.flowers.length === 0) {
+          let open = false; for (const s of chows) { const pos = o.win - s.k; if (pos === 0 && s.k % 9 !== 6) open = true; if (pos === 2 && s.k % 9 !== 0) open = true; }
+          if (open && !(o.melds.length && 0)) items.push(['平胡 All chows, two-way wait', 2]);
+        }
+        if (o.melds.length === o.N && o.melds.every(m => m.t !== 'akong') && !o.self) items.push(['全求人 All melds exposed', 2]);
+        if (allPung) items.push(['碰碰胡 All pungs', 4]);
+        if (suits.size === 0) items.push(['字一色 All honours', 16]);
+        else if (suits.size === 1 && !honors) items.push(['清一色 One suit', 8]);
+        else if (suits.size === 1 && honors) items.push(['混一色 Suit + honours', 4]);
+        if (dr.length === 3) items.push(['大三元 Big three dragons', 8]); else if (dr.length === 2 && P >= DRAG && P < 34) items.push(['小三元 Small three dragons', 4]); else for (const s of dr) items.push(['三元牌 Dragon pung ' + tn(s.k), 1]);
+        if (wd.length === 4) items.push(['大四喜 Big four winds', 16]);
+        else if (wd.length === 3 && P >= WIND && P < DRAG) items.push(['小四喜 Small four winds', 8]);
+        else for (const s of wd) { if (s.k === WIND + o.seat) items.push(['門風 Seat wind ' + tn(s.k), 1]); if (s.k === WIND + o.rnd) items.push(['圈風 Round wind ' + tn(s.k), 1]); }
+        if (cp === 5) items.push(['五暗刻 Five concealed pungs', 8]); else if (cp === 4) items.push(['四暗刻 Four concealed pungs', 5]); else if (cp === 3) items.push(['三暗刻 Three concealed pungs', 2]);
+        if (o.heaven) items.push(['天胡 Heavenly hand', 16]); else if (o.earth) items.push(['地胡 Earthly hand', 16]);
+        if (dokuCnt === null) { const c2 = o.cnt.slice(); c2[o.win]--; dokuCnt = waits(c2, nConc, false).length; }
+        if (dokuCnt === 1) items.push(['獨聽 Only one winning tile', 1]);
+      }
+      fin(items, limit);
+    }
+    return best;
+  }
+  /* ---------- helpers for who may win ---------- */
+  function winInfo(S, p, tile, self, flags) { // is this a legal win (enough faan) for player p? returns the score or null
+    const cnt = counts(S.h[p]); if (!self) cnt[tile]++;
+    const r = score(Object.assign({ rules: S.rules, N: S.N, cnt, melds: S.melds[p], flowers: S.fl[p], win: tile, self, seat: S.seatOf(p), rnd: S.rnd, kongDraw: false, last: false, rob: false, heaven: false, earth: false }, flags || {}));
+    if (!r) return null; if (S.rules === 'hk' && !r.limit && r.v < S.min) { r.low = true; return r; } return r;
+  }
+  return { WIND, DRAG, FL, ORPH, tn, isHon, isTerm, isFl, counts, decomp, isOrph, hasWin, waits, shanten, score, hkPay, HKT, HKLIM, TWBASE, TWTAI, winInfo };
+})();
+if (typeof module !== 'undefined') module.exports = MJ;
+
+/* Traditional -> Simplified table made by tools/mksc.py. Pairs of characters: from, to. */
+const MJSC = (() => { const T = '個个別别則则剛刚勝胜單单夠够將将對对幾几張张後后戲戏揀拣搶抢撈捞擇择數数時时會会東东條条棄弃槓杠標标樣样機机沒没湊凑準准滿满漢汉灣湾為为無无獨独現现畫画當当發发種种簡简細细組组經经續续羅罗聲声聽听與与萬万蓋盖藍蓝蘭兰補补裝装規规計计設设試试語语說说請请讓让豬猪貫贯賠赔較较這这連连遊游過过選选還还邊边銃铳門门開开隨随隻只雖虽雞鸡難难項项順顺題题顯显風风餘余體体魚鱼鵝鹅點点', M = {}; for (let i = 0; i < T.length; i += 2) M[T[i]] = T[i + 1]; return { s: t => String(t).replace(/[\u3400-\u9fff]/g, c => M[c] || c) }; })();
+
+/* Mahjong, part 3: pictures. Tiles (cached), tile backs, the cute animal faces with six moods, speech bubbles and comic bursts. Only drawing, no rules. */
+const MA = (function () {
+  const FONT = '"Noto Sans CJK TC","Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC","Noto Sans CJK SC",sans-serif';
+  const NUM = '一二三四五六七八九', cache = {};
+  const rr = (g, x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+  const PINP = [null, [[.5, .5]], [[.5, .27], [.5, .73]], [[.25, .2], [.5, .5], [.75, .8]], [[.27, .27], [.73, .27], [.27, .73], [.73, .73]], [[.27, .27], [.73, .27], [.5, .5], [.27, .73], [.73, .73]],
+    [[.3, .2], [.7, .2], [.3, .5], [.7, .5], [.3, .8], [.7, .8]], [[.25, .15], [.5, .28], [.75, .41], [.3, .66], [.7, .66], [.3, .88], [.7, .88]], [[.3, .13], [.7, .13], [.3, .38], [.7, .38], [.3, .62], [.7, .62], [.3, .87], [.7, .87]],
+    [[.2, .2], [.5, .2], [.8, .2], [.2, .5], [.5, .5], [.8, .5], [.2, .8], [.5, .8], [.8, .8]]];
+  const SOUP = [null, null, [[.5, .27], [.5, .73]], [[.5, .27], [.3, .73], [.7, .73]], [[.3, .27], [.7, .27], [.3, .73], [.7, .73]], [[.3, .27], [.7, .27], [.5, .5], [.3, .73], [.7, .73]],
+    [[.25, .27], [.5, .27], [.75, .27], [.25, .73], [.5, .73], [.75, .73]], [[.5, .15], [.25, .5], [.5, .5], [.75, .5], [.25, .85], [.5, .85], [.75, .85]], [[.3, .15], [.7, .15], [.3, .38], [.7, .38], [.3, .62], [.7, .62], [.3, .85], [.7, .85]],
+    [[.22, .2], [.5, .2], [.78, .2], [.22, .5], [.5, .5], [.78, .5], [.22, .8], [.5, .8], [.78, .8]]];
+  let SCON = false; const SCX = t => (SCON && typeof MJSC !== 'undefined') ? MJSC.s(t) : t; // simplified Chinese: 万 发 兰
+  function setSC(v) { v = !!v; if (v !== SCON) { SCON = v; for (const k in cache) delete cache[k]; } }
+  function glyph(g, k, x, y, w, h) { // paint the picture on the face rectangle (x, y, w, h)
+    g.textAlign = 'center'; g.textBaseline = 'middle'; const cx = x + w / 2;
+    if (k < 9) { g.fillStyle = '#1a1a1a'; g.font = '700 ' + (w * .62) + 'px ' + FONT; g.fillText(NUM[k], cx, y + h * .3); g.fillStyle = '#c0281c'; g.font = '700 ' + (w * .52) + 'px ' + FONT; g.fillText(SCX('萬'), cx, y + h * .73); }
+    else if (k < 18) { const n = k - 8, P = PINP[n]; P.forEach((p, i) => { const r = Math.min(w, h) * (n === 1 ? .34 : n <= 3 ? .17 : n <= 6 ? .16 : .125), px = x + p[0] * w, py = y + p[1] * h;
+      const col = n === 1 ? '#c0281c' : (n === 5 && i === 2) || (n === 9 && i % 3 === 1) || (n === 7 && i < 3) ? '#c0281c' : i % 2 ? '#1f5fb0' : '#1a7a3c';
+      g.fillStyle = col; g.beginPath(); g.arc(px, py, r, 0, 7); g.fill(); g.fillStyle = '#f5f0e0'; g.beginPath(); g.arc(px, py, r * .62, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.arc(px, py, r * .34, 0, 7); g.fill(); if (n === 1) { g.strokeStyle = col; g.lineWidth = r * .1; g.beginPath(); g.arc(px, py, r * .82, 0, 7); g.stroke(); } }); }
+    else if (k < 27) { const n = k - 17; if (n === 1) { const px = cx, py = y + h * .55; g.fillStyle = '#1a7a3c'; g.beginPath(); g.ellipse(px, py, w * .26, h * .26, 0, 0, 7); g.fill(); g.beginPath(); g.arc(px + w * .12, py - h * .27, w * .13, 0, 7); g.fill(); g.fillStyle = '#c0281c'; g.beginPath(); g.moveTo(px + w * .2, py - h * .3); g.lineTo(px + w * .36, py - h * .24); g.lineTo(px + w * .2, py - h * .2); g.fill(); g.fillStyle = '#1f5fb0'; g.beginPath(); g.moveTo(px - w * .2, py + h * .15); g.lineTo(px - w * .42, py + h * .36); g.lineTo(px - w * .1, py + h * .3); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(px + w * .15, py - h * .29, w * .03, 0, 7); g.fill(); return; }
+      const P = SOUP[n], sh = h * (n <= 3 ? .32 : n <= 6 ? .3 : .22), sw = w * .15;
+      P.forEach((p, i) => { const red = (n === 5 && i === 2) || (n === 7 && i === 0) || (n === 9 && i % 3 === 1), px = x + p[0] * w - sw / 2, py = y + p[1] * h - sh / 2; g.fillStyle = red ? '#c0281c' : '#1a7a3c'; rr(g, px, py, sw, sh, sw * .45); g.fill(); g.fillStyle = red ? '#7a1710' : '#0e4a24'; g.fillRect(px, py + sh / 2 - 1, sw, 2); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(px + sw * .22, py + 2, sw * .18, sh - 4); }); }
+    else if (k < 31) { g.fillStyle = '#1a1a1a'; g.font = '700 ' + (w * .86) + 'px ' + FONT; g.fillText('東南西北'[k - 27], cx, y + h * .52); }
+    else if (k === 31) { g.fillStyle = '#c0281c'; g.font = '700 ' + (w * .92) + 'px ' + FONT; g.fillText('中', cx, y + h * .52); }
+    else if (k === 32) { g.fillStyle = '#1a7a3c'; g.font = '700 ' + (w * .88) + 'px ' + FONT; g.fillText(SCX('發'), cx, y + h * .52); }
+    else if (k === 33) { g.strokeStyle = '#1f5fb0'; g.lineWidth = w * .09; rr(g, x + w * .14, y + h * .14, w * .72, h * .72, w * .08); g.stroke(); g.lineWidth = w * .035; rr(g, x + w * .24, y + h * .24, w * .52, h * .52, w * .05); g.stroke(); }
+    else { const i = k - 34, cols = ['#d94f7a', '#8a4fd0', '#d9a21a', '#2f9a4a', '#3fa0d8', '#e0463c', '#d9761a', '#6a7480']; g.fillStyle = cols[i]; g.beginPath(); g.arc(cx, y + h * .46, w * .42, 0, 7); g.fill(); g.fillStyle = '#fff'; g.font = '700 ' + (w * .6) + 'px ' + FONT; g.fillText(SCX('梅蘭菊竹春夏秋冬'[i]), cx, y + h * .48); g.fillStyle = '#333'; g.font = '700 ' + (w * .3) + 'px ' + FONT; g.fillText(String(i % 4 + 1), x + w * .16, y + h * .9); }
+  }
+  /* a finished tile picture at width w (height w*1.35), cached; sc = how sharp (device pixels per logical pixel) */
+  function tileImg(k, w, o) {
+    o = o || {}; const sc = 2, key = k + '_' + w + '_' + (o.back ? 'b' : o.dim ? 'd' : 'f'); if (cache[key]) return cache[key];
+    const h = Math.round(w * 1.35), th = Math.max(2, Math.round(w * .09)), c = document.createElement('canvas'); c.width = Math.ceil(w * sc); c.height = Math.ceil((h + th) * sc); const g = c.getContext('2d'); g.scale(sc, sc);
+    g.fillStyle = o.back ? '#0e5a3a' : '#2a8a5a'; rr(g, 0, th, w, h, w * .13); g.fill();
+    const gr = g.createLinearGradient(0, 0, 0, h); if (o.back) { gr.addColorStop(0, '#1d9a62'); gr.addColorStop(1, '#13774a'); } else { gr.addColorStop(0, '#fffdf4'); gr.addColorStop(1, o.dim ? '#c9c3ae' : '#ece6d0'); }
+    g.fillStyle = gr; rr(g, 0, 0, w, h, w * .13); g.fill(); g.strokeStyle = 'rgba(0,0,0,.28)'; g.lineWidth = 1; rr(g, .5, .5, w - 1, h - 1, w * .13); g.stroke();
+    if (o.back) { g.strokeStyle = 'rgba(255,255,255,.28)'; g.lineWidth = Math.max(1, w * .05); rr(g, w * .2, h * .18, w * .6, h * .64, w * .08); g.stroke(); g.fillStyle = 'rgba(255,255,255,.2)'; g.beginPath(); g.arc(w / 2, h / 2, w * .13, 0, 7); g.fill(); }
+    else { glyph(g, k, w * .1, h * .08, w * .8, h * .84); if (o.dim) { g.fillStyle = 'rgba(120,110,90,.18)'; rr(g, 0, 0, w, h, w * .13); g.fill(); } }
+    return (cache[key] = c);
+  }
+  function tile(g, k, x, y, w, o) { const im = tileImg(k, w, o), th = Math.max(2, Math.round(w * .09)); g.drawImage(im, x, y, im.width / 2, im.height / 2); return Math.round(w * 1.35) + th; }
+
+  /* ---------- the animal faces ---------- */
+  const CH = {
+    bunny: { name: 'Bun', zh: '小兔', type: 'bunny', fur: '#fff6f0', dark: '#ffc6d4', ear: '#ffb0c4', shirt: '#4ec28a', acc: 'cap', bg: '#7fc6ff', nose: '#ff8aa6' },
+    mimi: { name: 'Mimi', zh: '咪咪', type: 'cat', fur: '#ffe6cf', dark: '#f0b896', ear: '#ff9db1', shirt: '#ff7aa8', acc: 'bow', bg: '#ffb6c9', nose: '#ff7a96' },
+    boba: { name: 'Boba', zh: '波波', type: 'panda', fur: '#ffffff', dark: '#2a2a32', ear: '#2a2a32', shirt: '#4ab0e8', acc: 'band', bg: '#bde8a0', nose: '#2a2a32' },
+    fox: { name: 'Granny Fox', zh: '狐婆', type: 'fox', fur: '#f59a3c', dark: '#fff3e0', ear: '#3a2418', shirt: '#9a6ad0', acc: 'glasses', bg: '#ffd9a0', nose: '#2a2a32' },
+    shiba: { name: 'Taro', zh: '太郎', type: 'dog', fur: '#e9a45b', dark: '#fff1dc', ear: '#c77a38', shirt: '#e8604c', acc: 'bandana', bg: '#ffe08a', nose: '#2a2a32' },
+    bear: { name: 'Honey', zh: '蜜糖', type: 'bear', fur: '#b9835a', dark: '#ecd2b0', ear: '#8a5a38', shirt: '#f2b632', acc: 'flower', bg: '#f6d6a8', nose: '#2a2a32' },
+    frog: { name: 'Ribbit', zh: '蛙蛙', type: 'frog', fur: '#86d46e', dark: '#d8f5c8', ear: '#86d46e', shirt: '#2f9ec8', acc: 'crown', bg: '#bfeaff', nose: '#3a8a3a', eyeY: -.62, eyeX: .46, mw: 1.7 },
+    penguin: { name: 'Pip', zh: '企鵝', type: 'penguin', fur: '#33425e', dark: '#ffffff', ear: '#33425e', shirt: '#ffffff', acc: 'bowtie', bg: '#cfe8ff', nose: '#ff9a2a', my: .14 },
+    chick: { name: 'Chirpy', zh: '小雞', type: 'chick', fur: '#ffe066', dark: '#fff4b0', ear: '#ffe066', shirt: '#ffb347', acc: 'shell', bg: '#d8f0b0', nose: '#ff8a1a', my: .12 },
+    pig: { name: 'Oink', zh: '豬豬', type: 'pig', fur: '#ffb3c6', dark: '#ff8fab', ear: '#ff8fab', shirt: '#ffffff', acc: 'chef', bg: '#ffe3c2', nose: '#ff8fab', my: .2 }
+  };
+  CH.you = CH.bunny; const ORDER = ['bunny', 'mimi', 'boba', 'fox', 'shiba', 'bear', 'frog', 'penguin', 'chick', 'pig'];
+  function face(g, id, cx, cy, r, ex, t) {
+    ex = ex || 'idle'; t = t || 0; const C = CH[id]; if (!C) return; const ty = C.type, bob = ex === 'idle' ? Math.sin(t * 2.4) * r * .03 : 0, sh = (ex === 'shock' || ex === 'angry') ? Math.sin(t * 40) * r * .045 : 0, x = cx + sh, y = cy + bob;
+    g.save(); g.lineJoin = 'round'; g.lineCap = 'round'; const ink = '#2a1f1c', my = r * (C.my || 0), eyY = y + r * (C.eyeY == null ? -.08 : C.eyeY), exs = r * (C.eyeX || .4), mw = C.mw || 1;
+    // shoulders
+    g.fillStyle = C.shirt; g.beginPath(); g.ellipse(x, y + r * 1.12, r * .95, r * .55, 0, Math.PI, 0); g.fill(); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(x - r * .12, y + r * .95, r * .24, r * .2);
+    if (ty === 'penguin') { g.fillStyle = C.fur; g.beginPath(); g.ellipse(x, y + r * 1.12, r * .95, r * .55, 0, Math.PI, 0); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x, y + r * 1.2, r * .5, r * .42, 0, Math.PI, 0); g.fill(); }
+    if (ty === 'fox') { g.fillStyle = '#7e4cb8'; g.beginPath(); g.ellipse(x, y + r * 1.0, r * .62, r * .2, 0, 0, 7); g.fill(); }
+    if (C.acc === 'bandana') { g.fillStyle = '#e0302a'; g.beginPath(); g.moveTo(x - r * .6, y + r * .86); g.lineTo(x + r * .6, y + r * .86); g.lineTo(x, y + r * 1.4); g.closePath(); g.fill(); g.fillStyle = '#fff'; for (const d of [[-.25, .98], [.2, 1.0], [0, 1.2]]) { g.beginPath(); g.arc(x + d[0] * r, y + d[1] * r, r * .035, 0, 7); g.fill(); } }
+    // ears
+    g.strokeStyle = '#4a3326'; g.lineWidth = Math.max(1, r * .045);
+    const tri = (sx, tall, inner, wide) => { const ex1 = x + sx * r * .62, ey = y - r * .72, w1 = r * (wide || .5); g.fillStyle = C.fur; g.beginPath(); g.moveTo(ex1 - sx * w1 * .9, ey + r * .45); g.lineTo(ex1 + sx * w1 * .15, ey - r * tall * .55); g.lineTo(ex1 + sx * w1 * .75, ey + r * .55); g.closePath(); g.fill(); g.stroke(); g.fillStyle = inner; g.beginPath(); g.moveTo(ex1 - sx * w1 * .35, ey + r * .42); g.lineTo(ex1 + sx * w1 * .12, ey - r * tall * .3); g.lineTo(ex1 + sx * w1 * .5, ey + r * .45); g.closePath(); g.fill(); };
+    for (const s of [-1, 1]) {
+      if (ty === 'cat') tri(s, .85, C.ear); else if (ty === 'fox') tri(s, 1.15, '#3a2418'); else if (ty === 'dog') tri(s, .8, C.ear, .46); else if (ty === 'pig') { const ex1 = x + s * r * .66, ey = y - r * .62; g.fillStyle = C.ear; g.beginPath(); g.moveTo(ex1 - s * r * .3, ey + r * .3); g.lineTo(ex1 + s * r * .1, ey - r * .42); g.lineTo(ex1 + s * r * .4, ey + r * .32); g.closePath(); g.fill(); g.stroke(); }
+      else if (ty === 'panda' || ty === 'bear') { const ex1 = x + s * r * .74, ey = y - r * .58; g.fillStyle = C.ear; g.beginPath(); g.arc(ex1, ey, r * .33, 0, 7); g.fill(); if (ty === 'bear') { g.stroke(); g.fillStyle = C.dark; g.beginPath(); g.arc(ex1, ey + r * .02, r * .17, 0, 7); g.fill(); } }
+      else if (ty === 'bunny') { const ex1 = x + s * r * .55, ey = y - r * .97; g.fillStyle = C.fur; g.beginPath(); g.ellipse(ex1, ey, r * .22, r * .62, s * .18, 0, 7); g.fill(); g.stroke(); g.fillStyle = C.ear; g.beginPath(); g.ellipse(ex1, ey + r * .05, r * .11, r * .44, s * .18, 0, 7); g.fill(); }
+    }
+    // head
+    g.fillStyle = C.fur; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke();
+    if (ty === 'fox') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x - r * .5, y + r * .38, r * .55, r * .42, .3, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + r * .5, y + r * .38, r * .55, r * .42, -.3, 0, 7); g.fill(); g.beginPath(); g.ellipse(x, y + r * .55, r * .4, r * .32, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y - r * 1.02, r * .26, 0, 7); g.fill(); g.stroke(); }
+    if (ty === 'panda') { g.fillStyle = '#2a2a32'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * r * .4, y - r * .02, r * .24, r * .3, s * .45, 0, 7); g.fill(); } }
+    if (ty === 'bunny') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .5, r * .3, r * .22, 0, 0, 7); g.fill(); }
+    if (ty === 'dog') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .42, r * .62, r * .5, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(x - r * .5, y + r * .12, r * .26, r * .3, .3, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + r * .5, y + r * .12, r * .26, r * .3, -.3, 0, 7); g.fill(); g.beginPath(); g.arc(x, y - r * .6, r * .12, 0, 7); g.fill(); }
+    if (ty === 'bear') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .42, r * .46, r * .38, 0, 0, 7); g.fill(); }
+    if (ty === 'penguin') { g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x - r * .34, y + r * .08, r * .46, r * .56, .15, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + r * .34, y + r * .08, r * .46, r * .56, -.15, 0, 7); g.fill(); g.beginPath(); g.ellipse(x, y + r * .5, r * .5, r * .36, 0, 0, 7); g.fill(); }
+    if (ty === 'frog') { for (const s of [-1, 1]) { g.fillStyle = C.fur; g.beginPath(); g.arc(x + s * r * .46, y - r * .72, r * .34, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x + s * r * .46, y - r * .72, r * .24, 0, 7); g.fill(); } g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .5, r * .62, r * .36, 0, 0, 7); g.fill(); }
+    if (ty === 'chick') { g.fillStyle = C.fur; g.strokeStyle = '#4a3326'; for (const d of [-.16, 0, .16]) { g.beginPath(); g.ellipse(x + d * r * 1.1, y - r * 1.02, r * .07, r * .2, d * 1.4, 0, 7); g.fill(); g.stroke(); } g.fillStyle = C.dark; g.beginPath(); g.ellipse(x - r * .85, y + r * .35, r * .22, r * .3, .5, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + r * .85, y + r * .35, r * .22, r * .3, -.5, 0, 7); g.fill(); }
+    if (ty === 'pig') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .3, r * .36, r * .27, 0, 0, 7); g.fill(); g.strokeStyle = '#d96a8c'; g.lineWidth = Math.max(1, r * .04); g.stroke(); g.fillStyle = '#b8455f'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * r * .13, y + r * .3, r * .05, r * .08, 0, 0, 7); g.fill(); } }
+    // accessories on the head
+    if (C.acc === 'bow') { g.fillStyle = '#ff4f86'; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(x + r * .72, y - r * .62); g.lineTo(x + r * (.72 + s * .36), y - r * .86); g.lineTo(x + r * (.72 + s * .36), y - r * .4); g.closePath(); g.fill(); } g.beginPath(); g.arc(x + r * .72, y - r * .62, r * .1, 0, 7); g.fill(); }
+    if (C.acc === 'band') { g.fillStyle = '#e8453c'; rr(g, x - r * .85, y - r * .62, r * 1.7, r * .2, r * .08); g.fill(); g.fillStyle = '#fff'; g.font = '700 ' + (r * .2) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('糊', x, y - r * .52); }
+    if (C.acc === 'cap') { g.fillStyle = '#2f9a6a'; g.beginPath(); g.arc(x, y - r * .66, r * .52, Math.PI, 0); g.fill(); g.fillRect(x - r * .52, y - r * .68, r * 1.5, r * .12); g.fillStyle = '#ffd24a'; g.beginPath(); g.arc(x, y - r * .78, r * .09, 0, 7); g.fill(); }
+    if (C.acc === 'flower') { const fx = x + r * .62, fy = y - r * .8; g.fillStyle = '#ff7fb0'; for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5; g.beginPath(); g.arc(fx + Math.cos(a) * r * .13, fy + Math.sin(a) * r * .13, r * .1, 0, 7); g.fill(); } g.fillStyle = '#ffd84a'; g.beginPath(); g.arc(fx, fy, r * .08, 0, 7); g.fill(); }
+    if (C.acc === 'crown') { g.fillStyle = '#ffd24a'; g.strokeStyle = '#a8761a'; g.lineWidth = Math.max(1, r * .04); g.beginPath(); g.moveTo(x - r * .32, y - r * 1.0); g.lineTo(x - r * .34, y - r * 1.34); g.lineTo(x - r * .14, y - r * 1.15); g.lineTo(x, y - r * 1.4); g.lineTo(x + r * .14, y - r * 1.15); g.lineTo(x + r * .34, y - r * 1.34); g.lineTo(x + r * .32, y - r * 1.0); g.closePath(); g.fill(); g.stroke(); }
+    if (C.acc === 'shell') { g.fillStyle = '#fffdf5'; g.strokeStyle = '#4a3326'; g.lineWidth = Math.max(1, r * .045); g.beginPath(); g.moveTo(x - r * .7, y - r * .5); for (let i = 0; i <= 6; i++) g.lineTo(x - r * .7 + i * r * .2333, y - (i % 2 ? r * .98 : r * .72)); g.lineTo(x + r * .7, y - r * .5); g.closePath(); g.fill(); g.stroke(); }
+    if (C.acc === 'chef') { g.fillStyle = '#fff'; g.strokeStyle = '#8a7a70'; g.lineWidth = Math.max(1, r * .045); for (const d of [[-.34, 1.0, .3], [0, 1.15, .34], [.34, 1.0, .3]]) { g.beginPath(); g.arc(x + d[0] * r, y - d[1] * r, d[2] * r, 0, 7); g.fill(); g.stroke(); } rr(g, x - r * .5, y - r * .86, r * 1.0, r * .32, r * .06); g.fill(); g.stroke(); }
+    // face by mood
+    const nose = () => { if (ty === 'pig') return; if (ty === 'penguin' || ty === 'chick') { g.fillStyle = C.nose; g.strokeStyle = '#b8601a'; g.lineWidth = Math.max(1, r * .035); g.beginPath(); g.moveTo(x - r * .17, y + r * .17); g.lineTo(x + r * .17, y + r * .17); g.lineTo(x, y + r * .36); g.closePath(); g.fill(); g.stroke(); return; } if (ty === 'frog') { g.fillStyle = '#2f7a2f'; for (const s of [-1, 1]) { g.beginPath(); g.arc(x + s * r * .1, y + r * .16, r * .03, 0, 7); g.fill(); } return; } g.fillStyle = C.nose; g.beginPath(); g.ellipse(x, y + r * .22, r * .09, r * .065, 0, 0, 7); g.fill(); };
+    const eyeDot = (sx, rad) => { g.fillStyle = ink; g.beginPath(); g.ellipse(x + sx * exs, eyY, rad, rad * 1.3, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x + sx * exs - rad * .3, eyY - rad * .45, rad * .35, 0, 7); g.fill(); };
+    const arc = (sx, upc) => { g.strokeStyle = ink; g.beginPath(); g.arc(x + sx * exs, eyY + (upc ? r * .08 : 0), r * .14, upc ? Math.PI * 1.08 : Math.PI * .08, upc ? Math.PI * 1.92 : Math.PI * .92); g.stroke(); };
+    const blush = a => { g.fillStyle = 'rgba(255,90,120,' + a + ')'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * r * .66, y + r * .3 + my * .5, r * .16, r * .1, 0, 0, 7); g.fill(); } };
+    g.strokeStyle = ink; g.fillStyle = ink; g.lineWidth = Math.max(1.2, r * .07);
+    if (ex === 'idle') { eyeDot(-1, r * .09); eyeDot(1, r * .09); blush(.25); nose(); g.strokeStyle = ink; g.beginPath(); g.arc(x, y + r * .3 + my, r * .15 * mw, .15 * Math.PI, .85 * Math.PI); g.stroke(); }
+    else if (ex === 'happy') { arc(-1, true); arc(1, true); blush(.5); nose(); g.fillStyle = '#9a2a3a'; g.beginPath(); g.arc(x, y + r * .3 + my, r * .22 * mw, 0, Math.PI); g.closePath(); g.fill(); g.fillStyle = '#ff8a9a'; g.beginPath(); g.ellipse(x, y + r * .46 + my, r * .11 * mw, r * .06, 0, 0, 7); g.fill(); }
+    else if (ex === 'shock') { for (const s of [-1, 1]) { g.fillStyle = '#fff'; g.beginPath(); g.arc(x + s * exs, eyY, r * .2, 0, 7); g.fill(); g.strokeStyle = ink; g.lineWidth = Math.max(1, r * .045); g.stroke(); g.fillStyle = ink; g.beginPath(); g.arc(x + s * exs + Math.sin(t * 30) * r * .02, eyY, r * .06, 0, 7); g.fill(); g.lineWidth = Math.max(1.2, r * .06); g.beginPath(); g.moveTo(x + s * exs - r * .16, eyY - r * .3); g.lineTo(x + s * exs + r * .16, eyY - r * .34); g.stroke(); }
+      nose(); g.fillStyle = '#7a1a2a'; g.beginPath(); g.ellipse(x, y + r * .5 + my, r * .13 * mw, r * .19, 0, 0, 7); g.fill(); g.fillStyle = '#6ec6ff'; g.beginPath(); g.moveTo(x + r * .95, y - r * .5); g.quadraticCurveTo(x + r * 1.12, y - r * .2, x + r * .95, y - r * .1); g.quadraticCurveTo(x + r * .78, y - r * .2, x + r * .95, y - r * .5); g.fill(); }
+    else if (ex === 'angry') { for (const s of [-1, 1]) { eyeDot(s, r * .08); g.strokeStyle = ink; g.lineWidth = Math.max(1.5, r * .08); g.beginPath(); g.moveTo(x + s * exs + s * r * .2, eyY - r * .26); g.lineTo(x + s * exs - s * r * .2, eyY - r * .12); g.stroke(); }
+      nose(); g.strokeStyle = ink; g.lineWidth = Math.max(1.2, r * .07); g.beginPath(); g.arc(x, y + r * .56 + my, r * .16 * mw, 1.15 * Math.PI, 1.85 * Math.PI); g.stroke(); blush(.45);
+      g.strokeStyle = '#e8302a'; g.lineWidth = Math.max(1.5, r * .07); const vx = x - r * .55, vy = y - r * .6; g.beginPath(); g.moveTo(vx - r * .12, vy); g.lineTo(vx + r * .12, vy); g.moveTo(vx, vy - r * .12); g.lineTo(vx, vy + r * .12); g.stroke(); }
+    else if (ex === 'cry') { for (const s of [-1, 1]) { g.strokeStyle = ink; g.lineWidth = Math.max(1.5, r * .07); g.beginPath(); g.moveTo(x + s * exs - s * r * .14, eyY - r * .1); g.lineTo(x + s * exs + s * r * .1, eyY); g.lineTo(x + s * exs - s * r * .14, eyY + r * .1); g.stroke();
+      const fl = (t * 3) % 1; g.fillStyle = 'rgba(110,198,255,.85)'; g.beginPath(); g.moveTo(x + s * exs, eyY + r * .08); g.quadraticCurveTo(x + s * (exs + r * .26), eyY + r * .5 + fl * r * .2, x + s * (exs + r * .12), eyY + r * .98); g.lineTo(x + s * (exs - r * .1), eyY + r * .98); g.quadraticCurveTo(x + s * (exs - r * .02), eyY + r * .5, x + s * exs, eyY + r * .08); g.fill(); }
+      nose(); g.strokeStyle = ink; g.lineWidth = Math.max(1.2, r * .07); g.beginPath(); g.moveTo(x - r * .18 * mw, y + r * .52 + my); g.quadraticCurveTo(x - r * .09 * mw, y + r * .42 + my, x, y + r * .52 + my); g.quadraticCurveTo(x + r * .09 * mw, y + r * .62 + my, x + r * .18 * mw, y + r * .52 + my); g.stroke(); blush(.35); }
+    else if (ex === 'smug') { for (const s of [-1, 1]) { g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x + s * exs, eyY + r * .02, r * .14, r * .1, 0, 0, 7); g.fill(); g.fillStyle = ink; g.beginPath(); g.arc(x + s * exs + r * .03, eyY + r * .03, r * .06, 0, 7); g.fill(); g.strokeStyle = ink; g.lineWidth = Math.max(1.5, r * .07); g.beginPath(); g.moveTo(x + s * exs - r * .17, eyY - r * .06); g.lineTo(x + s * exs + r * .17, eyY - r * .06); g.stroke(); }
+      nose(); g.strokeStyle = ink; g.lineWidth = Math.max(1.2, r * .07); g.beginPath(); g.moveTo(x - r * .2 * mw, y + r * .42 + my); g.quadraticCurveTo(x, y + r * .55 + my, x + r * .24 * mw, y + r * .34 + my); g.stroke(); blush(.3);
+      g.fillStyle = '#ffd84a'; const sx = x + r * .85, sy = y - r * .5, q = r * .2 * (1 + Math.sin(t * 6) * .2); g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rad = i % 2 ? q * .35 : q; g.lineTo(sx + Math.cos(a) * rad, sy + Math.sin(a) * rad); } g.closePath(); g.fill(); }
+    else { eyeDot(-1, r * .09); arc(1, true); blush(.5); nose(); g.strokeStyle = ink; g.beginPath(); g.arc(x, y + r * .3 + my, r * .17 * mw, .1 * Math.PI, .9 * Math.PI); g.stroke(); }
+    if (C.acc === 'glasses') { g.strokeStyle = '#6a4a20'; g.lineWidth = Math.max(1.3, r * .06); for (const s of [-1, 1]) { g.beginPath(); g.arc(x + s * exs, eyY, r * .27, 0, 7); g.stroke(); } g.beginPath(); g.moveTo(x - r * .13, eyY); g.lineTo(x + r * .13, eyY); g.stroke(); g.fillStyle = 'rgba(255,255,255,.28)'; for (const s of [-1, 1]) { g.beginPath(); g.arc(x + s * exs, eyY, r * .26, 0, 7); g.fill(); } }
+    if (C.acc === 'bowtie') { g.fillStyle = '#e0302a'; g.strokeStyle = '#7a1a14'; g.lineWidth = Math.max(1, r * .035); g.beginPath(); g.moveTo(x, y + r * .98); g.lineTo(x - r * .3, y + r * .84); g.lineTo(x - r * .3, y + r * 1.12); g.closePath(); g.moveTo(x, y + r * .98); g.lineTo(x + r * .3, y + r * .84); g.lineTo(x + r * .3, y + r * 1.12); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.arc(x, y + r * .98, r * .07, 0, 7); g.fill(); }
+    g.restore();
+  }
+  /* ---------- bubbles and bursts ---------- */
+  function wrap(g, text, maxW) { const out = []; let line = ''; for (const ch of text.split(/(\s+)/)) { const t = line + ch; if (g.measureText(t).width > maxW && line) { out.push(line.trim()); line = ch.trimStart(); } else line = t; } if (line.trim()) out.push(line.trim()); return out; }
+  function bubble(g, text, x, y, maxW, o) { // box centred on x, top at y; returns its height. o: {tail:{x,y}, scale, fs, color}
+    o = o || {}; const fs = o.fs || 13, sc = o.scale == null ? 1 : o.scale; if (sc <= 0) return 0; g.save(); g.font = '700 ' + fs + 'px ' + FONT; const lines = wrap(g, text, maxW - 14), w = Math.min(maxW, Math.max(...lines.map(l => g.measureText(l).width)) + 16), h = lines.length * (fs + 3) + 10;
+    g.translate(x, y + h / 2); g.scale(sc, sc); g.translate(-x, -(y + h / 2)); g.fillStyle = o.fill || '#fffdf2'; g.strokeStyle = '#3a2c28'; g.lineWidth = 2.2; g.lineJoin = 'round';
+    rr(g, x - w / 2, y, w, h, 10); g.fill(); g.stroke();
+    if (o.tail) { const tx = Math.max(x - w / 2 + 14, Math.min(x + w / 2 - 14, o.tail.x)), ty = o.tail.y, dir = ty < y ? -1 : 1, by = dir < 0 ? y : y + h; g.beginPath(); g.moveTo(tx - 7, by); g.lineTo(o.tail.x, ty); g.lineTo(tx + 7, by); g.closePath(); g.fillStyle = o.fill || '#fffdf2'; g.fill(); g.stroke(); g.fillRect(tx - 6, by - (dir < 0 ? 0 : 2), 12, 2); g.lineWidth = 0; }
+    g.fillStyle = o.color || '#2a1f1c'; g.textAlign = 'center'; g.textBaseline = 'middle'; lines.forEach((l, i) => g.fillText(l, x, y + 5 + (fs + 3) * i + (fs + 3) / 2)); g.restore(); return h;
+  }
+  function burst(g, text, x, y, R, o) { // comic starburst with a big shout in it
+    o = o || {}; const sc = o.scale == null ? 1 : o.scale, rot = o.rot || 0, n = 16; if (sc <= 0) return; g.save(); g.translate(x, y); g.rotate(rot); g.scale(sc, sc); g.lineJoin = 'round';
+    g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i * Math.PI / n, rad = i % 2 ? R * .74 : R; g.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); } g.closePath(); g.fillStyle = o.fill || '#ffd84a'; g.strokeStyle = '#3a2c28'; g.lineWidth = 4; g.fill(); g.stroke();
+    g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i * Math.PI / n, rad = (i % 2 ? R * .74 : R) * .82; g.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); } g.closePath(); g.fillStyle = o.fill2 || '#ff5a3c'; g.fill();
+    g.rotate(-rot * 1.3); g.font = '900 ' + (o.fs || R * .62) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 6; g.strokeStyle = '#3a2c28'; g.strokeText(text, 0, 2); g.fillStyle = '#fff'; g.fillText(text, 0, 2); g.restore();
+  }
+  return { setSC, FONT, CH, ORDER, tile, tileImg, face, bubble, burst, rr, wrap };
+})();
+
+/* Mahjong puzzles. Builds random but fair puzzles from the same rules code as the game (mjcore.js) and works out the right answers.
+   Four kinds: 'wait' (which tiles win?), 'discard' (which tile to throw?), 'faan' (how many faan/tai?), 'best' (which winning tile scores most?). */
+const MP = (function () {
+  const M = (typeof MJ !== 'undefined') ? MJ : require('./mjcore.js');
+  const { counts, hasWin, waits, score, decomp } = M;
+  const mulberry = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const ri = (r, n) => Math.floor(r() * n), pick = (r, a) => a[ri(r, a.length)];
+  const shuffle = (r, a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = ri(r, i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  /* ---------- a random complete hand: N sets and a pair, shaped by a theme ---------- */
+  function genSets(r, N, theme, seat, rnd) {
+    for (let tr = 0; tr < 300; tr++) {
+      const cnt = new Array(34).fill(0), sets = []; const sA = ri(r, 3), sB = (sA + 1 + ri(r, 2)) % 3;
+      const addP = k => { if (cnt[k] > 1) return false; cnt[k] += 3; sets.push({ t: 'p', k }); return true; };
+      const addC = (s, i) => { const k = s * 9 + i; if (cnt[k] > 3 || cnt[k + 1] > 3 || cnt[k + 2] > 3) return false; cnt[k]++; cnt[k + 1]++; cnt[k + 2]++; sets.push({ t: 'c', k }); return true; };
+      let ok = true;
+      if (theme === 'dragons') { const ds = shuffle(r, [31, 32, 33]).slice(0, 2 + (r() < .35 ? 1 : 0)); for (const d of ds) addP(d); }
+      if (theme === 'winds') { const ws = shuffle(r, [27 + seat, 27 + rnd, 27 + ri(r, 4)]); const seen = new Set(); for (const w of ws) { if (!seen.has(w) && seen.size < 1 + ri(r, 2)) { seen.add(w); addP(w); } } if (!seen.size) addP(27 + seat); }
+      if (theme === 'half') { const n = 1 + ri(r, 2); for (let i = 0; i < n; i++) addP(27 + ri(r, 7)); }
+      while (sets.length < N && ok) {
+        let good = false;
+        for (let a = 0; a < 30 && !good; a++) {
+          const pung = theme === 'pungs' ? true : theme === 'chow' ? false : r() < (theme === 'flush' ? .3 : .32);
+          const s = theme === 'flush' || theme === 'half' ? sA : theme === 'chow' || theme === 'mixed' ? pick(r, [sA, sB, ri(r, 3)]) : ri(r, 3);
+          if (pung) { const hon = (theme === 'pungs' || theme === 'mixed' || theme === 'dragons' || theme === 'winds') && r() < .22; good = hon ? addP(27 + ri(r, 7)) : addP(s * 9 + ri(r, 9)); }
+          else good = addC(s, ri(r, 7));
+        }
+        if (!good) ok = false;
+      }
+      if (!ok) continue;
+      let pair = -1; for (let a = 0; a < 30 && pair < 0; a++) {
+        let k; if (theme === 'flush') k = sA * 9 + ri(r, 9); else if (theme === 'half') k = r() < .5 ? 27 + ri(r, 7) : sA * 9 + ri(r, 9); else if (theme === 'chow') k = ri(r, 27); else k = r() < .22 ? 27 + ri(r, 7) : ri(r, 27);
+        if (cnt[k] + 2 <= 4) pair = k;
+      }
+      if (pair < 0) continue; return { sets, pair };
+    }
+    return null;
+  }
+  const THEMES = { easy: ['chow', 'mixed', 'mixed', 'flush'], medium: ['chow', 'mixed', 'flush', 'half', 'pungs'], hard: ['mixed', 'flush', 'half', 'pungs', 'dragons', 'winds'], all: ['mixed', 'chow', 'flush', 'half', 'pungs', 'dragons', 'winds'] };
+
+  /* a puzzle hand: some sets are shown as exposed melds, the rest stays hidden. conc = hidden tiles (a complete hand's worth, pair included) */
+  function build(r, rules, level, theme) {
+    const N = rules === 'hk' ? 4 : 5, seat = ri(r, 4), rnd = r() < .7 ? 0 : 1, base = genSets(r, N, theme, seat, rnd); if (!base) return null;
+    const mMax = level === 'easy' ? 1 : level === 'medium' ? 2 : 3, m = ri(r, mMax + 1), reveal = new Set(shuffle(r, base.sets.map((s, i) => i)).slice(0, m)), melds = [], conc = [];
+    const all = new Array(34).fill(0); for (const s of base.sets) { if (s.t === 'p') all[s.k] += 3; else { all[s.k]++; all[s.k + 1]++; all[s.k + 2]++; } } all[base.pair] += 2;
+    base.sets.forEach((s, i) => {
+      if (reveal.has(i)) { if (s.t === 'c') melds.push({ t: 'chi', k: s.k, tiles: [s.k, s.k + 1, s.k + 2] }); else { const x = r(); if (x < .18 && all[s.k] === 3) melds.push({ t: 'kong', k: s.k, tiles: [s.k, s.k, s.k, s.k] }); else if (x < .28 && all[s.k] === 3) melds.push({ t: 'akong', k: s.k, tiles: [s.k, s.k, s.k, s.k] }); else melds.push({ t: 'pon', k: s.k, tiles: [s.k, s.k, s.k] }); } }
+      else if (s.t === 'c') conc.push(s.k, s.k + 1, s.k + 2); else conc.push(s.k, s.k, s.k);
+    });
+    conc.push(base.pair, base.pair); conc.sort((a, b) => a - b);
+    const w = r(), nf = w < .5 ? 0 : w < .75 ? 1 : w < .9 ? 2 : 3, flowers = shuffle(r, [34, 35, 36, 37, 38, 39, 40, 41]).slice(0, nf).sort((a, b) => a - b);
+    return { rules, N, seat, rnd, melds, conc, flowers, theme, level };
+  }
+  const base = (P, extra) => Object.assign({ rules: P.rules, N: P.N, melds: P.melds, flowers: P.flowers, seat: P.seat, rnd: P.rnd, kongDraw: false, last: false, rob: false, heaven: false, earth: false }, extra || {});
+  const meldTiles = P => P.melds.reduce((a, m) => a.concat(m.tiles), []);
+  const validOk = (P, r, min) => !!r && (P.rules !== 'hk' || r.limit || r.v >= min);
+
+  /* every tile that completes the hidden tiles conc13, with its best score; valid = enough faan to win */
+  function waitInfo(P, conc13, min, selfMode) {
+    const c = counts(conc13), nConc = P.N - P.melds.length, orph = P.rules === 'hk' && !P.melds.length, ws = waits(c.slice(), nConc, orph), out = [];
+    for (const k of ws) {
+      let best = null; for (const self of (selfMode === undefined ? [false, true] : [selfMode])) { const cc = c.slice(); cc[k]++; const r = score(base(P, { cnt: cc, win: k, self })); if (r && (!best || r.v > best.r.v)) best = { r, self }; }
+      out.push({ k, r: best && best.r, self: best ? best.self : false, valid: !!best && validOk(P, best.r, min) });
+    }
+    return out;
+  }
+  /* how tile k completes the hand: a list of {t:'pair'|'pung'|'chow'|'orph', k} (the screen words it in the chosen language) */
+  function how(P, conc13, k) {
+    const cc = counts(conc13); cc[k]++; const nConc = P.N - P.melds.length, ds = decomp(cc.slice(), nConc, true), out = [], seen = new Set();
+    for (const d of ds) {
+      let t = null; if (d.pair === k) t = { t: 'pair', k };
+      for (const s of d.sets) { if (s[0] === 'p' && s[1] === k) t = { t: 'pung', k }; if (s[0] === 'c' && k >= s[1] && k <= s[1] + 2) t = { t: 'chow', k: s[1] }; }
+      if (t) { const key = t.t + t.k; if (!seen.has(key)) { seen.add(key); out.push(t); } }
+    }
+    return out.length ? out : [{ t: 'orph', k }];
+  }
+
+  /* ---------- the four puzzle makers ---------- */
+  function genWait(r, rules, level, min) {
+    for (let tr = 0; tr < 400; tr++) {
+      const P = build(r, rules, level, pick(r, THEMES[level])); if (!P) continue; const i = ri(r, P.conc.length), conc13 = P.conc.slice(); conc13.splice(i, 1);
+      const info = waitInfo(P, conc13, min), nv = info.filter(x => x.valid).length; if (!nv) continue;
+      const okN = level === 'easy' ? nv <= 2 : level === 'medium' ? nv >= 2 && nv <= 3 : nv >= 3 || info.length > nv; if (!okN && tr < 380) continue;
+      return Object.assign(P, { type: 'wait', hand: conc13, info, answer: info.filter(x => x.valid).map(x => x.k), min });
+    }
+    return null;
+  }
+  function discardOptions(P, conc14, table, min) {
+    const seen = counts(conc14.concat(meldTiles(P), table)), opts = [];
+    for (const d of Array.from(new Set(conc14))) {
+      const h = conc14.slice(); h.splice(h.indexOf(d), 1); const ws = waitInfo(P, h, min).filter(x => x.valid), rem = ws.reduce((a, w) => a + Math.max(0, 4 - seen[w.k]), 0);
+      opts.push({ d, waits: ws.map(w => w.k), rem });
+    }
+    return opts.sort((a, b) => b.rem - a.rem);
+  }
+  function genDiscard(r, rules, level, min) {
+    for (let tr = 0; tr < 500; tr++) {
+      const P = build(r, rules, level, pick(r, THEMES[level])); if (!P) continue; const idx = ri(r, P.conc.length), X = P.conc[idx], used = counts(P.conc.concat(meldTiles(P))); let Y = -1;
+      for (let a = 0; a < 30 && Y < 0; a++) { const y = ri(r, 34); if (y !== X && used[y] < 4) Y = y; } if (Y < 0) continue;
+      const conc14 = P.conc.slice(); conc14[idx] = Y; if (hasWin(counts(conc14), P.N - P.melds.length, rules === 'hk' && !P.melds.length)) continue;
+      const o0 = discardOptions(P, conc14, [], min).filter(o => o.rem > 0); if (o0.length < 2) continue;
+      const U = Array.from(new Set(o0.reduce((a, o) => a.concat(o.waits), []))), hand = counts(conc14.concat(meldTiles(P))), cap = hand.map(x => 4 - x), table = [], nT = 8 + ri(r, 8);
+      for (let a = 0; a < 80 && table.length < nT; a++) { const k = r() < .5 ? pick(r, U) : ri(r, 34); if (cap[k] > 0) { cap[k]--; table.push(k); } }
+      const opts = discardOptions(P, conc14, table, min), ready = opts.filter(o => o.rem > 0);
+      if (ready.length < (level === 'hard' ? 3 : 2) || ready[0].rem < 2 || (ready[1] && ready[1].rem === ready[0].rem)) continue; if (level === 'hard' && ready[0].d === Y && tr < 450) continue;
+      return Object.assign(P, { type: 'discard', hand: conc14, drawn: Y, table: table.sort((a, b) => a - b), opts, best: ready[0].d, min });
+    }
+    return null;
+  }
+  function genFaan(r, rules, level) {
+    for (let tr = 0; tr < 500; tr++) {
+      const P = build(r, rules, level, pick(r, THEMES.all)); if (!P) continue; const win = P.conc[ri(r, P.conc.length)], self = r() < .5, hasKong = P.melds.some(m => m.t === 'kong' || m.t === 'akong'), last = r() < .07, kd = self && hasKong && r() < .3;
+      const cnt = counts(P.conc), res = score(base(P, { cnt, win, self, last, kongDraw: kd })); if (!res || res.v < 1) continue; const n = res.items.length;
+      const okN = level === 'easy' ? n <= 3 && res.v <= 6 : level === 'medium' ? n >= 3 && n <= 5 : n >= 4; if (!okN && tr < 450) continue;
+      const v = res.v, set = new Set([v]), lo = Math.max(0, v - 3); let d = [];
+      for (let x = lo; x <= v + 3; x++) if (x !== v && (rules !== 'hk' || x <= 10)) d.push(x); d = shuffle(r, d).slice(0, 3); for (const x of d) set.add(x);
+      return Object.assign(P, { type: 'faan', win, self, last, kongDraw: kd, res, hand: P.conc, options: Array.from(set).sort((a, b) => a - b), answer: v });
+    }
+    return null;
+  }
+  function genBest(r, rules, level, min) {
+    for (let tr = 0; tr < 500; tr++) {
+      const P = build(r, rules, level, pick(r, THEMES.hard)); if (!P) continue; const i = ri(r, P.conc.length), conc13 = P.conc.slice(), self = r() < .5; conc13.splice(i, 1);
+      const info = waitInfo(P, conc13, min, self).filter(x => x.valid); if (info.length < (level === 'hard' ? 3 : 2)) continue;
+      const sorted = info.slice().sort((a, b) => b.r.v - a.r.v); if (sorted[0].r.v === sorted[1].r.v) continue;
+      return Object.assign(P, { type: 'best', hand: conc13, self, info: sorted, answer: sorted[0].k, min });
+    }
+    return null;
+  }
+  function make(type, o) {
+    const gen = { wait: genWait, discard: genDiscard, faan: genFaan, best: genBest }[type]; let seed = o.seed || 1;
+    for (let a = 0; a < 40; a++, seed++) { const P = gen(mulberry(seed), o.rules, o.level, o.min || 1); if (P) { P.seed = seed; return P; } }
+    return null;
+  }
+  return { make, build, waitInfo, how, discardOptions, mulberry, THEMES };
+})();
+if (typeof module !== 'undefined') module.exports = MP;
+
+/* Mahjong puzzles. mjpuz.js makes each puzzle and knows the right answer; this file shows it with tile pictures, takes your answer,
+   gives points and explains the answer afterwards. Three languages: English, Traditional (繁體) and Simplified (简体).
+   Traditional text is written by hand below; Simplified is made from it with the character table in mjsc.js. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.mjpuzzle.v1', { dark: true, sound: true, rules: 'hk', mode: 'wait', level: 'easy', min: 1, pts: 0, streak: 0, best: 0, solved: { wait: 0, discard: 0, faan: 0, best: 0 }, tried: { wait: 0, discard: 0, faan: 0, best: 0 } }), st = S0.st;
+for (const k of ['solved', 'tried']) { if (!st[k]) st[k] = {}; for (const m of ['wait', 'discard', 'faan', 'best']) if (typeof st[k][m] !== 'number') st[k][m] = 0; }
+if (!['en', 'tc', 'sc'].includes(st.lang)) { const n = (navigator.language || 'en').toLowerCase(); st.lang = /^zh-(tw|hk|mo|hant)/.test(n) ? 'tc' : /^zh/.test(n) ? 'sc' : 'en'; }
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound);
+st.min = +st.min || 1;
+
+/* ---------- words: [English, Traditional]. A function value gets the arguments of T(). ---------- */
+const hk = () => st.rules === 'hk', L = () => st.lang, ZH = () => st.lang !== 'en';
+const UNIT = () => ZH() ? (hk() ? '番' : '台') : (hk() ? 'faan' : 'tai');
+const X = s => st.lang === 'sc' && typeof MJSC !== 'undefined' ? MJSC.s(s) : s;
+const WN = ['東', '南', '西', '北'];
+const D = {
+  lbPts: ['POINTS', '分數'], lbStreak: ['STREAK', '連勝'], lbSolved: ['SOLVED', '答對'], lbLevel: ['LEVEL', '難度'],
+  rules: ['Rules:', '規則：'], level: ['Level:', '難度：'], lang: ['Language:', '語言：'],
+  hk: ['🇭🇰 Hong Kong', '🇭🇰 香港麻雀'], tw: ['🇹🇼 Taiwan', '🇹🇼 台灣麻將'],
+  m_wait: ['🎯 What wins?', '🎯 胡咩牌？'], m_discard: ['🗑️ Keep or toss?', '🗑️ 打邊隻？'], m_faan: ['🔢 Count the faan', '🔢 數番數'], m_best: ['💎 Best winning tile', '💎 最大胡牌'],
+  m_faan_tw: ['🔢 Count the tai', '🔢 數台數'],
+  easy: ['Easy', '簡單'], medium: ['Medium', '中等'], hard: ['Hard', '困難'],
+  setMin: ['Hong Kong: fewest faan to win', '香港：最少幾番先可以胡'], o1: ['1 faan (any hand)', '1 番（任何牌）'], o2: ['2 faan', '2 番'], o3: ['3 faan (standard)', '3 番（標準）'], setSound: ['Sound', '聲音'],
+  ios: ['📲 To install: tap Share, then “Add to Home Screen”.', '📲 安裝方法：按「分享」，再選「加入主畫面」。'], inst: ['Install app', '安裝程式'],
+  noPuz: ['Could not make a puzzle. Try again.', '未能出題，請再試。'],
+  hidden: ['hidden tile', '蓋住的牌'],
+  lab_d: ['The outlined tile on the right is the one you just drew.', '右邊有框的牌就是你剛摸到的牌。'], lab_f: ['The gold tile is the winning tile.', '金色的牌是胡牌。'],
+  seat: ['Your seat wind: ', '自己門風：'], rnd: ['Round wind: ', '圈風：'],
+  selfW: ['Won by <b>自摸</b> (own draw)', '<b>自摸</b>胡牌（自己摸到）'], discW: ['Won on a <b>discard</b>', '<b>出銃</b>胡牌（食別人打出的牌）'],
+  lastT: ['Last tile of the wall', '海底最後一隻牌'], kongD: ['Drawn after a kong', '槓後補牌'],
+  assume: (s) => ['Assume you win ' + (s ? 'by <b>自摸</b>' : 'on a <b>discard</b>'), '假設你' + (s ? '<b>自摸</b>' : '<b>食出銃</b>') + '胡牌'],
+  needF: (n) => ['Needs <b>' + n + '+ faan</b> to win', '最少要 <b>' + n + ' 番或以上</b>先可以胡'],
+  flw: (n) => [n ? n + ' flower' + (n > 1 ? 's' : '') + ' (small tiles)' : 'No flowers', n ? n + ' 張花牌（細牌）' : '沒有花牌'],
+  gone: ['Already thrown by everyone (these are gone):', '大家已經打出的牌（這些已經沒有了）：'],
+  picked: ['Picked: ', '已選：'],
+  check: ['Check ✔', '核對 ✔'], tapFirst: ['Tap a tile first', '請先揀一隻牌'], throwT: (t) => ['Throw ' + t, '打出 ' + t],
+  hint: ['💡 Hint', '💡 提示'], skip: ['Skip', '跳過'], next: ['Next puzzle ▶', '下一題 ▶'],
+  q_wait: ['Which tiles would <b>complete</b> this hand? Tap every winning tile, then Check.', '哪些牌可以令這手牌<b>胡牌</b>？請點選所有可以胡的牌，再按核對。'],
+  q_discard: ['You just drew a tile. Which tile should you <b>throw</b> to have the best chance to win?', '你剛摸了一隻牌。打出<b>哪一隻</b>，胡牌機會最大？'],
+  q_faan: (u) => ['This hand has won. How many <b>' + u + '</b> is it worth?', '這手牌已經胡了。值多少<b>' + u + '</b>？'],
+  q_best: (u) => ['Your hand is ready. Which winning tile is worth the <b>most ' + u + '</b>?', '你已經聽牌。胡哪一隻牌的<b>' + u + '</b>最多？'],
+  best: (a, b) => ['Best streak ' + a + ' · ' + b, '最佳連勝 ' + a + ' · ' + b],
+  solvedOf: (a, b) => ['solved ' + a + ' of ' + b, '答對 ' + a + ' / ' + b],
+  /* explanations */
+  e_wait: ['All the tiles that finish the shape:', '所有可以完成牌形的牌：'],
+  e_wins: (how, v, u) => ['<b class="good">wins</b> as ' + how + ' · ' + v + ' ' + u, '<b class="good">可以胡</b>，作為' + how + ' · ' + v + ' ' + u],
+  e_short: (how, v, u, need) => ['<b class="warn">completes ' + how + ', but only ' + v + ' ' + u + '</b> (need ' + need + ')', '<b class="warn">可以完成' + how + '，但只有 ' + v + ' ' + u + '</b>（需要 ' + need + '）'],
+  h_pair: (t) => ['pair of ' + t, t + ' 將牌'], h_pung: (t) => [t + ' ×3 pung', t + ' 刻子'], h_chow: (r) => [r + ' chow', r + ' 順子'], h_orph: ['thirteen orphans 十三么', '十三么'],
+  or: [' or ', ' 或 '],
+  e_disc: ['<b>Throws that keep you ready, best first</b> (number = copies still unseen):', '<b>打出後仍然聽牌的選擇，最好的排最前</b>（數字 = 仍未出現的張數）：'],
+  e_throw: ['Throw ', '打出 '], e_wf: [' → waiting for ', ' → 聽 '], e_left: (n) => [n + ' left', '還有 ' + n + ' 張'],
+  e_notready: ['These throws leave you not ready yet:', '打出這些牌後還未聽牌：'],
+  e_lines: ['Scoring lines:', '計分項目：'], e_total: ['Total: ', '合共：'], e_limit: [' (limit hand)', '（滿貫）'],
+  e_each: (s) => ['Each winning tile (' + (s ? 'self-draw' : 'on a discard') + '):', '每隻胡牌（' + (s ? '自摸' : '出銃') + '）：'],
+  payHK: (v) => [v >= 3 ? 'Payment table: ' + MJ.hkPay(v) + ' points.' : 'Under 3 faan, so it would not win at the standard table.', v >= 3 ? '賠率表：' + MJ.hkPay(v) + ' 分。' : '不足 3 番，標準牌局不能胡。'],
+  payTW: (v) => ['Payment: 30 + 10 × ' + v + ' = <b>' + (30 + 10 * v) + '</b> points.', '賠付：30 + 10 × ' + v + ' = <b>' + (30 + 10 * v) + '</b> 分。'],
+  ok: (p) => ['✅ Correct! +' + p + ' point' + (p > 1 ? 's' : ''), '✅ 答對了！+' + p + ' 分'], shown: ['The answer is shown below.', '答案在下面。'],
+  again: [' Try once more (worth 1 point now).', ' 再試一次（現在只值 1 分）。'],
+  w_check: (r, e, m) => ['You have ' + r + ' right' + (e ? ', ' + e + ' that do not win' : '') + (m ? ' and ' + m + ' still missing' : '') + '.', '你答對了 ' + r + ' 隻' + (e ? '，有 ' + e + ' 隻不能胡' : '') + (m ? '，還欠 ' + m + ' 隻' : '') + '。'],
+  w_t1: ['That keeps you ready, but another throw leaves more winning tiles.', '這樣仍然聽牌，但另一種打法可以胡的牌更多。'], w_t2: ['That does not leave you ready to win.', '這樣打出後就不聽牌了。'],
+  w_ans: (v) => ['Not ' + v + '.', '不是 ' + v + '。'],
+  w_bw: (t, v, u) => [t + ' is worth ' + v + ' ' + u + '. Another tile is worth more.', t + ' 只值 ' + v + ' ' + u + '，另一隻更多。'],
+  hi_wait: (n) => ['Hint: ' + n + ' tile' + (n > 1 ? 's' : '') + ' win. Look for the pair and for a set that is missing one tile.', '提示：有 ' + n + ' 種牌可以胡。找找將牌，以及欠一隻牌的順子或刻子。'],
+  hi_discard: ['Hint: the blue tiles are throws that keep you ready. Pick the one with the most tiles left.', '提示：藍色的牌打出後仍然聽牌。揀剩餘張數最多的一個。'],
+  hi_faan: (n, name) => ['Hint: this hand has ' + n + ' scoring lines. One of them is ' + name + '.', '提示：這手牌有 ' + n + ' 個計分項目，其中一個是 ' + name + '。'],
+  hi_best: (v, u) => ['Hint: the best tile is worth ' + v + ' ' + u + '; the others are worth less.', '提示：最大的牌值 ' + v + ' ' + u + '，其他的較少。']
+};
+const T = (k, ...a) => { let v = D[k][ZH() ? 1 : 0]; if (D[k] && typeof D[k] === 'function') v = D[k](...a)[ZH() ? 1 : 0]; return v; };
+const nm = i => { if (!ZH()) return i[0]; const s = i[0], p = s.indexOf(' '); if (p < 0) return s; const tail = s.match(/ ([0-9]?[一-鿿]+)$/); return s.slice(0, p) + (tail ? ' ' + tail[1] : ''); };
+
+/* ---------- rules text ---------- */
+const RULES = {
+  en: `<h2>📖 How to play the puzzles</h2>
+    <p>Every puzzle is made fresh, and the answer is worked out by the same rules code as the Mahjong game. Pick Hong Kong (13 tiles, faan) or Taiwan (16 tiles, tai) at the top.</p>
+    <h3>The four puzzles</h3>
+    <ul>
+      <li><b>🎯 What wins?</b> Your hand is one tile short. Tap <b>every</b> tile that would complete it, then press Check. Remember the shape: sets (a <b>chow</b> = three in a row of one suit, a <b>pung</b> = three the same) plus one pair. In Hong Kong you also need enough faan (set it in Settings), so a tile can complete the shape and still not win.</li>
+      <li><b>🗑️ Keep or toss?</b> You have just drawn a tile. Tap the tile you would throw. The best throw leaves you ready to win with the <b>most tiles still unseen</b>. The tiles already on the table count as gone, and so do the ones in your own hand.</li>
+      <li><b>🔢 Count the faan / tai</b> A hand has just won. Choose its total. After the answer you see every scoring line, so you learn what is worth what.</li>
+      <li><b>💎 Best winning tile</b> Your hand is ready and several tiles would win, but they do not score the same. Pick the one worth the most.</li>
+    </ul>
+    <h3>Points</h3>
+    <ul>
+      <li><b>3 points</b> for a right answer on the first try, <b>1 point</b> if you needed a second try or a 💡 Hint, 0 if you give up. Your streak counts puzzles in a row that scored.</li>
+      <li><b>Levels:</b> Easy has few exposed sets and simple hands. Medium and Hard add more exposed sets, honours, flowers and trickier waits.</li>
+    </ul>
+    <h3>Faan and tai in short</h3>
+    <ul>
+      <li><b>Hong Kong:</b> 自摸 self-draw 1 · 門前清 no exposed sets 1 · 無花 no flowers 1 · seat flower 1 each · 平糊 all chows 1 · 對對糊 all pungs 3 · 混一色 one suit + honours 3 · 清一色 one suit 7 · dragon or own/round wind pung 1 each · bigger hands up to the <b>10 faan limit</b>.</li>
+      <li><b>Taiwan:</b> 自摸 1 · 門清 1 · 不求人 +1 · 平胡 2 · 碰碰胡 4 · 混一色 4 · 清一色 8 · 字一色 16 · dragon or own/round wind pung 1 each · flowers and 獨聽 (one winning tile only) 1.</li>
+      <li>Every table has its own house rules, so your table may count slightly differently. This is the same rule set as the Mahjong game in chapter 55.</li>
+    </ul>`,
+  tc: `<h2>📖 玩法說明</h2>
+    <p>每條題目都是即時隨機生成，答案由和麻雀遊戲相同的計分程式算出。在上方選擇香港麻雀（13 隻牌，計番）或台灣麻將（16 隻牌，計台）。</p>
+    <h3>四種題目</h3>
+    <ul>
+      <li><b>🎯 胡咩牌？</b> 手牌欠一隻牌。點選<b>所有</b>可以令牌形完整的牌，再按核對。牌形 = 數組面子（<b>順子</b> = 同一花色三隻連續，<b>刻子</b> = 三隻相同）加一對將牌。香港麻雀還要夠番數（可在設定更改），所以有些牌雖然湊成牌形，但番數不夠，仍然不能胡。</li>
+      <li><b>🗑️ 打邊隻？</b> 你剛摸了一隻牌，點選你想打出的牌。最好的打法是令你聽牌，而且<b>未出現的牌最多</b>。枱面上已打出的牌，以及你自己手上的牌，都當作沒有了。</li>
+      <li><b>🔢 數番數 / 台數</b> 一手牌剛剛胡了，選出合共多少番（台）。答完會顯示每個計分項目，讓你知道每項值多少。</li>
+      <li><b>💎 最大胡牌</b> 你已經聽牌，有幾隻牌可以胡，但番數不同，揀出最大的一隻。</li>
+    </ul>
+    <h3>分數</h3>
+    <ul>
+      <li>第一次就答對得 <b>3 分</b>，第二次答對或用了 💡 提示得 <b>1 分</b>，放棄得 0 分。連勝是連續得分的題數。</li>
+      <li><b>難度：</b>簡單的牌明牌少、牌形簡單；中等和困難有更多明牌、字牌、花牌和較難的聽牌。</li>
+    </ul>
+    <h3>番與台簡介</h3>
+    <ul>
+      <li><b>香港：</b>自摸 1 · 門前清 1 · 無花 1 · 正花每隻 1 · 平糊 1 · 對對糊 3 · 混一色 3 · 清一色 7 · 三元牌或門風、圈風刻子各 1 · 更大的牌最高到 <b>10 番滿貫</b>。</li>
+      <li><b>台灣：</b>自摸 1 · 門清 1 · 不求人 +1 · 平胡 2 · 碰碰胡 4 · 混一色 4 · 清一色 8 · 字一色 16 · 三元牌或門風、圈風刻子各 1 · 花牌和獨聽（只聽一隻牌）各 1。</li>
+      <li>每個牌局都有自己的規矩，你的牌局可能算法略有不同。這與第 55 章麻雀遊戲使用相同的規則。</li>
+    </ul>`
+};
+
+/* ---------- screen text that does not change with each puzzle ---------- */
+const tn = k => X(MJ.tn(k));
+function setSet(el, html) { el.innerHTML = X(html); }
+function statics() {
+  document.documentElement.lang = st.lang === 'en' ? 'en' : st.lang === 'tc' ? 'zh-Hant' : 'zh-Hans';
+  [['lb1', 'lbPts'], ['lb2', 'lbStreak'], ['lb3', 'lbSolved'], ['lb4', 'lbLevel'], ['lbRules', 'rules'], ['lbLevel', 'level']].forEach(p => { const e = $(p[0]); if (e) e.textContent = X(T(p[1])); });
+  setSet($('rules'), RULES[ZH() ? 'tc' : 'en']); $('iosHint').textContent = X(T('ios')); $('installBtn').textContent = X(T('inst'));
+  $('langBar').innerHTML = [['en', 'English'], ['tc', '繁體'], ['sc', '简体']].map(r => '<button class="btn sm' + (st.lang === r[0] ? ' on' : '') + '" data-act="lang" data-v="' + r[0] + '" type="button" lang="' + (r[0] === 'en' ? 'en' : r[0] === 'tc' ? 'zh-Hant' : 'zh-Hans') + '">' + r[1] + '</button>').join('');
+  buildSettings();
+}
+function buildSettings() {
+  const old = $('panel'), fresh = old.cloneNode(false); old.replaceWith(fresh); st.min = String(st.min);
+  settings([
+    { id: 'min', label: X(T('setMin')), type: 'select', options: [['1', X(T('o1'))], ['2', X(T('o2'))], ['3', X(T('o3'))]], def: '1', show: s => s.rules === 'hk' },
+    { id: 'sound', label: X(T('setSound')), type: 'check', def: true }
+  ], st, fresh, id => { st.min = +st.min; S0.save(); if (id === 'min') newPuzzle(); });
+  st.min = +st.min || 1;
+}
+
+const MODES = ['wait', 'discard', 'faan', 'best'], LEVELS = ['easy', 'medium', 'hard'];
+const mName = m => T(m === 'faan' && !hk() ? 'm_faan_tw' : 'm_' + m);
+let P = null, tries = 0, hinted = false, done = false, sel = new Set(), selD = -1, hlD = new Set(), wrongA = new Set(), msg = '';
+let URLS = {};
+const src = (k, back) => { const key = k + (back ? 'b' : ''); return URLS[key] || (URLS[key] = MA.tileImg(k, 40, back ? { back: true } : undefined).toDataURL()); };
+const img = (k, o) => '<img src="' + src(k, o && o.back) + '" alt="' + (o && o.back ? T('hidden') : tn(k)) + '">';
+const tile = (k, cls, attrs) => attrs ? '<button class="tl ' + (cls || '') + '" type="button" ' + attrs + '>' + img(k) + '</button>' : '<span class="tl ' + (cls || '') + '">' + img(k) + '</span>';
+const tiles = (arr, cls) => arr.map(k => tile(k, cls)).join('');
+const sm = html => '<span class="sm" style="display:inline-flex;gap:1px">' + html + '</span>';
+
+/* ---------- making a puzzle ---------- */
+function newPuzzle(mode) {
+  if (mode) st.mode = mode; const seed = 1 + Math.floor(Math.random() * 900000);
+  P = MP.make(st.mode, { rules: st.rules, level: st.level, min: hk() ? +st.min : 0, seed }); tries = 0; hinted = false; done = false; sel = new Set(); selD = -1; hlD = new Set(); wrongA = new Set(); msg = ''; S0.save(); render();
+}
+
+/* ---------- the pieces of the screen ---------- */
+function meldHtml() {
+  return P.melds.map(m => '<span class="grp">' + (m.t === 'akong' ? img(0, { back: true }) + tile(m.k) + tile(m.k) + img(0, { back: true }) : m.tiles.map(k => tile(k)).join('')) + '</span>').join('');
+}
+function handHtml() {
+  const mode = P.type; let h = '';
+  if (mode === 'discard') {
+    const rest = P.hand.slice(), di = rest.indexOf(P.drawn); rest.splice(di, 1);
+    const mk = (k, drawn) => tile(k, (drawn ? 'drawn ' : '') + (selD === k ? 'sel ' : '') + (hlD.has(k) && !done ? 'hl ' : ''), 'data-act="pd" data-k="' + k + '" aria-label="' + tn(k) + '"');
+    h += rest.map(k => mk(k, false)).join('') + '<span class="gap"></span>' + mk(P.drawn, true);
+  } else if (mode === 'faan') {
+    const rest = P.hand.slice(), wi = rest.indexOf(P.win); rest.splice(wi, 1);
+    h += tiles(rest) + '<span class="gap"></span>' + tile(P.win, 'win');
+  } else h += tiles(P.hand);
+  if (P.melds.length) h += '<span class="gap"></span>' + meldHtml();
+  if (P.flowers.length) h += '<span class="gap"></span><span class="grp">' + P.flowers.map(k => tile(k, 's')).join('') + '</span>';
+  const lab = mode === 'discard' ? T('lab_d') : mode === 'faan' ? T('lab_f') : '';
+  return h + (lab ? '<div class="lab">' + lab + '</div>' : '');
+}
+function ctxHtml() {
+  const c = ['<span>' + T('seat') + '<b>' + WN[P.seat] + '</b></span>', '<span>' + T('rnd') + '<b>' + WN[P.rnd] + '</b></span>'];
+  if (P.type === 'faan') c.push('<span>' + T(P.self ? 'selfW' : 'discW') + '</span>'); if (P.type === 'faan' && P.last) c.push('<span>' + T('lastT') + '</span>'); if (P.type === 'faan' && P.kongDraw) c.push('<span>' + T('kongD') + '</span>');
+  if (P.type === 'best') c.push('<span>' + T('assume', P.self) + '</span>');
+  if (hk() && P.type !== 'faan' && +st.min > 1) c.push('<span>' + T('needF', st.min) + '</span>');
+  if (P.type !== 'faan') c.push('<span>' + T('flw', P.flowers.length) + '</span>');
+  return c.join('');
+}
+function tableHtml() { return P.type === 'discard' ? '<div class="lab" style="flex-basis:100%;text-align:center;font-size:11px;color:rgba(255,255,255,.7);margin-top:6px">' + T('gone') + '</div><div class="sm" style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center">' + tiles(P.table) + '</div>' : ''; }
+function pickHtml() {
+  if (P.type === 'wait') {
+    let h = '<div class="pgrid">'; const info = {}; for (const x of P.info) info[x.k] = x;
+    for (let k = 0; k < 34; k++) { let cls = sel.has(k) ? 'sel' : ''; if (done) { const v = P.answer.includes(k), s = sel.has(k); cls = v && s ? 'ok' : s ? 'bad' : v ? 'miss' : 'off'; } h += tile(k, cls, 'data-act="tog" data-k="' + k + '" aria-label="' + tn(k) + '"' + (done ? ' disabled' : '')); }
+    return h + '</div>' + (done ? '' : '<div class="rec" style="color:rgba(255,255,255,.75)">' + T('picked') + sel.size + '</div>');
+  }
+  if (P.type === 'faan') return '<div class="prow">' + P.options.map(o => '<button class="abtn' + (wrongA.has(o) ? ' off' : '') + (done && o === P.answer ? ' ok' : '') + '" data-act="ans" data-v="' + o + '" type="button"' + (done || wrongA.has(o) ? ' disabled' : '') + '>' + o + (hk() && o === 10 ? '+' : '') + '</button>').join('') + '</div>';
+  if (P.type === 'best') return '<div class="prow">' + P.info.slice().sort((a, b) => a.k - b.k).map(x => tile(x.k, wrongA.has(x.k) ? 'off' : (done && x.k === P.answer ? 'ok' : ''), 'data-act="bw" data-k="' + x.k + '" aria-label="' + tn(x.k) + '"' + (done || wrongA.has(x.k) ? ' disabled' : ''))).join('') + '</div>';
+  return '';
+}
+function actsHtml() {
+  if (done) return '<button class="btn primary big" data-act="next" type="button">' + T('next') + '</button>';
+  let h = ''; if (P.type === 'wait') h += '<button class="btn primary big" data-act="check" type="button"' + (sel.size ? '' : ' disabled') + '>' + T('check') + '</button>'; if (P.type === 'discard') h += '<button class="btn primary big" data-act="throw" type="button"' + (selD >= 0 ? '' : ' disabled') + '>' + (selD >= 0 ? T('throwT', tn(selD)) : T('tapFirst')) + '</button>';
+  return h + '<button class="btn sm" data-act="hint" type="button">' + T('hint') + '</button><button class="btn sm" data-act="skip" type="button">' + T('skip') + '</button>';
+}
+function qText() { return { wait: () => T('q_wait'), discard: () => T('q_discard'), faan: () => T('q_faan', UNIT()), best: () => T('q_best', UNIT()) }[P.type](); }
+let render = function () {
+  if (!P) { $('q').textContent = X(T('noPuz')); return; }
+  setSet($('q'), qText()); setSet($('ctx'), ctxHtml()); setSet($('hand'), handHtml() + tableHtml()); setSet($('pick'), pickHtml()); setSet($('msg'), msg); setSet($('acts'), actsHtml()); setSet($('exp'), done ? explain() : '');
+  setSet($('ruleBar'), [['hk', T('hk')], ['tw', T('tw')]].map(r => '<button class="btn sm' + (st.rules === r[0] ? ' on' : '') + '" data-act="rules" data-v="' + r[0] + '" type="button">' + r[1] + '</button>').join(''));
+  setSet($('modeBar'), MODES.map(m => '<button class="btn sm' + (st.mode === m ? ' on' : '') + '" data-act="mode" data-v="' + m + '" type="button">' + mName(m) + '</button>').join(''));
+  setSet($('lvBar'), LEVELS.map(m => '<button class="btn sm' + (st.level === m ? ' on' : '') + '" data-act="level" data-v="' + m + '" type="button">' + T(m) + '</button>').join(''));
+  hud();
+};
+function hud() {
+  $('s1').textContent = st.pts; $('s2').textContent = st.streak; $('s3').textContent = st.solved[st.mode] + '/' + st.tried[st.mode]; $('s4').textContent = X(T(st.level));
+  $('recLine').textContent = X(T('best', st.best, mName(st.mode) + ': ' + T('solvedOf', st.solved[st.mode], st.tried[st.mode])));
+}
+
+/* ---------- explanations ---------- */
+const items = r => '<ul>' + r.items.map(i => '<li><span>' + nm(i) + '</span><b>' + (i[1] ? '+' + i[1] : '') + '</b></li>').join('') + '</ul>';
+const pay = v => hk() ? T('payHK', v) : T('payTW', v);
+function howTxt(h) {
+  if (h.t === 'orph') return T('h_orph');
+  if (h.t === 'pair') return T('h_pair', tn(h.k));
+  if (h.t === 'pung') return T('h_pung', tn(h.k));
+  const n = h.k % 9 + 1, suit = MJ.tn(h.k).slice(-1); return T('h_chow', n + '-' + (n + 1) + '-' + (n + 2) + suit);
+}
+function explain() {
+  if (P.type === 'wait') {
+    const rows = P.info.map(x => { const how = MP.how(P, P.hand, x.k).map(howTxt).join(T('or')); return '<div class="row">' + tile(x.k, x.valid ? 'ok' : 'off') + '<span>' + (x.valid ? T('e_wins', how, x.r.v, UNIT()) : T('e_short', how, x.r ? x.r.v : 0, UNIT(), st.min)) + '</span></div>'; }).join('');
+    return '<b>' + T('e_wait') + '</b>' + rows;
+  }
+  if (P.type === 'discard') {
+    const ready = P.opts.filter(o => o.rem > 0), no = P.opts.filter(o => o.rem === 0);
+    return T('e_disc') + ready.map(o => '<div class="row' + (o.d === P.best ? ' best' : '') + '">' + (o.d === P.best ? '⭐ ' : '') + T('e_throw') + tile(o.d, 's') + T('e_wf') + sm(tiles(o.waits)) + ' <b>' + T('e_left', o.rem) + '</b></div>').join('') + (no.length ? '<div class="row"><span class="badc">' + T('e_notready') + '</span> ' + sm(tiles(no.map(o => o.d))) + '</div>' : '');
+  }
+  if (P.type === 'faan') return '<b>' + T('e_lines') + '</b>' + items(P.res) + '<div><b>' + T('e_total') + P.res.v + ' ' + UNIT() + (P.res.limit ? T('e_limit') : '') + '</b>. ' + pay(P.res.v) + '</div>';
+  return '<b>' + T('e_each', P.self) + '</b>' + P.info.map(x => '<div class="row' + (x.k === P.answer ? ' best' : '') + '">' + (x.k === P.answer ? '⭐ ' : '') + tile(x.k, 's') + ' <b>' + x.r.v + ' ' + UNIT() + '</b> <span>(' + x.r.items.map(i => (ZH() ? nm(i) : i[0].split(' ')[0]) + (i[1] ? ' ' + i[1] : '')).join(' · ') + ')</span></div>').join('');
+}
+
+/* ---------- answers and points ---------- */
+/* messages are kept as a function so they are re-written when the language is switched */
+function award(ok) {
+  if (done) return; done = true; st.tried[st.mode]++; let pts = 0;
+  if (ok) { pts = tries === 0 && !hinted ? 3 : 1; st.solved[st.mode]++; st.streak++; st.best = Math.max(st.best, st.streak); st.pts += pts; msg = () => '<span class="good">' + T('ok', pts) + '</span>'; A.beep(660, .12, 'triangle', .1); A.beep(880, .15, 'triangle', .1, .1); }
+  else { st.streak = 0; msg = () => '<span class="badc">' + T('shown') + '</span>'; A.slide && A.slide(400, 150, .3, 'triangle', .08); }
+  S0.save(); render();
+}
+function wrong(text, cb) { tries++; if (tries >= 2) { award(false); return; } msg = () => '<span class="warn">' + text() + T('again') + '</span>'; A.beep(220, .15, 'sawtooth', .08); if (cb) cb(); render(); }
+function check() {
+  const want = new Set(P.answer), ok = sel.size === want.size && [...sel].every(k => want.has(k)); if (ok) return award(true);
+  const right = [...sel].filter(k => want.has(k)).length, extra = sel.size - right, miss = want.size - right; wrong(() => T('w_check', right, extra, miss));
+}
+function throwIt() {
+  if (selD < 0) return; if (selD === P.best) return award(true); const o = P.opts.find(x => x.d === selD);
+  wrong(() => T(o.rem > 0 ? 'w_t1' : 'w_t2'), () => { selD = -1; });
+}
+const hints = {
+  wait: () => T('hi_wait', P.answer.length),
+  discard: () => { hlD = new Set(P.opts.filter(o => o.rem > 0).map(o => o.d)); return T('hi_discard'); },
+  faan: () => T('hi_faan', P.res.items.length, nm(P.res.items[0])),
+  best: () => T('hi_best', P.info[0].r.v, UNIT())
+};
+/* msg may be text or a function; render() turns it into text with the current language */
+const _render = render; render = function () { const m = msg; if (typeof m === 'function') { msg = m(); _render(); msg = m; } else _render(); };
+ui.actions(document, {
+  tog: b => { if (done) return; const k = +b.dataset.k; sel.has(k) ? sel.delete(k) : sel.add(k); A.beep(420, .03, 'square', .05); msg = ''; render(); },
+  check, throw: throwIt,
+  pd: b => { if (done) return; const k = +b.dataset.k; selD = selD === k ? -1 : k; A.beep(420, .03, 'square', .05); render(); },
+  ans: b => { if (done) return; const v = +b.dataset.v; if (v === P.answer) return award(true); wrong(() => T('w_ans', v), () => wrongA.add(v)); },
+  bw: b => { if (done) return; const k = +b.dataset.k; if (k === P.answer) return award(true); const x = P.info.find(i => i.k === k); wrong(() => T('w_bw', tn(k), x.r.v, UNIT()), () => wrongA.add(k)); },
+  hint: () => { if (done) return; hinted = true; hints[P.type](); msg = () => '<span class="warn">' + hintNow() + '</span>'; render(); },
+  skip: () => { if (done) return; st.streak = 0; newPuzzle(); },
+  next: () => newPuzzle(),
+  rules: b => { if (st.rules !== b.dataset.v) { st.rules = b.dataset.v; newPuzzle(); } },
+  mode: b => { if (st.mode !== b.dataset.v) newPuzzle(b.dataset.v); },
+  level: b => { if (st.level !== b.dataset.v) { st.level = b.dataset.v; newPuzzle(); } },
+  lang: b => { const v = b.dataset.v; if (st.lang === v) return; st.lang = v; MA.setSC(v === 'sc'); URLS = {}; S0.save(); statics(); render(); }
+});
+function hintNow() { return hints[P.type](); }
+MA.setSC(st.lang === 'sc');
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+statics(); newPuzzle();
+KIT.hook({ get P() { return P; }, get st() { return st; }, get done() { return done; }, newPuzzle, get tries() { return tries; } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

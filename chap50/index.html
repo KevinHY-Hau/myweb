@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 50 · Dama</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1d3b2a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dama">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.dicerow{display:flex;align-items:center;justify-content:center;gap:14px}
+#die{font-size:68px;line-height:1;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;border-radius:18px;border:5px solid #888;box-shadow:0 3px 8px rgba(0,0,0,.35);user-select:none;cursor:pointer}
+#die.roll{animation:dshake .18s linear infinite}
+@keyframes dshake{0%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-4px)}100%{transform:rotate(-8deg) translateY(0)}}
+#rollBtn{font-size:18px;padding:12px 22px}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}#die{width:76px;height:76px;font-size:54px}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Dama</h2>
+  <p>Chapter 50 · Turkish and Arab draughts. Sixteen men each, no diagonals: move and capture forward and sideways, crown a flying king, and you must always take the biggest capture</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TURN</small><b id="s1">White</b></div>
+    <div class="tstat"><small>MOVE</small><b id="s2">1</b></div>
+    <div class="tstat"><small>PIECES</small><b id="s3">16–16</b></div>
+    <div class="tstat"><small>QUIET</small><b id="s4">0/100</b></div>
+  </div>
+  <div class="tmsg" id="msg">Your move</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="Dama board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">White wins</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="flip" type="button">🔃 Flip</button>
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+  </div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="tbar"><span class="kl">Level:</span><span id="lvBar"></span></div>
+  <div class="tbar" id="colRow"><span class="kl">You are:</span><span id="colBar"></span></div>
+  <div class="moves" id="moves"></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 Rules of Dama</h2>
+    <p>Draughts without diagonals. Each side has <b>16 men</b> on the second and third rows. White (bottom) moves first. Win by capturing every enemy piece or leaving the other side with <b>no legal move</b>.</p>
+    <h3>Men</h3>
+    <ul>
+      <li>A man steps <b>one square forward or sideways</b>. Never backward, never diagonally.</li>
+      <li>A man captures by <b>jumping</b> an adjacent enemy piece, <b>forward or sideways</b>, onto the empty square right behind it. Never backward.</li>
+      <li>A man that reaches the far row becomes a <b>king</b>.</li>
+    </ul>
+    <h3>Kings</h3>
+    <ul>
+      <li>A king moves <b>any number of empty squares</b> along a row or column, like a rook.</li>
+      <li>It captures a piece <b>at any distance</b> along a line, if there is at least one empty square just behind it, and lands on <b>any</b> empty square beyond (you choose). It can never jump two pieces in a row.</li>
+      <li>In a chain of captures a king may turn a corner but <b>not reverse</b> straight back.</li>
+    </ul>
+    <h3>Captures are compulsory</h3>
+    <ul>
+      <li>If you can capture, you <b>must</b>. If there are several ways, you must take the one that captures the <b>most pieces</b> (a king counts as one piece, like a man). If they tie, you choose.</li>
+      <li>Captured pieces are removed <b>straight away</b>, so later jumps in the same chain can pass over the squares they left, and a piece may even come back through its own starting square.</li>
+      <li>A man that reaches the far row in the middle of a chain carries on as a man (sideways only) and is crowned when the chain ends.</li>
+    </ul>
+    <h3>Draws in this version</h3>
+    <ul>
+      <li>The same position three times, or 100 plies with no capture and no man move. A lone king against a lone man is treated as a draw by that rule.</li>
+    </ul>
+    <h3>Playing here</h3>
+    <ul>
+      <li>Tap a piece, then a square. Dots show where it can go. In a capture chain you can tap the final square, or tap hop by hop if two routes end on the same square. You can also drag.</li>
+      <li>The computer sees the compulsory captures, so it is careful about exchanges, but it is a casual player. Hard thinks about 1.5 seconds.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">⚪ Dama (Turkish draughts, Dama in the Arab world, Dama in Greece) is played across the Middle East and the Balkans, on the same 8×8 board as chess with both players’ men on the second and third rows. Rules follow the standard description (captured pieces are removed at once, the majority capture is compulsory, no 180° turns for kings); the lone king against a lone man is called a draw here. Drawings, sounds, rules code and the computer player are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Dama (Turkish and Arab draughts). Rules and computer player, no drawing.
+   Board: Int8Array(64), index = row*8 + col, row 0 = rank 8 (Black's side), col 0 = file a.
+   +1 white man, +2 white king, -1 black man, -2 black king. White moves up the screen (towards row 0).
+   state = { b, turn: 1|-1, quiet } ; move = { f, path:[landing squares], caps:[captured squares], promo } */
+'use strict';
+const DR = [-1, 1, 0, 0], DC = [0, 0, -1, 1];          // 0 up, 1 down, 2 left, 3 right; opposite = d ^ 1
+const DM_MATE = 30000, DM_INF = 1e6;
+let DM_MAX_QUIET = 100;                                  // plies without a capture or man move = draw
+const inb = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+
+function dmFromRows(rows, turn, extra) { // 'w' man, 'W' king (white); 'b' man, 'B' king (black); '.' empty. rows from rank 8 down
+  const b = new Int8Array(64);
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const ch = rows[r][c]; if (ch === 'w') b[r * 8 + c] = 1; else if (ch === 'W') b[r * 8 + c] = 2; else if (ch === 'b') b[r * 8 + c] = -1; else if (ch === 'B') b[r * 8 + c] = -2; }
+  return Object.assign({ b, turn: turn === -1 || turn === 'b' ? -1 : 1, quiet: 0 }, extra || {});
+}
+const dmStart = () => dmFromRows(['........', 'bbbbbbbb', 'bbbbbbbb', '........', '........', 'wwwwwwww', 'wwwwwwww', '........'], 1);
+const dmKey = s => s.turn + ':' + Array.prototype.join.call(s.b, ',');
+const dmSq = sq => 'abcdefgh'[sq & 7] + (8 - (sq >> 3));
+const dmSqOf = n => (8 - +n[1]) * 8 + 'abcdefgh'.indexOf(n[0]);
+function dmCount(b, side) { let n = 0; for (let i = 0; i < 64; i++) if (b[i] * side > 0) n++; return n; }
+
+/* ---------- move generation (on a raw board, which is restored before returning) ---------- */
+function capsFrom(b, sq, side, out) {
+  const p = b[sq], king = Math.abs(p) === 2; b[sq] = 0; const caps = [], path = [];
+  (function dfs(s, last) {
+    let found = false; const r = s >> 3, c = s & 7;
+    for (let d = 0; d < 4; d++) {
+      if (last >= 0 && d === (last ^ 1)) continue;                 // no 180 degree turn
+      if (!king) {
+        if (d === (side === 1 ? 1 : 0)) continue;                   // men never go or capture backwards
+        const r1 = r + DR[d], c1 = c + DC[d], r2 = r + 2 * DR[d], c2 = c + 2 * DC[d]; if (!inb(r2, c2)) continue;
+        const mid = r1 * 8 + c1, land = r2 * 8 + c2;
+        if (b[mid] * side < 0 && b[land] === 0) { found = true; const sv = b[mid]; b[mid] = 0; caps.push(mid); path.push(land); dfs(land, d); path.pop(); caps.pop(); b[mid] = sv; }
+      } else {
+        let rr = r + DR[d], cc = c + DC[d];
+        while (inb(rr, cc) && b[rr * 8 + cc] === 0) { rr += DR[d]; cc += DC[d]; }
+        if (!inb(rr, cc)) continue; const mid = rr * 8 + cc; if (b[mid] * side >= 0) continue;
+        let lr = rr + DR[d], lc = cc + DC[d]; if (!(inb(lr, lc) && b[lr * 8 + lc] === 0)) continue;
+        const sv = b[mid]; b[mid] = 0; caps.push(mid);
+        while (inb(lr, lc) && b[lr * 8 + lc] === 0) { found = true; path.push(lr * 8 + lc); dfs(lr * 8 + lc, d); path.pop(); lr += DR[d]; lc += DC[d]; }
+        caps.pop(); b[mid] = sv;
+      }
+    }
+    if (!found && caps.length) out.push({ f: sq, path: path.slice(), caps: caps.slice(), promo: !king && (side === 1 ? (path[path.length - 1] >> 3) === 0 : (path[path.length - 1] >> 3) === 7) });
+  })(sq, -1);
+  b[sq] = p;
+}
+function gen(b, side) {
+  const caps = [];
+  for (let sq = 0; sq < 64; sq++) if (b[sq] * side > 0) capsFrom(b, sq, side, caps);
+  if (caps.length) { let mx = 0; for (const m of caps) if (m.caps.length > mx) mx = m.caps.length; return caps.filter(m => m.caps.length === mx); }
+  const out = [], last = side === 1 ? 0 : 7, fwd = side === 1 ? 0 : 1;
+  for (let sq = 0; sq < 64; sq++) {
+    const p = b[sq]; if (p * side <= 0) continue; const r = sq >> 3, c = sq & 7;
+    if (Math.abs(p) === 1) {
+      for (const d of [fwd, 2, 3]) { const rr = r + DR[d], cc = c + DC[d]; if (inb(rr, cc) && b[rr * 8 + cc] === 0) out.push({ f: sq, path: [rr * 8 + cc], caps: [], promo: rr === last }); }
+    } else {
+      for (let d = 0; d < 4; d++) { let rr = r + DR[d], cc = c + DC[d]; while (inb(rr, cc) && b[rr * 8 + cc] === 0) { out.push({ f: sq, path: [rr * 8 + cc], caps: [], promo: false }); rr += DR[d]; cc += DC[d]; } }
+    }
+  }
+  return out;
+}
+function make(b, m, side) { const p = b[m.f]; b[m.f] = 0; m.cv = m.caps.map(s => { const v = b[s]; b[s] = 0; return v; }); b[m.path[m.path.length - 1]] = m.promo ? 2 * side : p; m.pc = p; }
+function unmake(b, m) { b[m.path[m.path.length - 1]] = 0; b[m.f] = m.pc; m.caps.forEach((s, i) => { b[s] = m.cv[i]; }); }
+
+/* ---------- public rules API ---------- */
+const dmLegal = s => gen(s.b, s.turn);
+function dmApply(s, m) {
+  const b = s.b.slice(), side = s.turn, p = b[m.f]; b[m.f] = 0; for (const c of m.caps) b[c] = 0; b[m.path[m.path.length - 1]] = m.promo ? 2 * side : p;
+  return { b, turn: -side, quiet: (m.caps.length || Math.abs(p) === 1) ? 0 : s.quiet + 1 };
+}
+function dmResult(s) {
+  if (!gen(s.b, s.turn).length) return { over: true, winner: -s.turn, why: dmCount(s.b, s.turn) ? 'blocked' : 'wiped' };
+  if (s.quiet >= DM_MAX_QUIET) return { over: true, winner: 0, why: 'moves' };
+  return { over: false };
+}
+const dmName = (s, m) => dmSq(m.f) + (m.caps.length ? m.path.map(x => 'x' + dmSq(x)).join('') : '-' + dmSq(m.path[0]));
+function dmSetMaxQuiet(v) { DM_MAX_QUIET = v; }
+function dmPerft(s, d) { if (d === 0) return 1; let n = 0; for (const m of gen(s.b, s.turn)) n += dmPerft(dmApply(s, m), d - 1); return n; }
+
+/* ---------- evaluation and search ---------- */
+const CEN = []; for (let i = 0; i < 64; i++) CEN[i] = Math.min(i >> 3, 7 - (i >> 3)) + Math.min(i & 7, 7 - (i & 7));
+function evalB(b, me) {
+  let sc = 0;
+  for (let sq = 0; sq < 64; sq++) {
+    const p = b[sq]; if (!p) continue; const s = p > 0 ? 1 : -1; let v;
+    if (Math.abs(p) === 1) { const adv = s === 1 ? 6 - (sq >> 3) : (sq >> 3) - 1; v = 100 + adv * 5 + (adv >= 5 ? 25 : 0) + (adv === 0 ? -6 : 0); }
+    else v = 330 + CEN[sq] * 3;
+    sc += s * v;
+  }
+  return sc * me;
+}
+function dmBest(state, level, opts) {
+  opts = opts || {}; const b = state.b.slice(), side0 = state.turn;
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  let root = gen(b, side0); if (!root.length) return null; if (root.length === 1) return root[0]; shuffle(root);
+  let nodes = 0, abort = false, deadline = 0, rootBest = null;
+  function order(ms, first) {
+    const k = ms.map(m => (m === first ? 1e6 : 0) + m.caps.length * 1000 + (m.promo ? 500 : 0));
+    return ms.map((m, i) => [k[i], m]).sort((x, y) => y[0] - x[0]).map(x => x[1]);
+  }
+  function search(depth, alpha, beta, side, ply) {
+    if ((++nodes & 1023) === 0 && deadline && Date.now() > deadline) abort = true; if (abort) return 0;
+    const ms = ply === 0 ? root : gen(b, side); if (!ms.length) return -(DM_MATE - ply);
+    if (depth <= 0) { if (!(ms[0].caps.length && ply < 40)) return evalB(b, side); depth = 1; }   // a capture is compulsory, so look through it
+    let best = -DM_INF;
+    for (const m of order(ms, ply === 0 ? rootBest : null)) {
+      make(b, m, side); const v = -search(depth - 1, -beta, -alpha, -side, ply + 1); unmake(b, m); if (abort) return 0;
+      if (v > best) { best = v; if (ply === 0) rootBest = m; if (v > alpha) alpha = v; if (alpha >= beta) break; }
+    }
+    return best;
+  }
+  if (level === 'easy') {
+    let bm = root[0], bs = -DM_INF;
+    for (const m of root) { make(b, m, side0); const v = -search(1, -DM_INF, DM_INF, -side0, 1) + (Math.random() - .5) * 240; unmake(b, m); if (v > bs) { bs = v; bm = m; } }
+    return bm;
+  }
+  const maxD = level === 'hard' ? 16 : 5; if (level === 'hard') deadline = Date.now() + (opts.ms || 1500);
+  let done = root[0], score = 0; rootBest = null;
+  for (let d = 1; d <= maxD; d++) {
+    const v = search(d, -DM_INF, DM_INF, side0, 0); if (abort) break; done = rootBest || done; score = v; if (Math.abs(v) > DM_MATE - 60) break;
+  }
+  done.score = score; done.nodes = nodes; return done;
+}
+if (typeof module !== 'undefined') module.exports = { dmStart, dmFromRows, dmLegal, dmApply, dmResult, dmBest, dmKey, dmSq, dmSqOf, dmName, dmCount, dmPerft, dmSetMaxQuiet };
+
+/* Dama. dama.js has the rules and the computer (checked on its own); this file is the board, the input and the game flow. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.dama.v1', { dark: true, sound: true, opp: 'cpu', colour: 'white', level: 'normal', board: 'green', coords: true, dots: true, rec: [0, 0] }), st = S0.st;
+if (!Array.isArray(st.rec) || st.rec.length !== 2) st.rec = [0, 0];
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+settings([
+  { id: 'board', label: 'Board colours', type: 'select', options: [['green', 'Green'], ['brown', 'Brown'], ['blue', 'Blue'], ['grey', 'Grey']], def: 'green' },
+  { id: 'dots', label: 'Show legal-move dots', type: 'check', def: true },
+  { id: 'coords', label: 'Show coordinates', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S0.save(); hud(); });
+
+const W = 640, M = 32, SQ = 72, cv = $('cv'), C = KIT.canvas(cv, W, W, 2), ctx = C.ctx;
+const THEMES = { green: { l: '#e6e8cf', d: '#7d9a5a', f: '#26352a', c: '#cfd8cf' }, brown: { l: '#f0d9b5', d: '#b58863', f: '#3a2a1a', c: '#e5d5b8' }, blue: { l: '#dee3e6', d: '#8ca2ad', f: '#22313a', c: '#cbd8df' }, grey: { l: '#e8e8e8', d: '#9a9a9a', f: '#2a2a2a', c: '#d0d0d0' } };
+let TS = 1, S, hist = [], log = [], reps = {}, sel = -1, prefix = [], L = [], last = null, hintMv = null, hintT = 0, anim = null, over = false, thinking = false, token = 0, me = 1, flip = false, drag = null, res = null;
+const cpu = () => st.opp === 'cpu';
+const human = () => !over && (!cpu() || S.turn === me);
+
+/* ---------- flow ---------- */
+function newGame() {
+  token++; O.hide('ovEnd'); S = dmStart(); hist = []; log = []; reps = {}; reps[dmKey(S)] = 1; sel = -1; prefix = []; L = dmLegal(S); last = null; hintMv = null; anim = null; over = false; thinking = false; res = null;
+  me = st.colour === 'random' ? (Math.random() < .5 ? 1 : -1) : st.colour === 'black' ? -1 : 1; flip = cpu() && me === -1;
+  bars(); hud(); rec(); moveList(); setMsg(turnMsg()); kick();
+}
+const mustCap = () => L.length && L[0].caps.length;
+function turnMsg() {
+  const side = S.turn, cap = mustCap() ? ' You must capture' + (L[0].caps.length > 1 ? ' (the most pieces: ' + L[0].caps.length + ')' : '') + '.' : '';
+  return (cpu() ? (side === me ? 'Your move.' : 'The computer is thinking…') : (side === 1 ? 'White' : 'Black') + ' to move.') + (cpu() && side !== me ? '' : cap);
+}
+function kick() {
+  if (over) return; hud();
+  if (cpu() && S.turn !== me) { thinking = true; const t = token; setTimeout(() => { if (t !== token) return; const m = dmBest(S, st.level, { ms: 1500 * Math.min(1, TS * 4) }); thinking = false; if (t === token && m) doMove(m); }, 350 * TS); }
+}
+function doMove(mv) {
+  hist.push({ S, log: log.length, last, reps: Object.assign({}, reps) }); const name = dmName(S, mv);
+  anim = { m: mv, b: S.b.slice(), p: S.b[mv.f], t0: performance.now(), seg: 170 * TS }; log.push(name); last = { f: mv.f, t: mv.path[mv.path.length - 1] };
+  S = dmApply(S, mv); const k = dmKey(S); reps[k] = (reps[k] || 0) + 1; sel = -1; prefix = []; hintMv = null; L = dmLegal(S);
+  if (mv.caps.length) A.beep(190, .09, 'triangle', .14); else A.beep(330, .05, 'sine', .1);
+  res = dmResult(S); if (!res.over && reps[k] >= 3) res = { over: true, winner: 0, why: 'repetition' };
+  hud(); moveList();
+  if (res.over) { over = true; return endGame(); }
+  setMsg((mv.promo ? 'Crowned a king! ' : '') + turnMsg()); kick();
+}
+function endGame() {
+  const w = res.winner, you = cpu() ? (w === 0 ? 0 : (w === me ? 1 : -1)) : null; let h;
+  if (w === 0) h = 'Draw'; else if (cpu()) h = you > 0 ? 'You win' : 'The computer wins'; else h = (w === 1 ? 'White' : 'Black') + ' wins';
+  const p = { wiped: 'Every piece was captured.', blocked: 'No legal move left.', moves: '100 plies without a capture or man move.', repetition: 'The same position came up three times.' }[res.why] || '';
+  if (cpu()) { if (you > 0) st.rec[0]++; else if (you < 0) st.rec[1]++; }
+  $('endH').textContent = h; $('endP').textContent = p + ' ' + Math.ceil(log.length / 2) + ' moves played.'; setMsg(h + '. ' + p); rec(); S0.save(); setTimeout(() => { if (over) O.show('ovEnd'); }, 400 * TS); A.beep(you < 0 ? 200 : 600, .3, 'triangle', .15);
+}
+function undo() {
+  if (!hist.length) return; token++; thinking = false; over = false; O.hide('ovEnd'); res = null;
+  let h = hist.pop(); S = h.S; while (cpu() && S.turn !== me && hist.length) { h = hist.pop(); S = h.S; }
+  log.length = h.log; last = h.last; reps = h.reps; sel = -1; prefix = []; L = dmLegal(S); hintMv = null; anim = null; hud(); moveList(); setMsg(turnMsg()); kick();
+}
+function showHint() { if (!human()) return; const m = dmBest(S, 'hard', { ms: 700 }); if (m) { hintMv = m; hintT = performance.now() + 3500; setMsg('Hint: the blue squares show a good move.'); } }
+const setMsg = t => { $('msg').textContent = t; };
+function hud() {
+  $('s1').textContent = over ? '–' : (cpu() ? (S.turn === me ? 'You' : 'Computer') : (S.turn === 1 ? 'White' : 'Black'));
+  $('s2').textContent = Math.floor(log.length / 2) + 1; $('s3').textContent = dmCount(S.b, 1) + '–' + dmCount(S.b, -1); $('s4').textContent = S.quiet + '/100';
+}
+function rec() { $('recLine').textContent = cpu() ? 'You: ' + st.rec[0] + ' wins, ' + st.rec[1] + ' losses' : 'Pass and play'; }
+function moveList() {
+  let h = ''; for (let i = 0; i < log.length; i += 2) h += '<b>' + (i / 2 + 1) + '.</b> ' + log[i] + (log[i + 1] ? ' <i>' + log[i + 1] + '</i>' : '') + '  ';
+  const el = $('moves'); el.innerHTML = h; el.scrollTop = el.scrollHeight;
+}
+function bars() {
+  const mk = (id, arr, cur, act) => { $(id).innerHTML = arr.map(([k, t]) => '<button class="btn sm' + (String(cur) === String(k) ? ' on' : '') + '" data-act="' + act + '" data-k="' + k + '" type="button">' + t + '</button>').join(''); };
+  mk('oppBar', [['cpu', '🤖 Computer'], ['two', '👥 Pass and play']], st.opp, 'opp'); mk('lvBar', [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']], st.level, 'lv'); mk('colBar', [['white', 'White'], ['black', 'Black'], ['random', 'Random']], st.colour, 'col');
+  $('colRow').style.display = cpu() ? '' : 'none'; $('lvBar').parentNode.style.display = cpu() ? '' : 'none';
+}
+ui.actions(document.body, {
+  hint: showHint, undo, restart: newGame, closeov: () => O.hide('ovEnd'), flip: () => { flip = !flip; },
+  opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); }, lv: b => { st.level = b.dataset.k; S0.save(); bars(); }, col: b => { st.colour = b.dataset.k; S0.save(); newGame(); }
+});
+
+/* ---------- input ---------- */
+const sqXY = s => { const c = s & 7, r = s >> 3; return flip ? [M + (7 - c) * SQ, M + (7 - r) * SQ] : [M + c * SQ, M + r * SQ]; };
+const sqAt = p => { const c = Math.floor((p.x - M) / SQ), r = Math.floor((p.y - M) / SQ); if (c < 0 || c > 7 || r < 0 || r > 7) return -1; return flip ? (7 - r) * 8 + (7 - c) : r * 8 + c; };
+const mine = sq => S.b[sq] * S.turn > 0;
+const matching = () => L.filter(m => m.f === sel && prefix.every((q, i) => m.path[i] === q));
+function bad(msg) { A.beep(160, .12, 'square', .1); setMsg(msg + ' ' + turnMsg()); }
+function tapSquare(sq) { // sq is a destination candidate for the selected piece
+  const ms = matching(), fin = ms.filter(m => m.path[m.path.length - 1] === sq && m.path.length > prefix.length);
+  if (fin.length === 1) return doMove(fin[0]);
+  const nxt = ms.filter(m => m.path.length > prefix.length && m.path[prefix.length] === sq);
+  if (!nxt.length) { prefix = []; return bad(mustCap() ? 'Not a legal capture.' : 'Illegal move.'); }
+  const done = ms.find(m => m.path.length === prefix.length + 1 && m.path[prefix.length] === sq); if (done) return doMove(done);
+  prefix.push(sq); setMsg('Keep going: tap the next square of the capture chain.');
+}
+cv.addEventListener('pointerdown', e => {
+  const p = C.pos(e), sq = sqAt(p); if (sq < 0 || !human() || anim && performance.now() - anim.t0 < anim.seg * anim.m.path.length) return;
+  cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+  if (sel >= 0 && mine(sq) === false && sq !== sel) return tapSquare(sq);
+  if (mine(sq)) { if (sq !== sel) { sel = sq; prefix = []; } drag = { sq, x: p.x, y: p.y, sx: p.x, sy: p.y, moved: false }; if (!L.some(m => m.f === sq)) setMsg(mustCap() ? 'That piece cannot capture, and a capture is compulsory.' : 'That piece has no move.'); return; }
+  sel = -1; prefix = [];
+});
+cv.addEventListener('pointermove', e => { if (!drag) return; const p = C.pos(e); drag.x = p.x; drag.y = p.y; if (Math.hypot(p.x - drag.sx, p.y - drag.sy) > 10) drag.moved = true; });
+cv.addEventListener('pointerup', e => { if (!drag) return; const p = C.pos(e), sq = sqAt(p), d = drag; drag = null; if (d.moved && sq >= 0 && sq !== d.sq) { sel = d.sq; prefix = []; tapSquare(sq); } });
+cv.addEventListener('pointercancel', () => { drag = null; });
+
+/* ---------- drawing ---------- */
+function piece(g, x, y, v, a) {
+  const white = v > 0; g.save(); g.globalAlpha = a == null ? 1 : a; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = white ? '#f7f3e6' : '#2a2622'; g.strokeStyle = white ? '#2a2622' : '#e8e2d0'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, SQ * .4, 0, 7); g.fill(); g.stroke();
+  g.strokeStyle = white ? 'rgba(0,0,0,.25)' : 'rgba(255,255,255,.3)'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, SQ * .29, 0, 7); g.stroke();
+  if (Math.abs(v) === 2) { g.fillStyle = white ? '#9a6a00' : '#f0c34a'; g.font = '38px "Segoe UI Symbol","Noto Sans Symbols 2","DejaVu Sans","Apple Symbols",serif'; g.fillText('♛︎', x, y + 2); }
+  g.restore();
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / W, 0, 0); if (!S) return;
+  const T = THEMES[st.board] || THEMES.green, t = performance.now();
+  g.fillStyle = T.f; g.beginPath(); g.roundRect ? g.roundRect(0, 0, W, W, 12) : g.rect(0, 0, W, W); g.fill();
+  for (let s = 0; s < 64; s++) { const [x, y] = sqXY(s); g.fillStyle = ((s & 7) + (s >> 3)) % 2 ? T.d : T.l; g.fillRect(x, y, SQ, SQ); }
+  if (st.coords) { g.fillStyle = T.c; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; for (let i = 0; i < 8; i++) { const f = flip ? 7 - i : i, r = flip ? 7 - i : i; g.fillText('abcdefgh'[f], M + i * SQ + SQ / 2, W - M / 2 + 1); g.fillText(String(8 - r), M / 2, M + i * SQ + SQ / 2); } }
+  const tint = (s, col) => { const [x, y] = sqXY(s); g.fillStyle = col; g.fillRect(x, y, SQ, SQ); };
+  if (last) { tint(last.f, 'rgba(255,220,60,.38)'); tint(last.t, 'rgba(255,220,60,.5)'); }
+  if (hintMv && hintT > t) { tint(hintMv.f, 'rgba(60,150,255,.5)'); for (const q of hintMv.path) tint(q, 'rgba(60,150,255,.5)'); }
+  if (sel >= 0) tint(sel, 'rgba(80,200,120,.55)'); for (const q of prefix) tint(q, 'rgba(80,200,120,.35)');
+  const dragging = drag && drag.moved;
+  let Bd = S.b, mover = null;
+  if (anim) { // draw the board as it was, move the piece along its path and remove captured pieces as it passes them
+    const total = anim.seg * anim.m.path.length, k = (t - anim.t0);
+    if (k >= total) anim = null; else {
+      Bd = anim.b.slice(); Bd[anim.m.f] = 0; const hop = Math.min(anim.m.path.length - 1, Math.floor(k / anim.seg)), f = (k - hop * anim.seg) / anim.seg;
+      anim.m.caps.forEach((c, i) => { if (i < hop || (i === hop && f > .5)) Bd[c] = 0; });
+      const from = hop === 0 ? anim.m.f : anim.m.path[hop - 1], to = anim.m.path[hop], [x0, y0] = sqXY(from), [x1, y1] = sqXY(to), e = Math.min(1, f);
+      mover = [x0 + (x1 - x0) * e + SQ / 2, y0 + (y1 - y0) * e + SQ / 2, anim.p];
+    }
+  }
+  for (let s = 0; s < 64; s++) { const v = Bd[s]; if (!v) continue; if (dragging && drag.sq === s) continue; const [x, y] = sqXY(s); piece(g, x + SQ / 2, y + SQ / 2, v); }
+  if (mover) piece(g, mover[0], mover[1], mover[2]);
+  if (sel >= 0 && st.dots && human() && !anim) {
+    const nxt = new Set(matching().filter(m => m.path.length > prefix.length).map(m => m.path[prefix.length]));
+    for (const q of nxt) { const [x, y] = sqXY(q); g.fillStyle = mustCap() ? 'rgba(220,40,40,.5)' : 'rgba(20,20,20,.38)'; g.beginPath(); g.arc(x + SQ / 2, y + SQ / 2, SQ * .14, 0, 7); g.fill(); }
+  }
+  if (dragging) piece(g, drag.x, drag.y - 8, S.b[drag.sq]);
+  if (thinking) { g.fillStyle = 'rgba(255,255,255,.6)'; g.fillRect(M, W - 5, (W - 2 * M) * ((t / 1200) % 1), 3); }
+}
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get over() { return over; }, get res() { return res; }, get log() { return log; }, get st() { return st; }, get thinking() { return thinking; }, get flip() { return flip; }, get me() { return me; }, get L() { return L; },
+  ts: x => { TS = x; }, newGame,
+  xy: name => { const [x, y] = sqXY(dmSqOf(name)), r = cv.getBoundingClientRect(); return [r.left + (x + SQ / 2) / W * r.width, r.top + (y + SQ / 2) / W * r.height]; },
+  play: name => { const m = L.find(x => dmName(S, x) === name); if (m) doMove(m); return !!m; },
+  setPos: (rws, turn) => { token++; S = dmFromRows(rws, turn); L = dmLegal(S); hist = []; log = []; reps = {}; reps[dmKey(S)] = 1; over = false; res = null; last = null; sel = -1; prefix = []; thinking = false; anim = null; O.hide('ovEnd'); hud(); setMsg(turnMsg()); kick(); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

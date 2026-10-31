@@ -1,0 +1,31 @@
+{
+  "name": "Royal Game of Ur",
+  "short_name": "Ur",
+  "description": "The 4,500-year-old race game from ancient Mesopotamia. Throw the four two-sided dice, race your seven pieces round the board, hit your rival on the shared lane and land on the rosettes for an extra turn",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15264f",
+  "theme_color": "#15264f",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

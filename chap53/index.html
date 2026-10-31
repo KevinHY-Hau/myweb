@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 53 · Food Court Empire</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f3d3a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Food Court">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.dicerow{display:flex;align-items:center;justify-content:center;gap:14px}
+#die{font-size:68px;line-height:1;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;border-radius:18px;border:5px solid #888;box-shadow:0 3px 8px rgba(0,0,0,.35);user-select:none;cursor:pointer}
+#die.roll{animation:dshake .18s linear infinite}
+@keyframes dshake{0%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-4px)}100%{transform:rotate(-8deg) translateY(0)}}
+#rollBtn{font-size:18px;padding:12px 22px}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}#die{width:76px;height:76px;font-size:54px}}
+.urcv{aspect-ratio:640/250}
+.urdice{display:flex;gap:10px;align-items:center;min-height:56px}
+.td{font-size:44px;line-height:48px;width:48px;text-align:center;color:#6b7280;opacity:.55;transition:transform .15s;user-select:none}
+.td.on{color:#f0b429;opacity:1;text-shadow:0 0 6px rgba(240,180,41,.55)}
+.td.spin{animation:dshake .18s linear infinite;opacity:.9;color:#aab}
+.dicerow{flex-wrap:wrap}
+@media (max-width:480px){.td{font-size:36px;width:40px;line-height:40px}}
+.tccv{aspect-ratio:1/1}
+.sqinfo{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:8px 10px;font-size:13px;min-height:3.2em;text-align:left}
+
+#score .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel2);border-radius:20px;padding:3px 10px;font-size:12.5px}
+#score .chip.cur{outline:2px solid var(--accent)} #score .chip.dead{opacity:.4;text-decoration:line-through}
+#score .dot,.mrow .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+#ovMan{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:10px}
+#ovMan.show{display:flex!important}
+.manbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;max-width:520px;width:100%;max-height:86vh;overflow:auto;text-align:left}
+.mrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
+.mrow .nm{flex:1;min-width:130px}.mrow .btn{padding:3px 8px;font-size:12px}
+
+.cmid{position:absolute;left:11.5%;right:11.5%;top:58.5%;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-content:flex-start;z-index:3}
+.cmid .btn{padding:8px 14px;font-size:15px}.cmid .btn.sm{padding:5px 10px;font-size:12.5px}
+@media (max-width:480px){.cmid{top:56%;gap:4px}.cmid .btn{padding:6px 10px;font-size:13px}.cmid .btn.sm{padding:4px 8px;font-size:11.5px}}
+.tclog{height:11.5em;overflow-y:auto;overscroll-behavior:contain;text-align:left;font-size:12.5px;line-height:1.45;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:6px 8px;-webkit-overflow-scrolling:touch}
+.tclog .ln{display:flex;gap:6px;align-items:flex-start;padding:1px 0;border-bottom:1px dashed rgba(128,128,128,.18)}
+.tclog .dot{flex:0 0 9px;width:9px;height:9px;border-radius:50%;margin-top:.45em;display:inline-block}.tclog .dot.none{background:transparent!important}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Food Court Empire</h2>
+  <p>Chapter 53 · Buy food shops on Tidehaven High Street, collect rent, add shops and flagships, dodge the Lockup and bankrupt your rivals. A property-trading game against two to five players, people or computers, on an original board</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TURN</small><b id="s1">You</b></div>
+    <div class="tstat"><small>YOUR CASH</small><b id="s2">$1500</b></div>
+    <div class="tstat"><small>NET WORTH</small><b id="s3">$1500</b></div>
+    <div class="tstat"><small>ROUND</small><b id="s4">1/25</b></div>
+  </div>
+  <div class="tmsg" id="msg">Roll the dice</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv tccv" aria-label="Food Court Empire board"></canvas>
+    <div class="cmid" id="actBar">
+    <button class="btn primary" id="bRoll" data-act="roll" type="button">🎲 Roll</button>
+    <button class="btn" id="bPay" data-act="payjail" type="button">Pay $50</button>
+    <button class="btn" id="bCard" data-act="usecard" type="button">Use card</button>
+    <button class="btn primary" id="bBuy" data-act="buy" type="button">Buy</button>
+    <button class="btn" id="bPass" data-act="decline" type="button">Pass</button>
+    <button class="btn primary" id="bEnd" data-act="endturn" type="button">End turn ✔</button>
+    <button class="btn" id="bBank" data-act="bankrupt" type="button">Bankrupt</button>
+      <button class="btn sm" id="bMan" data-act="manage" type="button">🏪 Manage shops</button>
+  </div>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  
+  <div class="tbar"><button class="btn sm" data-act="hint" type="button">💡 Hint</button><button class="btn sm" data-act="restart" type="button">🔄 New game</button></div>
+  <div class="tbar" id="score"></div>
+  <div class="sqinfo" id="sqInfo">Tap a square on the board to see its price and rents.</div>
+  <div class="tclog" id="log" aria-label="Game log"></div>
+  <div class="tbar"><span class="kl">Players:</span><span id="npBar"></span></div>
+  <div class="tbar"><span class="kl">Seats (tap to switch person / computer):</span><span id="seatBar"></span></div>
+  <div class="tbar"><span class="kl">Computers:</span><span id="lvBar"></span></div>
+  <div class="tbar"><span class="kl">Game length:</span><span id="lenBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <div class="ov" id="ovMan" style="display:none"><div class="manbox"><h3>Your properties</h3><div id="manDebt" class="rec"></div><div id="manList"></div><div class="tbar"><button class="btn primary" data-act="closeman" type="button">Done</button></div></div></div>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to play Food Court Empire</h2>
+    <p>2 to 5 players, in the colours <b style="color:#3b82f6">blue</b>, <b style="color:#ef4444">red</b>, <b style="color:#22c55e">green</b>, <b style="color:#eab308">gold</b> and <b style="color:#a855f7">purple</b>. Tap a seat to make it a <b>person</b> (pass the phone around) or a <b>computer</b>. By default blue is you and the rest are computers. Everyone starts with <b>$1500</b>. The aim is to bankrupt the others, or to be the richest when the game ends (after <b>25 rounds</b> in a short game, 150 in a full one).</p>
+    <h3>On your turn</h3>
+    <ul>
+      <li><b>Roll</b> two dice and move that many squares clockwise. Passing or landing on <b>Payday</b> pays you <b>$200</b>. <b>Doubles</b> give you another roll; <b>three doubles in a row</b> send you to the Lockup.</li>
+      <li><b>Unowned shop, takeaway or supplier:</b> you may buy it at the price shown. If you don’t, it stays for sale (there are no auctions in this version).</li>
+      <li><b>Owned by someone else:</b> pay them rent. <b>Your own:</b> nothing happens. Mortgaged properties collect no rent.</li>
+      <li><b>Hygiene Fine / Business Rates:</b> pay the tax. <b>Fortune / Council:</b> take the next card. <b>Rest Stop:</b> nothing. <b>Go to Lockup:</b> go straight to the Lockup, without passing Payday.</li>
+    </ul>
+    <h3>Rent</h3>
+    <ul>
+      <li><b>Shops</b> come in 8 coloured trades (Bakery, Sweet &amp; Cool, Coffee &amp; Tea, Fast Food, Takeaway Kitchen, Seafood, Curry &amp; Noodles, Fine Dining), 3 different shops in each. Own all 3 of a trade and the rent on empty shops <b>doubles</b>, and you can <b>add shops</b>: up to 4 on each, then a <b>flagship</b>, building <b>evenly</b> across the trade. Rent rises sharply with each shop.</li>
+      <li><b>Takeaways</b> (4 on the board): $25, $50, $100 or $200 for owning 1, 2, 3 or 4. <b>Suppliers</b> (2): 4× the dice you rolled with one, 10× with both.</li>
+    </ul>
+    <h3>Money problems</h3>
+    <ul>
+      <li>Tap <b>Manage shops</b> to add shops, sell them back (for half), <b>mortgage</b> a property for half its price (you can’t mortgage a trade that has shops) and pay it off later for 10% extra.</li>
+      <li>If you owe more than you have, you must sell and mortgage until you can pay. If that is not enough you are <b>bankrupt</b>: your things go to the player you owed, or back to the bank.</li>
+    </ul>
+    <h3>The Lockup</h3>
+    <ul>
+      <li>You land there by the Go to Lockup square, a card or three doubles. To get out, <b>pay $50</b> before you roll, use a <b>Get-out card</b>, or <b>roll doubles</b>. After three failed rolls you pay $50 and move.</li>
+    </ul>
+    <h3>This version</h3>
+    <ul>
+      <li>No auctions and no trading between players. Houses are not limited in number.</li>
+      <li>Tap any square to see its details. The computers are decent but not clever, and the game is mostly luck; Hard is about as good as Normal.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🏙️ Food Court Empire is my own game in the family of dice-and-property trading games (Monopoly is a trademark, so the board, the shop names, the cards and the rent tables here are original). Not included: auctions and trading between players. Drawings (food icons, shops, chess-piece tokens), sounds, rules code and the computer players are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Tycoon: rules and computer players for a property-trading game on an original board of food businesses (Tidehaven High Street). No drawing.
+   state = { np, pl:[{name,cash,pos,jail,jt,cards,alive}], owner[40], houses[40], mort[40], cur, phase, dice, dbl, again, debt, round, ... } */
+'use strict';
+const TC_GROUPS = [
+  { name: 'Bakery', col: '#8b5a2b', house: 50 }, { name: 'Sweet & Cool', col: '#7ec8f0', house: 50 }, { name: 'Coffee & Tea', col: '#e87bb7', house: 100 }, { name: 'Fast Food', col: '#f39c34', house: 100 },
+  { name: 'Comfort Food', col: '#e0443c', house: 150 }, { name: 'Seafood', col: '#f2d338', house: 150 }, { name: 'Spice Route', col: '#3aa856', house: 200 }, { name: 'Fine Dining', col: '#2f56c4', house: 200 }
+];
+const P = (n, g, p, ic) => ({ t: 'prop', n, g, p, ic }), TR = (n, ic) => ({ t: 'transit', n, p: 200, ic }), UT = (n, ic) => ({ t: 'util', n, p: 150, ic });
+// 24 shops (8 trades of 3), 4 takeaways (like stations), 2 suppliers (like utilities); icon names are drawn by game.js
+const TC_BOARD = [
+  { t: 'start', n: 'Payday' }, P('Corner Bakery', 0, 60, 'bread'), { t: 'card', n: 'Council', deck: 1 }, P('Sandwich Bar', 0, 60, 'sandwich'), P('Pie & Pastry', 0, 80, 'pie'), TR('Kebab Van', 'kebab'), { t: 'tax', n: 'Business Rates', amt: 200 }, P('Ice Cream Parlour', 1, 100, 'icecream'), P('Boba Tea House', 1, 100, 'boba'), P('Juice Bar', 1, 120, 'juice'),
+  { t: 'jail', n: 'Lockup' }, P('Espresso Café', 2, 140, 'coffee'), UT('Flour Mill', 'wheat'), P('Tea Room', 2, 140, 'tea'), P('Cupcake Café', 2, 160, 'cupcake'), TR('Burrito Van', 'burrito'), P('Burger Joint', 3, 180, 'burger'), { t: 'card', n: 'Fortune', deck: 0 }, P('Hot Dog Stand', 3, 180, 'hotdog'), P('Fried Chicken', 3, 200, 'chicken'),
+  { t: 'free', n: 'Rest Stop' }, P('Pizzeria', 4, 220, 'pizza'), { t: 'card', n: 'Council', deck: 1 }, P('Pasta House', 4, 220, 'pasta'), P('Taco Place', 4, 240, 'taco'), TR('Noodle Takeaway', 'noodlebox'), P('Fish & Chips', 5, 260, 'fishchips'), P('Seafood Shack', 5, 260, 'fish'), UT('Dairy Farm', 'milk'), P('Sushi Bar', 5, 280, 'sushi'),
+  { t: 'gotojail', n: 'Go to Lockup' }, P('Curry House', 6, 300, 'curry'), P('Thai Kitchen', 6, 300, 'thai'), { t: 'card', n: 'Fortune', deck: 0 }, P('Ramen Bar', 6, 320, 'ramen'), TR('Dumpling Cart', 'dumpling'), P('Gastropub', 7, 340, 'beer'), { t: 'tax', n: 'Hygiene Fine', amt: 100 }, P('Steak House', 7, 360, 'steak'), P('Lobster House', 7, 400, 'lobster')
+];
+const TC_JAIL = 10, TC_TRANSIT = [5, 15, 25, 35], TC_SALARY = 200, TC_FINE = 50, TC_START_CASH = 1500, TC_SHORT_ROUNDS = 25, TC_LONG_ROUNDS = 150;
+const TC_MULT = [1, 5, 14, 40, 75, 115];
+const tcBuyable = sq => { const t = TC_BOARD[sq].t; return t === 'prop' || t === 'transit' || t === 'util'; };
+const tcGroupSqs = g => TC_BOARD.map((x, i) => i).filter(i => TC_BOARD[i].g === g && TC_BOARD[i].t === 'prop');
+const tcBase = sq => Math.max(2, 2 * Math.round(TC_BOARD[sq].p * .04 / 2));
+const tcHouseCost = sq => TC_GROUPS[TC_BOARD[sq].g].house;
+const tcMortVal = sq => TC_BOARD[sq].p / 2;
+const tcUnmortCost = sq => Math.round(tcMortVal(sq) * 11 / 10);
+const FORTUNE = [
+  { t: 'gain', a: 50, x: 'Lucky find: collect $50.' }, { t: 'goto', to: 0, x: 'Advance to Payday and collect $200.' }, { t: 'jail', x: 'Go to the Lockup. Do not pass Payday.' }, { t: 'pay', a: 40, x: 'Parking ticket for the van: pay $40.' },
+  { t: 'goto', to: 39, x: 'Advance to the Lobster House.' }, { t: 'goto', to: 11, x: 'Advance to the Espresso Café. Collect $200 if you pass Payday.' }, { t: 'back', n: 3, x: 'Go back 3 squares.' }, { t: 'near', x: 'Advance to the nearest takeaway. If it is owned, pay double rent.' },
+  { t: 'repair', h: 25, k: 100, x: 'Shop repairs: pay $25 per shop and $100 per flagship.' }, { t: 'gain', a: 100, x: 'You win a small contest: collect $100.' }, { t: 'out', x: 'Get out of the Lockup free. Keep this card until you need it.' }, { t: 'each', a: 25, x: 'Pay each other player $25.' }
+];
+const COUNCIL = [
+  { t: 'gain', a: 75, x: 'Tax refund: collect $75.' }, { t: 'pay', a: 60, x: 'Broken oven: pay $60.' }, { t: 'collect', a: 20, x: 'Your birthday: collect $20 from each other player.' }, { t: 'goto', to: 0, x: 'Advance to Payday and collect $200.' },
+  { t: 'jail', x: 'Go to the Lockup. Do not pass Payday.' }, { t: 'gain', a: 120, x: 'Inheritance: collect $120.' }, { t: 'pay', a: 50, x: 'New uniforms: pay $50.' }, { t: 'repair', h: 40, k: 115, x: 'Kitchen refits: pay $40 per shop and $115 per flagship.' },
+  { t: 'out', x: 'Get out of the Lockup free. Keep this card until you need it.' }, { t: 'gain', a: 150, x: 'Accounting mix-up in your favour: collect $150.' }, { t: 'gain', a: 45, x: 'You sell spare tables: collect $45.' }, { t: 'pay', a: 30, x: 'Charity bake sale: pay $30.' }
+];
+const DECKS = [FORTUNE, COUNCIL];
+
+/* ---------- state ---------- */
+const NAMES = ['Blue', 'Red', 'Green', 'Gold', 'Purple'];
+function tcNew(np, o) {
+  o = o || {}; const rng = o.rng || Math.random;
+  const s = { np, pl: [], owner: new Array(40).fill(-1), houses: new Array(40).fill(0), mort: new Array(40).fill(false), cur: 0, phase: 'roll', dice: [0, 0], dbl: 0, again: false, debt: null, round: 1, winner: -1, short: !!o.short, rng, order: [], ptr: [0, 0], out: [false, false], rentMult: 1, log: [], cardSeq: 0, lastCard: null };
+  for (let p = 0; p < np; p++) s.pl.push({ name: (o.names && o.names[p]) || NAMES[p], cash: TC_START_CASH, pos: 0, jail: false, jt: 0, cards: [], alive: true });
+  for (let d = 0; d < 2; d++) { const a = DECKS[d].map((_, i) => i); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } s.order.push(a); }
+  return s;
+}
+const tcOwned = (s, p) => TC_BOARD.map((x, i) => i).filter(i => s.owner[i] === p);
+const tcHasGroup = (s, p, g) => tcGroupSqs(g).every(i => s.owner[i] === p);
+const tcCountOf = (s, p, t) => tcOwned(s, p).filter(i => TC_BOARD[i].t === t).length;
+function tcNet(s, p) { let v = s.pl[p].cash; for (const i of tcOwned(s, p)) { v += s.mort[i] ? tcMortVal(i) : TC_BOARD[i].p; if (TC_BOARD[i].t === 'prop') v += s.houses[i] * tcHouseCost(i); } return v; }
+function tcRent(s, sq, dice) {
+  const o = s.owner[sq], b = TC_BOARD[sq]; if (o < 0 || s.mort[sq]) return 0;
+  if (b.t === 'transit') return 25 * Math.pow(2, tcCountOf(s, o, 'transit') - 1) * s.rentMult;
+  if (b.t === 'util') return (tcCountOf(s, o, 'util') === 2 ? 10 : 4) * (dice[0] + dice[1]) * s.rentMult;
+  const h = s.houses[sq]; let r = tcBase(sq) * TC_MULT[h]; if (h === 0 && tcHasGroup(s, o, b.g)) r *= 2; return r * s.rentMult;
+}
+const tcAlive = s => s.pl.map((x, i) => i).filter(i => s.pl[i].alive);
+
+/* ---------- money, debt, bankruptcy ---------- */
+function liquidValue(s, p) { let v = s.pl[p].cash; for (const i of tcOwned(s, p)) { if (TC_BOARD[i].t === 'prop') v += s.houses[i] * tcHouseCost(i) / 2; if (!s.mort[i]) v += tcMortVal(i); } return v; }
+function owe(s, p, amt, to, ev, each) { // to: player index, -1 bank, -2 every other player pays `each` handled by caller
+  if (s.pl[p].cash >= amt) { s.pl[p].cash -= amt; if (to >= 0) s.pl[to].cash += amt; if (to === -2) for (const q of tcAlive(s)) if (q !== p) s.pl[q].cash += each; return true; }
+  if (liquidValue(s, p) < amt) { ev.push(s.pl[p].name + ' cannot pay $' + amt + '.'); s.debt = { p, amt, to, each }; bankrupt(s, ev); return false; }
+  s.debt = { p, amt, to, each }; s.phase = 'debt'; ev.push(s.pl[p].name + ' owes $' + amt + ' and must raise money.'); return false;
+}
+function tcSettleDebt(s) { // call after raising money: pays if possible
+  const d = s.debt; if (!d || s.pl[d.p].cash < d.amt) return false; s.log.push(s.pl[d.p].name + ' raises the money and pays $' + d.amt + '.'); s.pl[d.p].cash -= d.amt; if (d.to >= 0) s.pl[d.to].cash += d.amt; if (d.to === -2) for (const q of tcAlive(s)) if (q !== d.p) s.pl[q].cash += d.each;
+  s.debt = null; s.phase = 'roll'; afterAction(s); return true;
+}
+function bankrupt(s, ev) {
+  ev = ev || []; const d = s.debt, p = d ? d.p : s.cur, to = d && d.to >= 0 ? d.to : -1, pl = s.pl[p];
+  if (to >= 0) { s.pl[to].cash += pl.cash; for (const i of tcOwned(s, p)) { s.owner[i] = to; s.houses[i] = 0; } s.pl[to].cards = s.pl[to].cards.concat(pl.cards); }
+  else { for (const i of tcOwned(s, p)) { s.owner[i] = -1; s.houses[i] = 0; s.mort[i] = false; } for (const c of pl.cards) s.out[c] = false; }
+  pl.cash = 0; pl.cards = []; pl.alive = false; pl.jail = false; s.debt = null; ev.push(pl.name + ' is bankrupt' + (to >= 0 ? ' and hands everything to ' + s.pl[to].name : '') + '.');
+  const alive = tcAlive(s); if (alive.length === 1) { s.phase = 'over'; s.winner = alive[0]; } else if (s.cur === p) { s.phase = 'end'; s.again = false; }
+}
+function afterAction(s) { if (s.phase === 'buy' || s.phase === 'debt' || s.phase === 'over') return; const pl = s.pl[s.cur]; s.phase = (s.again && pl.alive && !pl.jail) ? 'roll' : 'end'; }
+
+/* ---------- movement and landing ---------- */
+function goJail(s, p, ev) { const pl = s.pl[p]; pl.pos = TC_JAIL; pl.jail = true; pl.jt = 0; s.again = false; ev.push(pl.name + ' goes to the Lockup.'); }
+function moveTo(s, to, ev, pass) { const pl = s.pl[s.cur]; if (pass && to < pl.pos || (pass && to === 0)) { pl.cash += TC_SALARY; ev.push(pl.name + ' passes Payday: +$' + TC_SALARY + '.'); } pl.pos = to; land(s, ev); }
+function land(s, ev) {
+  const p = s.cur, pl = s.pl[p], sq = pl.pos, b = TC_BOARD[sq];
+  ev.push(pl.name + ' lands on ' + b.n + '.');
+  if (tcBuyable(sq)) {
+    const o = s.owner[sq];
+    if (o < 0) { s.phase = 'buy'; ev.push(b.n + ' is for sale: $' + b.p + '.'); return; }
+    if (o !== p && !s.mort[sq]) { const r = tcRent(s, sq, s.dice); s.rentMult = 1; ev.push(pl.name + ' owes ' + s.pl[o].name + ' rent: $' + r + '.'); owe(s, p, r, o, ev); }
+    s.rentMult = 1;
+  } else if (b.t === 'tax') { ev.push('Pay $' + b.amt + '.'); owe(s, p, b.amt, -1, ev); }
+  else if (b.t === 'gotojail') goJail(s, p, ev);
+  else if (b.t === 'card') draw(s, b.deck, ev);
+  if (s.phase !== 'buy' && s.phase !== 'debt' && s.phase !== 'over') afterAction(s);
+}
+function draw(s, d, ev) {
+  const deck = DECKS[d], ord = s.order[d], p = s.cur, pl = s.pl[p]; let id;
+  for (let k = 0; k < ord.length; k++) { id = ord[s.ptr[d] % ord.length]; s.ptr[d]++; if (!(deck[id].t === 'out' && s.out[d * 100 + id])) break; }
+  const c = deck[id]; ev.push((d ? 'Council: ' : 'Fortune: ') + c.x); s.lastCard = { d, id, p, n: ++s.cardSeq };
+  switch (c.t) {
+    case 'gain': pl.cash += c.a; break;
+    case 'pay': owe(s, p, c.a, -1, ev); break;
+    case 'goto': moveTo(s, c.to, ev, true); return;
+    case 'jail': goJail(s, p, ev); break;
+    case 'back': pl.pos = (pl.pos + 40 - c.n) % 40; land(s, ev); return;
+    case 'near': { let t = TC_TRANSIT.find(x => x > pl.pos); if (t === undefined) t = TC_TRANSIT[0]; s.rentMult = 2; moveTo(s, t, ev, true); return; }
+    case 'repair': { let h = 0, k = 0; for (const i of tcOwned(s, p)) { if (s.houses[i] === 5) k++; else h += s.houses[i]; } const amt = h * c.h + k * c.k; ev.push('Repairs cost $' + amt + '.'); if (amt) owe(s, p, amt, -1, ev); break; }
+    case 'out': pl.cards.push(d * 100 + id); s.out[d * 100 + id] = true; break;
+    case 'each': { const n = tcAlive(s).length - 1; owe(s, p, c.a * n, -2, ev, c.a); break; }
+    case 'collect': for (const q of tcAlive(s)) if (q !== p) { const g = Math.min(c.a, s.pl[q].cash); s.pl[q].cash -= g; pl.cash += g; } break;
+  }
+}
+const tcRoll2 = rng => [1 + Math.floor((rng || Math.random)() * 6), 1 + Math.floor((rng || Math.random)() * 6)];
+function tcRoll(s, forced) { // the current player rolls. Returns the list of events.
+  if (s.phase !== 'roll') return []; const p = s.cur, pl = s.pl[p], ev = [], d = forced || tcRoll2(s.rng), dbl = d[0] === d[1], n = d[0] + d[1]; s.dice = d.slice(); s.rentMult = 1;
+  ev.push(pl.name + ' rolls ' + d[0] + ' and ' + d[1] + '.');
+  if (pl.jail) {
+    if (dbl) { pl.jail = false; pl.jt = 0; s.again = false; ev.push('Doubles: out of the Lockup!'); moveTo(s, (pl.pos + n) % 40, ev, true); }
+    else { pl.jt++; if (pl.jt >= 3) { ev.push('Third try: pay the $' + TC_FINE + ' fine and move.'); pl.jail = false; pl.jt = 0; s.again = false; if (owe(s, p, TC_FINE, -1, ev)) { moveTo(s, (pl.pos + n) % 40, ev, true); } else if (s.phase === 'debt') s.after = n; } else { ev.push('No doubles: stays in the Lockup.'); s.phase = 'end'; s.again = false; } }
+  } else {
+    if (dbl) { s.dbl++; if (s.dbl >= 3) { ev.push('Three doubles in a row!'); goJail(s, p, ev); s.dbl = 0; s.phase = 'end'; s.log.push(...ev); return ev; } s.again = true; } else { s.dbl = 0; s.again = false; }
+    const np = (pl.pos + n) % 40; moveTo(s, np, ev, true);
+  }
+  s.log.push(...ev); if (s.log.length > 80) s.log.splice(0, s.log.length - 80); return ev;
+}
+function tcPayJail(s) { const pl = s.pl[s.cur]; if (s.phase !== 'roll' || !pl.jail) return false; const ev = []; if (pl.cash < TC_FINE) return false; pl.cash -= TC_FINE; pl.jail = false; pl.jt = 0; s.log.push(pl.name + ' pays $' + TC_FINE + ' to leave the Lockup.'); return true; }
+function tcUseCard(s) { const pl = s.pl[s.cur]; if (s.phase !== 'roll' || !pl.jail || !pl.cards.length) return false; const c = pl.cards.shift(); s.out[c] = false; pl.jail = false; pl.jt = 0; s.log.push(pl.name + ' uses a Get out of the Lockup card.'); return true; }
+function tcBuy(s) {
+  if (s.phase !== 'buy') return false; const p = s.cur, pl = s.pl[p], sq = pl.pos, b = TC_BOARD[sq]; if (pl.cash < b.p) return false;
+  pl.cash -= b.p; s.owner[sq] = p; s.log.push(pl.name + ' buys ' + b.n + ' for $' + b.p + '.'); s.phase = 'roll'; afterAction(s); return true;
+}
+function tcDecline(s) { if (s.phase !== 'buy') return false; s.log.push(s.pl[s.cur].name + ' passes on ' + TC_BOARD[s.pl[s.cur].pos].n + '.'); s.phase = 'roll'; afterAction(s); return true; }
+function tcEndTurn(s) {
+  if (s.phase !== 'end') return false; s.dbl = 0; s.again = false; const prev = s.cur; let q = prev; for (let k = 1; k <= s.np; k++) { const c = (prev + k) % s.np; if (s.pl[c].alive) { q = c; break; } }
+  s.cur = q; if (q <= prev) s.round++; s.phase = 'roll';
+  if (s.round > (s.short ? TC_SHORT_ROUNDS : TC_LONG_ROUNDS)) { s.phase = 'over'; let best = -1, bv = -1; for (const i of tcAlive(s)) { const v = tcNet(s, i); if (v > bv) { bv = v; best = i; } } s.winner = best; }
+  return true;
+}
+
+/* ---------- buildings and mortgages ---------- */
+function tcCanBuild(s, p, sq) {
+  const b = TC_BOARD[sq]; if (b.t !== 'prop' || s.owner[sq] !== p || !tcHasGroup(s, p, b.g)) return false; const g = tcGroupSqs(b.g);
+  if (g.some(i => s.mort[i])) return false; if (s.houses[sq] >= 5) return false; if (s.houses[sq] > Math.min(...g.map(i => s.houses[i]))) return false; return s.pl[p].cash >= tcHouseCost(sq);
+}
+function tcBuild(s, sq) { const p = s.cur; if (s.phase === 'over' || !tcCanBuild(s, p, sq)) return false; s.pl[p].cash -= tcHouseCost(sq); s.houses[sq]++; return true; }
+function tcCanSell(s, p, sq) { const b = TC_BOARD[sq]; if (b.t !== 'prop' || s.owner[sq] !== p || s.houses[sq] < 1) return false; return s.houses[sq] >= Math.max(...tcGroupSqs(b.g).map(i => s.houses[i])); }
+function tcSell(s, sq) { const p = s.debt ? s.debt.p : s.cur; if (!tcCanSell(s, p, sq)) return false; s.houses[sq]--; s.pl[p].cash += tcHouseCost(sq) / 2; return true; }
+function tcCanMortgage(s, p, sq) { const b = TC_BOARD[sq]; if (!tcBuyable(sq) || s.owner[sq] !== p || s.mort[sq]) return false; if (b.t === 'prop' && tcGroupSqs(b.g).some(i => s.houses[i] > 0)) return false; return true; }
+function tcMortgage(s, sq) { const p = s.debt ? s.debt.p : s.cur; if (!tcCanMortgage(s, p, sq)) return false; s.mort[sq] = true; s.pl[p].cash += tcMortVal(sq); return true; }
+function tcCanUnmortgage(s, p, sq) { return tcBuyable(sq) && s.owner[sq] === p && s.mort[sq] && s.pl[p].cash >= tcUnmortCost(sq); }
+function tcUnmortgage(s, sq) { const p = s.cur; if (!tcCanUnmortgage(s, p, sq)) return false; s.pl[p].cash -= tcUnmortCost(sq); s.mort[sq] = false; return true; }
+function tcDeclareBankrupt(s) { if (s.phase !== 'debt') return false; const ev = []; bankrupt(s, ev); s.log.push(...ev); return true; }
+
+/* ---------- computer players ---------- */
+const TUNE = { buf: { easy: 400, normal: 220, hard: 200 }, buyLeft: { normal: 140, hard: 100 }, tLeft: { normal: 80, hard: 50 }, unm: { normal: 600, hard: 450 } };
+function tcAiBuy(s, level) {
+  const p = s.cur, pl = s.pl[p], sq = pl.pos, b = TC_BOARD[sq]; if (pl.cash < b.p) return false;
+  const left = pl.cash - b.p; if (level === 'easy') return left >= 100 && Math.random() < .65;
+  let completes = false, blocks = false;
+  if (b.t === 'prop') { const g = tcGroupSqs(b.g); completes = g.every(i => i === sq || s.owner[i] === p); for (let q = 0; q < s.np; q++) if (q !== p && s.pl[q].alive && g.filter(i => s.owner[i] === q).length === g.length - 1) blocks = true; }
+  if (completes) return true; if (b.t === 'transit' || b.t === 'util') return left >= TUNE.tLeft[level];
+  if (level === 'hard' && blocks && left >= 50) return true; return left >= TUNE.buyLeft[level];
+}
+function tcAiManage(s, level) { // returns number of actions taken
+  const p = s.cur, pl = s.pl[p]; let acts = 0; if (level === 'easy' && Math.random() < .7) return 0;
+  for (const i of tcOwned(s, p)) if (s.mort[i] && pl.cash - tcUnmortCost(i) >= TUNE.unm[level] && tcCanUnmortgage(s, p, i)) { tcUnmortgage(s, i); acts++; }
+  let guard = 60; const buf = TUNE.buf[level];
+  while (guard-- > 0) {
+    let best = -1, bs = -1; for (let g = 0; g < 8; g++) { if (!tcHasGroup(s, p, g)) continue; for (const i of tcGroupSqs(g)) if (tcCanBuild(s, p, i) && pl.cash - tcHouseCost(i) >= buf) { const sc = (tcBase(i) * (TC_MULT[s.houses[i] + 1] - TC_MULT[s.houses[i]])) / tcHouseCost(i); if (sc > bs) { bs = sc; best = i; } } }
+    if (best < 0) break; tcBuild(s, best); acts++;
+  }
+  return acts;
+}
+function tcAiJail(s, level) { const pl = s.pl[s.cur]; if (pl.cards.length) return 'card'; const open = TC_BOARD.filter((x, i) => tcBuyable(i) && s.owner[i] < 0).length; if (pl.cash >= TC_FINE + 250 && (open >= 6 || level === 'hard' && pl.cash > 700 && open >= 3)) return 'pay'; return 'roll'; }
+function tcAiRaise(s) { // sell houses, then mortgage, until the debt is covered; then settle or go bankrupt
+  const d = s.debt; if (!d) return; const p = d.p;
+  let guard = 200; while (s.pl[p].cash < d.amt && guard-- > 0) {
+    let did = false;
+    let sq = tcOwned(s, p).filter(i => tcCanSell(s, p, i)).sort((a, b) => s.houses[b] - s.houses[a])[0]; if (sq !== undefined) { tcSell(s, sq); did = true; }
+    if (!did) { const m = tcOwned(s, p).filter(i => tcCanMortgage(s, p, i)).sort((a, b) => TC_BOARD[a].p - TC_BOARD[b].p)[0]; if (m !== undefined) { tcMortgage(s, m); did = true; } }
+    if (!did) break;
+  }
+  if (!tcSettleDebt(s)) tcDeclareBankrupt(s);
+}
+if (typeof module !== 'undefined') module.exports = { TUNE, TC_BOARD, TC_GROUPS, TC_JAIL, TC_TRANSIT, TC_SALARY, TC_FINE, TC_START_CASH, TC_SHORT_ROUNDS, TC_LONG_ROUNDS, DECKS, tcNew, tcRoll, tcRoll2, tcBuy, tcDecline, tcEndTurn, tcPayJail, tcUseCard, tcBuild, tcSell, tcMortgage, tcUnmortgage, tcCanBuild, tcCanSell, tcCanMortgage, tcCanUnmortgage, tcRent, tcNet, tcOwned, tcHasGroup, tcGroupSqs, tcBase, tcHouseCost, tcMortVal, tcUnmortCost, tcSettleDebt, tcDeclareBankrupt, tcAiBuy, tcAiManage, tcAiJail, tcAiRaise, tcAlive, tcBuyable, liquidValue, TC_MULT };
+
+/* Tycoon pictures: the little drawings of food (and of chess-piece tokens and shop fronts) used on the board. Pure drawing code; each
+   icon is drawn in a box from -10 to +10 around (0, 0) and scaled by the caller. No game rules here. */
+'use strict';
+const TCI = (() => {
+  const ink = '#3b2a1a', Q = Math.PI;
+  const out = (g, w) => { g.strokeStyle = ink; g.lineWidth = w || 1.1; g.stroke(); };
+  const fill = (g, c) => { g.fillStyle = c; g.fill(); };
+  const poly = (g, pts, c, o) => { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); if (c) fill(g, c); if (o !== false) out(g); };
+  const ell = (g, x, y, rx, ry, c, rot) => { g.beginPath(); g.ellipse(x, y, rx, ry, rot || 0, 0, 7); fill(g, c); out(g); };
+  const rr = (g, x, y, w, h, r, c) => { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); fill(g, c); out(g); };
+  const line = (g, x1, y1, x2, y2, c, w) => { g.strokeStyle = c; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); };
+  const dome = (g, x, y, rx, ry, c) => { g.beginPath(); g.ellipse(x, y, rx, ry, 0, Q, 0); g.closePath(); fill(g, c); out(g); };
+  const bowl = (g, c, y) => { g.beginPath(); g.arc(0, y || 0, 9, 0, Q); g.closePath(); fill(g, c); out(g); };
+  const steam = g => { g.strokeStyle = 'rgba(120,130,140,.75)'; g.lineWidth = 1.3; g.lineCap = 'round'; for (const x of [-3, 2]) { g.beginPath(); g.moveTo(x, -4); g.quadraticCurveTo(x - 2, -6.5, x, -8); g.quadraticCurveTo(x + 2, -9.5, x, -11); g.stroke(); } };
+  const I = {
+    bread: g => { rr(g, -9, -1, 18, 9, 4, '#d99a52'); ell(g, 0, -1.5, 9, 5, '#e3ad63'); g.strokeStyle = '#b9772f'; g.lineWidth = 1.2; for (const x of [-4, 0, 4]) { g.beginPath(); g.moveTo(x - 1.5, -4.5); g.lineTo(x + 1.5, -.5); g.stroke(); } },
+    sandwich: g => { rr(g, -9, 4.5, 18, 4, 2, '#d9a05b'); poly(g, [[-9, 4.5], [-6, 2], [-3, 4], [0, 2], [3, 4], [6, 2], [9, 4.5]], '#5fb04a'); poly(g, [[-8, 2.5], [8, 2.5], [0, -.5]], '#f4c542'); ell(g, -4, 0.2, 2.6, 1.3, '#e0443c'); dome(g, 0, 0, 9, 7.5, '#dca25b'); fill(g, '#dca25b'); g.fillStyle = '#fff6d8'; for (const [x, y] of [[-3, -4], [1, -5], [4, -3]]) { g.beginPath(); g.ellipse(x, y, 1, .6, .5, 0, 7); g.fill(); } },
+    pie: g => { poly(g, [[-9, 2], [9, 2], [7, 8.5], [-7, 8.5]], '#cfd3d8'); ell(g, 0, 1, 9, 5, '#e3a85f'); g.strokeStyle = '#a8692a'; g.lineWidth = 1; for (const k of [-6, -2, 2, 6]) { g.beginPath(); g.moveTo(k - 2, -2); g.lineTo(k + 2, 4); g.stroke(); g.beginPath(); g.moveTo(k + 2, -2); g.lineTo(k - 2, 4); g.stroke(); } ell(g, 0, 1, 2, 1.3, '#c9382c'); },
+    icecream: g => { poly(g, [[-5, -1], [5, -1], [0, 10]], '#e3b26c'); g.strokeStyle = '#b98a42'; g.lineWidth = .9; for (const k of [-2.5, 0, 2.5]) { g.beginPath(); g.moveTo(k, -1); g.lineTo(0, 9); g.stroke(); } ell(g, 0, -2.2, 5.8, 4.2, '#f48fb1'); ell(g, 0, -6.2, 4.4, 3.2, '#fff2d9'); ell(g, 0, -9.3, 1.5, 1.5, '#d62828'); },
+    boba: g => { poly(g, [[-6, -4], [6, -4], [5, 9], [-5, 9]], '#f6e6cc'); poly(g, [[-5.8, 0], [5.8, 0], [5, 9], [-5, 9]], '#c98e5a', false); poly(g, [[-6, -4], [6, -4], [5, 9], [-5, 9]], null); ell(g, 0, -4, 6.6, 1.9, '#fff'); line(g, 2, -5, 5, -10.5, '#e84393', 2.4); g.fillStyle = '#2b1a14'; for (const [x, y] of [[-3, 7], [0, 7.4], [3, 7], [-1.6, 5], [1.6, 5.2], [0, 3.2]]) { g.beginPath(); g.arc(x, y, 1.3, 0, 7); g.fill(); } },
+    juice: g => { poly(g, [[-6, -3], [6, -3], [5, 9], [-5, 9]], '#ffb347'); line(g, -3, 0, -3.6, 6, 'rgba(255,255,255,.55)', 1.4); line(g, 1, -4, 3.5, -10, '#4caf50', 2.2); g.beginPath(); g.arc(6, -3, 4.2, 0, 7); fill(g, '#ffa51f'); out(g); g.strokeStyle = '#fff3c4'; g.lineWidth = 1; for (let k = 0; k < 4; k++) { const a = k * Q / 4; g.beginPath(); g.moveTo(6 + Math.cos(a) * 3.8, -3 + Math.sin(a) * 3.8); g.lineTo(6 - Math.cos(a) * 3.8, -3 - Math.sin(a) * 3.8); g.stroke(); } },
+    coffee: g => { ell(g, -1, 8, 9, 2.2, '#e6e0d2'); rr(g, -7, -2, 12, 10, 3.5, '#fff'); g.beginPath(); g.arc(5.5, 3, 3, -1.2, 1.2); g.strokeStyle = ink; g.lineWidth = 2.4; g.stroke(); ell(g, -1, -2, 6, 1.9, '#6b3e1f'); steam(g); },
+    tea: g => { ell(g, -.5, 2.5, 7, 6, '#f0869b'); poly(g, [[6, 1], [10.5, -3], [9.5, 0], [6.5, 4]], '#f0869b'); g.beginPath(); g.arc(-8, 2, 3.4, 1.5, 4.7); g.strokeStyle = ink; g.lineWidth = 2.2; g.stroke(); ell(g, -.5, -3.5, 3.6, 1.6, '#f6a8b8'); ell(g, -.5, -5.5, 1.4, 1.4, '#f0869b'); g.fillStyle = '#fff'; g.beginPath(); g.arc(-2, 2, 1.1, 0, 7); g.arc(1.5, 3.8, 1.1, 0, 7); g.fill(); },
+    cupcake: g => { poly(g, [[-6, 1], [6, 1], [4.4, 9], [-4.4, 9]], '#e87bb7'); g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; for (const x of [-3, 0, 3]) { g.beginPath(); g.moveTo(x * .9, 1.5); g.lineTo(x * .75, 8.5); g.stroke(); } ell(g, 0, 0, 7, 3.4, '#fff2f7'); ell(g, 0, -3.6, 5, 3, '#ffe0ec'); ell(g, 0, -6.6, 3, 2.3, '#fff2f7'); ell(g, 0, -9.4, 1.6, 1.6, '#d62828'); },
+    burger: g => { dome(g, 0, -1, 9, 7, '#dd9540'); g.fillStyle = '#fff2c4'; for (const [x, y] of [[-4, -5], [0, -6.2], [4, -4.8], [-1, -3]]) { g.beginPath(); g.ellipse(x, y, 1, .6, .4, 0, 7); g.fill(); } poly(g, [[-9.5, -.5], [-6.5, 2], [-3.5, -.2], [-.5, 2], [2.5, -.2], [5.5, 2], [9.5, -.5], [9.5, 1], [-9.5, 1]], '#5fb04a'); rr(g, -9, 1.4, 18, 3.8, 1.9, '#6b3b1f'); rr(g, -8.5, 5.2, 17, 3.8, 1.9, '#dd9540'); },
+    hotdog: g => { rr(g, -10, 0, 20, 9, 4.5, '#e3ad63'); rr(g, -10.5, -3, 21, 5.4, 2.7, '#b8452e'); g.strokeStyle = '#f4c542'; g.lineWidth = 1.6; g.lineJoin = 'round'; g.beginPath(); g.moveTo(-8, -.4); for (let k = 0; k < 8; k++) g.lineTo(-8 + k * 2.4 + 1.2, k % 2 ? -1.6 : .8); g.stroke(); },
+    chicken: g => { line(g, 2, 3, 8, 9, '#3b2a1a', 4.4); line(g, 2, 3, 8, 9, '#f4efe2', 2.8); for (const [x, y] of [[8.6, 7.4], [7.4, 9.8]]) { g.beginPath(); g.arc(x, y, 1.9, 0, 7); fill(g, '#f4efe2'); out(g, 1); } ell(g, -2, -2, 7.2, 6.2, '#c97a2c', -.7); g.strokeStyle = 'rgba(255,230,160,.7)'; g.lineWidth = 1.2; g.beginPath(); g.arc(-3, -3, 3.6, 3.6, 5); g.stroke(); },
+    pizza: g => { poly(g, [[-9, -5], [9, -5], [0, 10]], '#f4c542'); rr(g, -10, -8, 20, 3.8, 1.9, '#d9923f'); g.fillStyle = '#cf3b2e'; g.strokeStyle = ink; g.lineWidth = .8; for (const [x, y, r] of [[-3.4, -1.5, 2.3], [3, -1, 2.1], [0, 4, 2.1]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke(); } g.fillStyle = '#4caf50'; for (const [x, y] of [[-.2, -2], [2.6, 3]]) { g.beginPath(); g.arc(x, y, .9, 0, 7); g.fill(); } },
+    pasta: g => { ell(g, 0, 0, 8.5, 3.4, '#f2d27c'); g.strokeStyle = '#d4aa45'; g.lineWidth = 1; for (const x of [-5, -2, 1, 4]) { g.beginPath(); g.moveTo(x, -2); g.quadraticCurveTo(x + 2, 0, x - 1, 2.4); g.stroke(); } ell(g, 0, -1.4, 4, 1.8, '#d1352b'); bowl(g, '#f4f4f0', 0); g.fillStyle = '#1e5aa8'; g.fillRect(-9, 3.4, 18, 1.5); },
+    taco: g => { g.beginPath(); g.arc(0, 4, 9.5, Q, 0); g.closePath(); fill(g, '#f2c14e'); out(g); g.strokeStyle = '#5fb04a'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(-8, -1.5); for (let k = 0; k < 8; k++) g.lineTo(-8 + k * 2.3 + 1.1, k % 2 ? -3.6 : -1.2); g.stroke(); g.fillStyle = '#d1352b'; for (const x of [-4, 0, 4]) { g.beginPath(); g.arc(x, -1, 1.5, 0, 7); g.fill(); } },
+    fishchips: g => { for (const [x, h] of [[-9, 8], [-6.4, 10], [-3.8, 7]]) { rr(g, x, 10 - h, 2.4, h, .8, '#f1c24d'); } poly(g, [[0, 3], [-.5, 6], [-2, 7]], '#8aa5bd', false); ell(g, 3.4, 2, 6.2, 3.6, '#8fb0c9'); poly(g, [[9, 2], [12.2, -1], [12.2, 5]], '#8fb0c9'); g.beginPath(); g.arc(1, .8, .9, 0, 7); fill(g, '#222'); g.strokeStyle = '#5a7890'; g.lineWidth = .9; g.beginPath(); g.moveTo(4, -.4); g.quadraticCurveTo(5.5, 2, 4, 4.4); g.stroke(); },
+    fish: g => { poly(g, [[-5.5, 0], [-10, -4.6], [-10, 4.6]], '#4d9fd1'); ell(g, 1.5, 0, 8, 5.2, '#5fb2e0'); poly(g, [[0, -4.6], [3.5, -9], [5, -4.4]], '#4d9fd1'); g.beginPath(); g.arc(6, -1, 1.1, 0, 7); fill(g, '#fff'); g.beginPath(); g.arc(6.3, -1, .5, 0, 7); fill(g, '#111'); g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-1, -2); g.quadraticCurveTo(0, 0, -1, 2.4); g.stroke(); },
+    sushi: g => { ell(g, 0, 1, 8.4, 7.4, '#2b3a2b'); ell(g, 0, 1, 6.6, 5.6, '#fffdf4'); ell(g, 0, 1, 3.4, 2.8, '#ff8c5a'); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = .9; g.beginPath(); g.moveTo(-1.4, .4); g.lineTo(1.2, 1.8); g.stroke(); },
+    curry: g => { ell(g, 0, 0, 8.5, 3.2, '#e8982d'); ell(g, -2.5, -.6, 1.6, 1, '#c9382c'); ell(g, 3, 0.4, 1.3, .9, '#4caf50'); bowl(g, '#b8602a', 0); steam(g); },
+    thai: g => { ell(g, 0, 0, 8.4, 3.2, '#f0d27a'); g.strokeStyle = '#d4aa45'; g.lineWidth = 1; for (const x of [-5, -2, 1, 4]) { g.beginPath(); g.moveTo(x, -2); g.quadraticCurveTo(x + 2, 0, x - 1, 2.4); g.stroke(); } ell(g, 3, -1.2, 1.6, 1.1, '#e0443c'); bowl(g, '#d6453a', 0); line(g, 1, -3, 9, -10, '#6b4423', 1.4); line(g, 3.5, -2.4, 10, -8, '#6b4423', 1.4); },
+    ramen: g => { ell(g, 0, 0, 8.4, 3.2, '#e9b55a'); g.beginPath(); g.arc(-3, -.8, 2.2, 0, 7); fill(g, '#fff'); g.beginPath(); g.arc(-3, -.8, 1, 0, 7); fill(g, '#f4a62a'); rr(g, 2, -3.6, 4, 5, .8, '#244a2b'); ell(g, 6, 0, 1.4, 1, '#f9d3e2'); bowl(g, '#fff', 0); g.fillStyle = '#3a6cc4'; for (const x of [-6, -2, 2, 6]) { g.beginPath(); g.arc(x, 6, 1.1, 0, 7); g.fill(); } line(g, 1, -3, 9, -10, '#6b4423', 1.4); line(g, 3.5, -2.4, 10, -8, '#6b4423', 1.4); },
+    beer: g => { rr(g, -7, -3, 12.5, 12.5, 2, '#f2b134'); g.fillStyle = 'rgba(255,255,255,.4)'; g.fillRect(-5.4, -1, 2, 9); g.beginPath(); g.arc(6, 3.4, 3.8, -1.3, 1.3); g.strokeStyle = ink; g.lineWidth = 2.6; g.stroke(); ell(g, -4.5, -4.4, 3.2, 2.6, '#fff'); ell(g, -.5, -5.4, 3.4, 2.8, '#fff'); ell(g, 3.2, -4, 2.8, 2.4, '#fff'); g.fillStyle = 'rgba(255,255,255,.7)'; for (const [x, y] of [[-2, 3], [1, 5.5], [2.5, 1.5]]) { g.beginPath(); g.arc(x, y, .7, 0, 7); g.fill(); } },
+    steak: g => { g.beginPath(); g.moveTo(-9, -2); g.bezierCurveTo(-9, -8, 4, -9, 8, -4); g.bezierCurveTo(11, 0, 6, 8, -1, 8); g.bezierCurveTo(-8, 8, -9.5, 3, -9, -2); g.closePath(); fill(g, '#bb3a2f'); out(g); g.beginPath(); g.moveTo(-6, -2); g.bezierCurveTo(-6, -5, 1, -6, 4, -3); g.strokeStyle = '#e8837a'; g.lineWidth = 1.2; g.stroke(); poly(g, [[-5, -.6], [4, -.6], [4, 1.2], [-1, 1.2], [-1, 5], [-3, 5], [-3, 1.2], [-5, 1.2]], '#fbf3e3', true); },
+    lobster: g => { for (const s of [-1, 1]) { g.save(); g.scale(s, 1); line(g, 2, -5, 6, -9, '#8c1d18', 1); ell(g, 6.6, -5.4, 3, 4.6, '#d9342b', .6); poly(g, [[8, -8.6], [10, -10], [9.5, -6]], '#d9342b'); line(g, 2.4, 1, 8, 3, '#b52a22', 1.8); line(g, 2.4, 4, 7.6, 7, '#b52a22', 1.8); g.restore(); } ell(g, 0, -1, 3.8, 7, '#e0392f'); for (const y of [2, 4.5, 7]) { g.strokeStyle = '#a02019'; g.lineWidth = 1; g.beginPath(); g.moveTo(-3, y); g.lineTo(3, y); g.stroke(); } poly(g, [[-3.4, 8], [0, 11], [3.4, 8]], '#e0392f'); g.beginPath(); g.arc(-1.5, -5.5, .8, 0, 7); g.arc(1.5, -5.5, .8, 0, 7); fill(g, '#111'); },
+    kebab: g => { line(g, -9.5, 9, 9.5, -9, '#9aa3ab', 1.8); for (const [t, c, r] of [[.22, '#d1352b', 2.8], [.42, '#8a4a24', 3.4], [.62, '#4caf50', 2.8], [.8, '#8a4a24', 3.2]]) { g.beginPath(); g.arc(-9.5 + 19 * t, 9 - 18 * t, r, 0, 7); fill(g, c); out(g, 1); } },
+    burrito: g => { g.save(); g.rotate(-.45); rr(g, -9.5, -4, 19, 8, 4, '#e8c98f'); rr(g, 3, -4, 6.5, 8, 3, '#c9ced3'); ell(g, -9.2, 0, 1.7, 3.2, '#5fb04a'); ell(g, -9.4, -0.6, .9, 1.2, '#d1352b'); g.restore(); },
+    noodlebox: g => { poly(g, [[-6.5, -2], [6.5, -2], [4.8, 9], [-4.8, 9]], '#fff'); poly(g, [[-6, 1.5], [6, 1.5], [5.6, 4.5], [-5.6, 4.5]], '#d6453a', false); poly(g, [[-6.5, -2], [6.5, -2], [4.8, 9], [-4.8, 9]], null); ell(g, 0, -2, 6.5, 2, '#f0d27a'); line(g, -1, -3, -6, -10, '#6b4423', 1.4); line(g, 1.5, -3, -3, -10.5, '#6b4423', 1.4); },
+    dumpling: g => { g.beginPath(); g.moveTo(-9, 3); g.bezierCurveTo(-9, -9, 9, -9, 9, 3); g.bezierCurveTo(5, 8, -5, 8, -9, 3); g.closePath(); fill(g, '#fbf3e0'); out(g); g.strokeStyle = '#d9c8a4'; g.lineWidth = 1; for (const x of [-5, -2, 1, 4]) { g.beginPath(); g.moveTo(x, -5.2 + Math.abs(x) * .25); g.quadraticCurveTo(x + 1, -2, x + .5, .6); g.stroke(); } },
+    wheat: g => { line(g, 0, 10, 0, -6, '#b88a2c', 1.8); for (let k = 0; k < 4; k++) for (const s of [-1, 1]) { ell(g, s * 3, -7 + k * 3.4, 1.7, 3, '#e8b73c', s * .6); } ell(g, 0, -9, 1.6, 2.6, '#e8b73c'); },
+    milk: g => { rr(g, -5, -2, 10, 12, 2.4, '#fff'); rr(g, -3, -8, 6, 7, 1.5, '#fff'); rr(g, -3.4, -10.4, 6.8, 2.8, 1.2, '#3b82f6'); rr(g, -5, 2, 10, 5, 0, '#bcd8ff'); g.fillStyle = '#3b82f6'; g.font = 'bold 3.6px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('MILK', 0, 4.6); }
+  };
+  return { draw(g, name, x, y, s) { const f = I[name]; if (!f) return; g.save(); g.translate(x, y); g.scale(s, s); g.lineJoin = 'round'; f(g); g.restore(); }, names: Object.keys(I) };
+})();
+/* chess-piece tokens: a pawn, rook, bishop and queen, shaded like turned wood */
+const TCP = (() => {
+  const shade = (hex, k) => { const n = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16)); return 'rgb(' + n.map(v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))))).join(',') + ')'; };
+  const body = (g, col, w) => { const gr = g.createLinearGradient(-w, 0, w, 0); gr.addColorStop(0, shade(col, -.45)); gr.addColorStop(.35, shade(col, .45)); gr.addColorStop(.6, col); gr.addColorStop(1, shade(col, -.5)); g.fillStyle = gr; g.fill(); g.strokeStyle = '#10151f'; g.lineWidth = 1.3; g.lineJoin = 'round'; g.stroke(); };
+  const base = (g, col) => { g.beginPath(); g.ellipse(0, 11, 10.5, 3.4, 0, 0, 7); body(g, col, 10.5); g.beginPath(); g.ellipse(0, 8.6, 8, 2.6, 0, 0, 7); body(g, col, 8); };
+  const shape = {
+    pawn: (g, c) => { base(g, c); g.beginPath(); g.moveTo(-6, 8.6); g.quadraticCurveTo(-2.2, 3, -2.8, -3); g.lineTo(2.8, -3); g.quadraticCurveTo(2.2, 3, 6, 8.6); g.closePath(); body(g, c, 6); g.beginPath(); g.ellipse(0, -3.4, 5.2, 1.7, 0, 0, 7); body(g, c, 5.2); g.beginPath(); g.arc(0, -8.2, 4.6, 0, 7); body(g, c, 4.6); },
+    rook: (g, c) => { base(g, c); g.beginPath(); g.moveTo(-6.4, 8.6); g.lineTo(-4.4, -4.5); g.lineTo(4.4, -4.5); g.lineTo(6.4, 8.6); g.closePath(); body(g, c, 6.4); g.beginPath(); g.moveTo(-7, -4.2); g.lineTo(-7, -11.6); g.lineTo(-4.6, -11.6); g.lineTo(-4.6, -9.4); g.lineTo(-1.4, -9.4); g.lineTo(-1.4, -11.6); g.lineTo(1.4, -11.6); g.lineTo(1.4, -9.4); g.lineTo(4.6, -9.4); g.lineTo(4.6, -11.6); g.lineTo(7, -11.6); g.lineTo(7, -4.2); g.closePath(); body(g, c, 7); },
+    bishop: (g, c) => { base(g, c); g.beginPath(); g.moveTo(-6, 8.6); g.quadraticCurveTo(-2.4, 3, -2.4, -2); g.lineTo(2.4, -2); g.quadraticCurveTo(2.4, 3, 6, 8.6); g.closePath(); body(g, c, 6); g.beginPath(); g.ellipse(0, -2.4, 4.8, 1.6, 0, 0, 7); body(g, c, 4.8); g.beginPath(); g.moveTo(0, -15.5); g.bezierCurveTo(6.4, -10, 5, -3.6, 0, -3.4); g.bezierCurveTo(-5, -3.6, -6.4, -10, 0, -15.5); g.closePath(); body(g, c, 5.5); g.strokeStyle = 'rgba(16,21,31,.8)'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-2.4, -10.4); g.lineTo(2.4, -7); g.stroke(); g.beginPath(); g.arc(0, -16.4, 1.7, 0, 7); body(g, c, 1.7); },
+    queen: (g, c) => { base(g, c); g.beginPath(); g.moveTo(-6.8, 8.6); g.quadraticCurveTo(-2.6, 3, -3, -3); g.lineTo(3, -3); g.quadraticCurveTo(2.6, 3, 6.8, 8.6); g.closePath(); body(g, c, 6.8); g.beginPath(); g.ellipse(0, -3.4, 5.6, 1.8, 0, 0, 7); body(g, c, 5.6); g.beginPath(); g.moveTo(-6.4, -3.6); g.lineTo(-7.4, -12); g.lineTo(-3.6, -8); g.lineTo(0, -13.6); g.lineTo(3.6, -8); g.lineTo(7.4, -12); g.lineTo(6.4, -3.6); g.closePath(); body(g, c, 7); for (const x of [-7.4, 0, 7.4]) { g.beginPath(); g.arc(x, x === 0 ? -14.4 : -12.8, 1.6, 0, 7); body(g, c, 1.6); } },
+    king: (g, c) => { base(g, c); g.beginPath(); g.moveTo(-6.8, 8.6); g.quadraticCurveTo(-2.8, 3, -3.2, -3); g.lineTo(3.2, -3); g.quadraticCurveTo(2.8, 3, 6.8, 8.6); g.closePath(); body(g, c, 6.8); g.beginPath(); g.ellipse(0, -3.4, 5.6, 1.8, 0, 0, 7); body(g, c, 5.6); g.beginPath(); g.moveTo(-5.6, -3.6); g.bezierCurveTo(-7.4, -10, -3, -12.4, 0, -10.4); g.bezierCurveTo(3, -12.4, 7.4, -10, 5.6, -3.6); g.closePath(); body(g, c, 7); g.fillStyle = 'rgba(16,21,31,.9)'; g.fillRect(-1, -17.4, 2, 7.6); g.fillRect(-3, -15.2, 6, 2); }
+  };
+  const kinds = ['pawn', 'rook', 'bishop', 'queen', 'king'];
+  return { kinds, draw(g, kind, x, y, s, col, lift) { g.save(); g.fillStyle = 'rgba(0,0,0,.32)'; g.beginPath(); g.ellipse(x, y + 12 * s + 1, 10 * s, 3.4 * s, 0, 0, 7); g.fill(); g.translate(x, y - (lift || 0)); g.scale(s, s); shape[kind](g, col); g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.ellipse(-2.6, 0, .9, 6, .1, 0, 7); g.fill(); g.restore(); } };
+})();
+if (typeof module !== 'undefined') module.exports = { TCI, TCP };
+
+/* Food Court Empire. tycoon.js has the board, the rules and the computer players (checked on its own); icons.js has the food pictures and the chess-piece
+   tokens; this file paints the board, runs the taps, the dice and token animation, the computer's step-by-step turns and the game flow. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.tycoon.v2', { dark: true, sound: true, np: 3, short: true, level: 'normal', speed: 'normal', rec: [0, 0], hum: [true, false, false, false, false] }), st = S0.st;
+if (!Array.isArray(st.rec) || st.rec.length !== 2) st.rec = [0, 0];
+if (!Array.isArray(st.hum) || st.hum.length !== 5) st.hum = [true, false, false, false, false];
+if (st.np > 5) st.np = 5;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+settings([
+  { id: 'speed', label: 'Computer speed', type: 'select', options: [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']], def: 'normal' },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S0.save(); });
+
+const W = 640, OFF = 12, CS = 56, BAND = 18, cv = $('cv'), C = KIT.canvas(cv, W, W, 2), ctx = C.ctx;
+const COLS = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#a855f7'], DELAY = { slow: 900, normal: 500, fast: 180 }, SEAT = ['Blue', 'Red', 'Green', 'Gold', 'Purple'];
+let cardShow = null, cardSeen = 0, hold = 0, S, token = 0, TS = 1, timer = 0, rolling = false, anim = null, vis = [], sel = -1, forcedDice = null, hintSq = -1, hintT = 0, randDice = [1, 1], deadShown = false, manOpen = false, flashes = {}, cache = null;
+const isHum = p => !!st.hum[p];
+const humans = () => { const a = []; for (let p = 0; p < st.np; p++) if (st.hum[p]) a.push(p); return a; };
+const humanTurn = () => isHum(S.cur) && S.pl[S.cur].alive && S.phase !== 'over';
+const view = () => humanTurn() ? S.cur : (humans().find(p => S.pl[p].alive) ?? humans()[0] ?? 0);
+const solo = () => humans().length === 1;
+const seatNames = () => SEAT.map((n, p) => solo() && st.hum[p] ? 'You' : n);
+const lock = () => rolling || !!anim;
+const say = t => { $('msg').textContent = t; };
+const money = n => '$' + Math.round(n);
+const schedule = (ms, f) => { clearTimeout(timer); const t = token; timer = setTimeout(() => { if (t === token) f(); }, ms * TS); };
+const rr = (g, x, y, w, h, r) => { g.beginPath(); g.roundRect ? g.roundRect(x, y, w, h, r) : g.rect(x, y, w, h); };
+
+/* ---------- geometry ---------- */
+function sqRect(i) {
+  let c, r; if (i <= 10) { c = 10 - i; r = 10; } else if (i <= 20) { c = 0; r = 20 - i; } else if (i <= 30) { c = i - 20; r = 0; } else { c = 10; r = i - 30; }
+  const side = (i % 10 === 0) ? 'c' : i < 10 ? 'b' : i < 20 ? 'l' : i < 30 ? 't' : 'r', x = OFF + c * CS + 1, y = OFF + r * CS + 1, w = CS - 2, h = CS - 2;
+  let free = { x, y, w, h }; if (side === 'b') free = { x, y: y + BAND, w, h: h - BAND }; else if (side === 't') free = { x, y, w, h: h - BAND }; else if (side === 'l') free = { x, y, w: w - BAND, h }; else if (side === 'r') free = { x: x + BAND, y, w: w - BAND, h };
+  const band = side === 'b' ? { x, y, w, h: BAND } : side === 't' ? { x, y: y + h - BAND, w, h: BAND } : side === 'l' ? { x: x + w - BAND, y, w: BAND, h } : side === 'r' ? { x, y, w: BAND, h } : null;
+  return { x, y, w, h, side, cx: x + w / 2, cy: y + h / 2, free, band };
+}
+const CEN = Array.from({ length: 40 }, (_, i) => sqRect(i));
+const sqAt = (x, y) => { const c = Math.floor((x - OFF) / CS), r = Math.floor((y - OFF) / CS); if (c < 0 || c > 10 || r < 0 || r > 10) return -1; if (r === 10) return 10 - c; if (c === 0) return 20 - r; if (r === 0) return 20 + c; if (c === 10) return 30 + r; return -1; };
+
+/* ---------- flow ---------- */
+function newGame() {
+  token++; clearTimeout(timer); O.hide('ovEnd'); closeMan(); S = tcNew(st.np, { short: st.short, names: seatNames() }); cardShow = null; cardSeen = 0; hold = 0; rolling = false; anim = null; vis = S.pl.map(() => 0); sel = -1; hintSq = -1; deadShown = false; forcedDice = null; flashes = {};
+  bars(); hud(); rec(); renderLog(); drive();
+}
+function drive() {
+  if (S.phase === 'over') { hud(); renderLog(); return endGame(); }
+  if (humans().length && !humans().some(p => S.pl[p].alive) && !deadShown) { deadShown = true; if (solo()) { st.rec[1]++; S0.save(); rec(); } $('endH').textContent = solo() ? 'You are bankrupt' : 'All human players are bankrupt'; $('endP').textContent = 'Close this to watch the computers finish, or start a new game.'; O.show('ovEnd'); }
+  hud(); renderLog();
+  if (!humanTurn()) { const h = hold; hold = 0; schedule(DELAY[st.speed] + h, cpuStep); return; }
+  prompt();
+}
+function prompt() {
+  const pl = S.pl[S.cur], ph = S.phase, who = solo() ? '' : pl.name + ': ';
+  if (ph === 'roll') say(who + (pl.jail ? 'You are in the Lockup. Pay $50, use a card, or roll for doubles.' : (S.again ? 'Doubles! Roll again.' : 'Your turn. Roll the dice.')));
+  else if (ph === 'buy') { const b = TC_BOARD[pl.pos]; say(who + b.n + ' is for sale for ' + money(b.p) + '. Buy it?'); }
+  else if (ph === 'end') say(who + 'Add shops or manage if you like, then end your turn.');
+  else if (ph === 'debt') say(who + 'You owe ' + money(S.debt.amt) + ' but have ' + money(pl.cash) + '. Sell shops or mortgage, or declare bankruptcy.');
+}
+function cpuStep() {
+  if (S.phase === 'over') return endGame(); const p = S.cur, lv = st.level, pl = S.pl[p];
+  if (S.phase === 'roll') { tcAiManage(S, lv); if (pl.jail) { const a = tcAiJail(S, lv); if (a === 'card') tcUseCard(S); else if (a === 'pay') tcPayJail(S); } doRoll(); return; }
+  if (S.phase === 'buy') { if (tcAiBuy(S, lv)) { tcBuy(S); A.beep(500, .06, 'triangle', .1); } else tcDecline(S); }
+  else if (S.phase === 'debt') tcAiRaise(S);
+  else if (S.phase === 'end') { tcAiManage(S, lv); tcEndTurn(S); }
+  drive();
+}
+function doRoll() {
+  if (S.phase !== 'roll' || lock()) return; rolling = true; cardShow = null; hud(); const t = token; let n = 0;
+  const iv = setInterval(() => { if (t !== token) return clearInterval(iv); randDice = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)]; if (n++ % 2 === 0) A.beep(260 + (n % 5) * 50, .025, 'square', .05); }, 70);
+  setTimeout(() => {
+    clearInterval(iv); if (t !== token) return; rolling = false; const p = S.cur, from = S.pl.map(x => x.pos), f = forcedDice; forcedDice = null; tcRoll(S, f);
+    A.beep(600, .05, 'triangle', .1); moveTokens(from, () => afterMove(p));
+  }, 600 * TS);
+}
+function moveTokens(from, cb) { // animate whichever token changed square
+  const mover = S.pl.findIndex((x, i) => x.pos !== from[i]); if (mover < 0) return cb();
+  const steps = (S.pl[mover].pos - from[mover] + 40) % 40, hop = steps <= 13 && !(S.pl[mover].jail && S.pl[mover].pos === TC_JAIL);
+  vis[mover] = from[mover]; anim = { p: mover, from: from[mover], steps: hop ? steps : 0, t0: performance.now(), dur: hop ? Math.max(250, steps * 85) * TS : 260 * TS, cb, to: S.pl[mover].pos };
+}
+function afterMove(p) {
+  sel = S.pl[p].pos; if (S.lastCard && S.lastCard.n > cardSeen) { cardSeen = S.lastCard.n; cardShow = S.lastCard; hold = humanTurn() ? 0 : 2200; A.beep(700, .08, 'triangle', .1); } flashes[S.pl[p].pos] = performance.now() + 500; drive();
+  if (!humanTurn()) { const tail = S.log.slice(-2).filter(x => !/rolls/.test(x)).join(' '); if (tail) say(tail); }
+}
+function endGame() {
+  if (S.phase !== 'over') return; hud(); const w = S.winner, you = solo() && isHum(w), alive = tcAlive(S);
+  if (!S.recorded) { S.recorded = true; if (solo() && (S.pl[humans()[0]].alive || you)) { st.rec[you ? 0 : 1]++; S0.save(); } }
+  const limit = alive.length > 1; $('endH').textContent = you ? 'You win! 🎉' : S.pl[w].name + ' wins' + (isHum(w) ? ' 🎉' : '');
+  $('endP').textContent = (limit ? 'Round limit reached: the richest player wins. ' : 'Everyone else is bankrupt. ') + S.pl.map((p, i) => p.name + ' ' + (p.alive ? money(tcNet(S, i)) : 'out')).join(', ') + '.'; say($('endH').textContent); rec();
+  A.beep(880, .3, 'sine', .15); A.beep(1100, .3, 'sine', .15, .15); setTimeout(() => O.show('ovEnd'), 600 * TS);
+}
+
+/* ---------- screen bits ---------- */
+function hud() {
+  if (!S) return; const ph = S.phase, h = humanTurn() && !lock(), pl = S.pl[view()], show = (id, v) => { $(id).style.display = v ? '' : 'none'; };
+  $('s1').textContent = ph === 'over' ? 'Over' : S.pl[S.cur].name + (isHum(S.cur) ? '' : ' 🤖'); $('s1').style.color = ph === 'over' ? '' : COLS[S.cur]; $('s2').textContent = money(pl.cash); $('s3').textContent = pl.alive ? money(tcNet(S, view())) : '–'; $('s4').textContent = S.round + '/' + (S.short ? TC_SHORT_ROUNDS : TC_LONG_ROUNDS);
+  show('bRoll', h && ph === 'roll'); show('bPay', h && ph === 'roll' && pl.jail && pl.cash >= TC_FINE); show('bCard', h && ph === 'roll' && pl.jail && pl.cards.length > 0); show('bBuy', h && ph === 'buy'); show('bPass', h && ph === 'buy');
+  show('bEnd', h && ph === 'end'); show('bBank', h && ph === 'debt'); show('bMan', humanTurn() && !lock() && (ph === 'roll' || ph === 'end' || ph === 'debt' || ph === 'buy'));
+  if (ph === 'buy') $('bBuy').disabled = pl.cash < TC_BOARD[pl.pos].p;
+  $('score').innerHTML = S.pl.map((p, i) => '<span class="chip' + (i === S.cur && ph !== 'over' ? ' cur' : '') + (p.alive ? '' : ' dead') + '"><span class="dot" style="background:' + COLS[i] + '"></span>' + p.name + (isHum(i) || solo() ? '' : ' 🤖') + ' ' + (p.alive ? money(p.cash) + ' · ' + tcOwned(S, i).length + ' shops' : 'out') + (p.jail ? ' 🔒' : '') + '</span>').join('');
+}
+function renderLog() {
+  const el = $('log'), stuck = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+  el.innerHTML = S.log.slice(-60).map(x => { const k = S.pl.findIndex(p => x.startsWith(p.name + ' ')); return '<div class="ln">' + (k >= 0 ? '<span class="dot" style="background:' + COLS[k] + '"></span>' : '<span class="dot none"></span>') + x.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</div>'; }).join('');
+  if (stuck || S.log.length < 3) el.scrollTop = el.scrollHeight;
+}
+function rec() { $('recLine').textContent = solo() ? 'You: ' + st.rec[0] + ' wins, ' + st.rec[1] + ' losses (one-human games)' : ''; }
+function bars() {
+  const mk = (id, arr, cur, act) => { $(id).innerHTML = arr.map(([k, t]) => '<button class="btn sm' + (String(cur) === String(k) ? ' on' : '') + '" data-act="' + act + '" data-k="' + k + '" type="button">' + t + '</button>').join(''); };
+  mk('npBar', [[2, '2'], [3, '3'], [4, '4'], [5, '5']], st.np, 'np'); $('seatBar').innerHTML = SEAT.slice(0, st.np).map((n, p) => '<button class="btn sm' + (st.hum[p] ? ' on' : '') + '" data-act="seat" data-k="' + p + '" type="button"><span class="dot" style="background:' + COLS[p] + ';display:inline-block;width:9px;height:9px;border-radius:50%"></span> ' + n + ': ' + (st.hum[p] ? 'Person' : 'Computer 🤖') + '</button>').join(''); mk('lvBar', [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']], st.level, 'lv'); mk('lenBar', [['1', 'Short (25 rounds)'], ['0', 'Full (150 rounds)']], st.short ? 1 : 0, 'len');
+}
+const shopWord = n => n === 5 ? 'flagship' : n === 1 ? '1 shop' : n + ' shops';
+function sqText(i) {
+  const b = TC_BOARD[i], o = S.owner[i]; let t = '<b>' + b.n + '</b>';
+  if (b.t === 'prop') { const g = TC_GROUPS[b.g], base = tcBase(i); t += ' · ' + g.name + ' trade · price ' + money(b.p) + '<br>Rent ' + money(base) + ' (' + money(base * 2) + ' if you own all 3 of the trade) · 1 shop ' + money(base * TC_MULT[1]) + ' · 2 ' + money(base * TC_MULT[2]) + ' · 3 ' + money(base * TC_MULT[3]) + ' · 4 ' + money(base * TC_MULT[4]) + ' · flagship ' + money(base * TC_MULT[5]) + '<br>A shop costs ' + money(tcHouseCost(i)) + ' · mortgage ' + money(tcMortVal(i)); }
+  else if (b.t === 'transit') t += ' · price ' + money(b.p) + '<br>Takeaway rent $25, $50, $100 or $200 if you own 1, 2, 3 or 4 takeaways · mortgage ' + money(tcMortVal(i));
+  else if (b.t === 'util') t += ' · price ' + money(b.p) + '<br>Supplier rent 4× the dice with one supplier, 10× with both · mortgage ' + money(tcMortVal(i));
+  else if (b.t === 'tax') t += ' · pay ' + money(b.amt); else if (b.t === 'start') t += ' · collect $200 when you pass or land here'; else if (b.t === 'card') t += ' · take a ' + (b.deck ? 'Council' : 'Fortune') + ' card';
+  else if (b.t === 'jail') t += ' · just visiting, or locked up'; else if (b.t === 'gotojail') t += ' · go straight to the Lockup'; else if (b.t === 'free') t += ' · a rest: nothing happens';
+  if (tcBuyable(i)) t += '<br>' + (o < 0 ? 'For sale.' : 'Owner: ' + S.pl[o].name + (S.mort[i] ? ' (closed: mortgaged)' : '') + (S.houses[i] ? ', ' + shopWord(S.houses[i]) : '') + '.');
+  return t;
+}
+
+/* ---------- manage shops ---------- */
+function openMan() { if (!humanTurn() || lock()) return; manOpen = true; renderMan(); $('ovMan').classList.add('show'); }
+function closeMan() { manOpen = false; $('ovMan').classList.remove('show'); }
+function renderMan() {
+  const me = S.cur, mine = tcOwned(S, me), d = S.debt; $('manDebt').textContent = d ? 'You owe ' + money(d.amt) + ' and have ' + money(S.pl[me].cash) + '. Raise the difference.' : 'Cash: ' + money(S.pl[me].cash);
+  if (!mine.length) { $('manList').innerHTML = '<div class="rec">You do not own anything yet.</div>'; return; }
+  $('manList').innerHTML = mine.map(i => {
+    const b = TC_BOARD[i], col = b.t === 'prop' ? TC_GROUPS[b.g].col : '#888', status = S.mort[i] ? 'closed (mortgaged)' : b.t === 'prop' ? (S.houses[i] === 5 ? 'flagship' : S.houses[i] + ' shops') : '';
+    const btn = (op, label, ok) => ok ? '<button class="btn" type="button" data-act="man" data-op="' + op + '" data-sq="' + i + '">' + label + '</button>' : '';
+    return '<div class="mrow"><span class="dot" style="background:' + col + '"></span><span class="nm">' + b.n + ' <small>' + status + '</small></span>' + (d ? '' : btn('bld', (S.houses[i] === 4 ? 'Flagship −' : 'Add shop −') + money(b.t === 'prop' ? tcHouseCost(i) : 0), tcCanBuild(S, S.cur, i))) + btn('sell', 'Sell +' + money(b.t === 'prop' ? tcHouseCost(i) / 2 : 0), tcCanSell(S, S.cur, i)) + btn('mort', 'Mortgage +' + money(tcMortVal(i)), tcCanMortgage(S, S.cur, i)) + (d ? '' : btn('unm', 'Reopen −' + money(tcUnmortCost(i)), tcCanUnmortgage(S, S.cur, i))) + '</div>';
+  }).join('');
+}
+function manOp(op, sq) {
+  const ok = op === 'bld' ? tcBuild(S, sq) : op === 'sell' ? tcSell(S, sq) : op === 'mort' ? tcMortgage(S, sq) : tcUnmortgage(S, sq); if (ok) A.beep(op === 'bld' ? 520 : 360, .06, 'triangle', .1);
+  if (S.debt && S.pl[S.cur].cash >= S.debt.amt) { tcSettleDebt(S); closeMan(); return drive(); }
+  renderMan(); hud();
+}
+
+/* ---------- input ---------- */
+cv.addEventListener('pointerdown', e => { const q = C.pos(e), i = sqAt(q.x, q.y); if (i >= 0) { cardShow = null; sel = i; $('sqInfo').innerHTML = sqText(i); } });
+ui.actions(document.body, {
+  roll: () => { if (humanTurn() && S.phase === 'roll' && !lock()) doRoll(); },
+  payjail: () => { if (humanTurn() && tcPayJail(S)) { A.beep(300, .06, 'sine', .1); drive(); } }, usecard: () => { if (humanTurn() && tcUseCard(S)) drive(); },
+  buy: () => { if (humanTurn() && tcBuy(S)) { A.beep(500, .06, 'triangle', .1); drive(); } }, decline: () => { if (humanTurn() && tcDecline(S)) drive(); },
+  endturn: () => { if (humanTurn() && !lock() && tcEndTurn(S)) drive(); }, bankrupt: () => { if (humanTurn() && tcDeclareBankrupt(S)) { closeMan(); drive(); } },
+  manage: openMan, closeman: () => { closeMan(); drive(); }, man: b => manOp(b.dataset.op, +b.dataset.sq),
+  restart: newGame, closeov: () => O.hide('ovEnd'),
+  hint: () => { if (!humanTurn()) return; const ph = S.phase; if (ph === 'buy') say(tcAiBuy(S, 'hard') ? 'Hint: buying looks good here.' : 'Hint: keep your cash for now.'); else if (ph === 'roll' || ph === 'end') { const c = tcOwned(S, S.cur).filter(i => tcCanBuild(S, S.cur, i) && S.pl[S.cur].cash - tcHouseCost(i) >= 200); say(c.length ? 'Hint: you can add a shop to ' + TC_BOARD[c[0]].n + ' (Manage shops).' : 'Hint: nothing to build right now.'); hintSq = c.length ? c[0] : -1; hintT = performance.now() + 3000; } },
+  np: b => { st.np = +b.dataset.k; S0.save(); newGame(); }, seat: b => { st.hum[+b.dataset.k] = !st.hum[+b.dataset.k]; S0.save(); newGame(); }, lv: b => { st.level = b.dataset.k; S0.save(); bars(); }, len: b => { st.short = b.dataset.k === '1'; S0.save(); newGame(); }
+});
+window.addEventListener('keydown', e => { if (/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; if ((e.key === ' ' || e.key === 'Enter') && humanTurn() && S.phase === 'roll' && !lock()) { e.preventDefault(); doRoll(); } });
+
+/* ---------- drawing: the board is painted once into a cache; shops, owners, tokens and dice are drawn on top each frame ---------- */
+function pips(g, x, y, s, v) {
+  g.save(); g.fillStyle = 'rgba(0,0,0,.28)'; rr(g, x + 2, y + 4, s, s, s * .2); g.fill();
+  const gr = g.createLinearGradient(x, y, x + s, y + s); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#d9d6cc'); g.fillStyle = gr; g.strokeStyle = '#2a2f3a'; g.lineWidth = 2; rr(g, x, y, s, s, s * .2); g.fill(); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1.5; rr(g, x + 3, y + 3, s - 6, s - 6, s * .16); g.stroke();
+  const P = { 1: [[.5, .5]], 2: [[.27, .27], [.73, .73]], 3: [[.27, .27], [.5, .5], [.73, .73]], 4: [[.27, .27], [.73, .27], [.27, .73], [.73, .73]], 5: [[.27, .27], [.73, .27], [.5, .5], [.27, .73], [.73, .73]], 6: [[.27, .27], [.73, .27], [.27, .5], [.73, .5], [.27, .73], [.73, .73]] };
+  for (const [a, b] of (P[v] || [])) { const rg = g.createRadialGradient(x + a * s - 1, y + b * s - 1, 1, x + a * s, y + b * s, s * .1); rg.addColorStop(0, '#555'); rg.addColorStop(1, '#10131a'); g.fillStyle = rg; g.beginPath(); g.arc(x + a * s, y + b * s, s * .085, 0, 7); g.fill(); }
+  g.restore();
+}
+function tileBase(g, i) {
+  const b = TC_BOARD[i], r = CEN[i], buy = tcBuyable(i), gr = g.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
+  if (b.t === 'card') { gr.addColorStop(0, b.deck ? '#d9eafb' : '#fee7c6'); gr.addColorStop(1, b.deck ? '#b9d4ee' : '#f8cf96'); } else if (b.t === 'tax') { gr.addColorStop(0, '#f1e3e0'); gr.addColorStop(1, '#e0c9c5'); } else { gr.addColorStop(0, buy ? '#fffaf0' : '#f3eedd'); gr.addColorStop(1, buy ? '#eadfc3' : '#e1d9c0'); }
+  g.fillStyle = gr; g.fillRect(r.x, r.y, r.w, r.h); g.strokeStyle = '#4a3a24'; g.lineWidth = 1.2; g.strokeRect(r.x + .5, r.y + .5, r.w - 1, r.h - 1); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1; g.strokeRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4);
+  if (b.t === 'prop') { const col = TC_GROUPS[b.g].col, bd = r.band, bg = g.createLinearGradient(bd.x, bd.y, bd.x + (r.side === 'l' || r.side === 'r' ? bd.w : 0), bd.y + (r.side === 'b' || r.side === 't' ? bd.h : 0)); bg.addColorStop(0, col); bg.addColorStop(1, col); g.fillStyle = col; g.fillRect(bd.x, bd.y, bd.w, bd.h); g.fillStyle = 'rgba(255,255,255,.22)'; g.fillRect(bd.x, bd.y, r.side === 'l' || r.side === 'r' ? bd.w / 2 : bd.w, r.side === 'l' || r.side === 'r' ? bd.h : bd.h / 2); g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 1; g.strokeRect(bd.x + .5, bd.y + .5, bd.w - 1, bd.h - 1); }
+  const f = r.free, cx = f.x + f.w / 2, cy = f.y + f.h / 2; g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (buy) { TCI.draw(g, b.ic, cx, cy - 5, b.t === 'prop' ? .98 : 1.02); g.fillStyle = '#2a2014'; g.font = 'bold 11px sans-serif'; g.fillText('$' + b.p, cx, f.y + f.h - 7.5); if (b.t === 'transit' || b.t === 'util') { g.fillStyle = '#7a6a4a'; g.font = 'bold 6px sans-serif'; g.fillText(b.t === 'transit' ? 'TAKEAWAY' : 'SUPPLIER', cx, f.y + 6); } }
+  else if (b.t === 'tax') { g.fillStyle = '#8a2a2a'; g.beginPath(); g.arc(cx, cy - 6, 11, 0, 7); g.fill(); g.strokeStyle = '#f6d36a'; g.lineWidth = 2; g.stroke(); g.fillStyle = '#f6d36a'; g.font = 'bold 15px sans-serif'; g.fillText('$', cx, cy - 5.5); g.fillStyle = '#5a1e1e'; g.font = 'bold 6.5px sans-serif'; g.fillText(b.n.toUpperCase().replace('BUSINESS RATES','RATES').replace('HYGIENE FINE','HYGIENE'), cx, cy + 12); g.font = 'bold 8px sans-serif'; g.fillText('-' + b.amt, cx, cy + 21); }
+  else if (b.t === 'card') { g.save(); g.translate(cx, cy - 4); g.rotate(-.12); g.fillStyle = '#fff'; g.strokeStyle = b.deck ? '#1d4f91' : '#b35c00'; g.lineWidth = 2; rr(g, -13, -16, 26, 30, 3); g.fill(); g.stroke(); g.fillStyle = b.deck ? '#1d4f91' : '#b35c00'; g.font = 'bold 22px Georgia, serif'; g.fillText(b.deck ? '§' : '?', 0, -1); g.restore(); g.fillStyle = b.deck ? '#1d4f91' : '#b35c00'; g.font = 'bold 7px sans-serif'; g.fillText(b.deck ? 'COUNCIL' : 'FORTUNE', cx, cy + 22); }
+  else if (b.t === 'start') { g.fillStyle = '#1c7c3c'; g.font = 'bold 12px sans-serif'; g.fillText('PAYDAY', cx, cy - 18); for (let k = 0; k < 3; k++) { g.fillStyle = '#f2c230'; g.strokeStyle = '#8a6a10'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(cx - 10 + k * 3, cy + 1 - k * 4 + 6, 12, 4.5, 0, 0, 7); g.fill(); g.stroke(); } g.fillStyle = '#1c7c3c'; g.font = 'bold 14px sans-serif'; g.fillText('+$200', cx, cy + 18); }
+  else if (b.t === 'jail') { g.fillStyle = '#c9702b'; rr(g, cx - 17, cy - 22, 34, 32, 3); g.fill(); g.strokeStyle = '#222'; g.lineWidth = 2.2; for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(cx - 12 + k * 6, cy - 22); g.lineTo(cx - 12 + k * 6, cy + 10); g.stroke(); } g.fillStyle = '#222'; g.font = 'bold 10px sans-serif'; g.fillText('LOCKUP', cx, cy + 20); }
+  else if (b.t === 'gotojail') { g.fillStyle = '#a02020'; g.font = 'bold 10px sans-serif'; g.fillText('GO TO', cx, cy - 15); g.fillText('LOCKUP', cx, cy - 3); g.font = 'bold 20px sans-serif'; g.fillText('➜', cx, cy + 15); }
+  else if (b.t === 'free') { g.fillStyle = '#6b4a2b'; g.fillRect(cx - 1.5, cy - 4, 3, 14); g.fillStyle = '#2f8a46'; g.beginPath(); g.arc(cx, cy - 10, 10, 0, 7); g.fill(); g.fillStyle = '#3fa85a'; g.beginPath(); g.arc(cx - 3, cy - 12, 5, 0, 7); g.fill(); g.fillStyle = '#2a6f8c'; g.font = 'bold 9px sans-serif'; g.fillText('REST STOP', cx, cy + 20); }
+}
+function bakeBoard() {
+  cache = document.createElement('canvas'); cache.width = W * 2; cache.height = W * 2; const g = cache.getContext('2d'); g.scale(2, 2);
+  const wood = g.createLinearGradient(0, 0, W, W); wood.addColorStop(0, '#6b4528'); wood.addColorStop(.5, '#4d3019'); wood.addColorStop(1, '#6b4528'); g.fillStyle = wood; rr(g, 0, 0, W, W, 16); g.fill();
+  g.strokeStyle = 'rgba(255,225,170,.18)'; g.lineWidth = 1; for (let k = 0; k < 26; k++) { g.beginPath(); g.moveTo(0, k * 25 + 4); g.bezierCurveTo(W * .3, k * 25 + 12, W * .6, k * 25 - 6, W, k * 25 + 6); g.stroke(); }
+  g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 2; rr(g, 1, 1, W - 2, W - 2, 16); g.stroke(); g.strokeStyle = 'rgba(255,220,160,.5)'; g.lineWidth = 1.5; rr(g, 5, 5, W - 10, W - 10, 12); g.stroke();
+  // centre felt
+  const c0 = OFF + CS, c1 = W - OFF - CS, fg = g.createRadialGradient(W / 2, W / 2, 20, W / 2, W / 2, 380); fg.addColorStop(0, '#1b6a60'); fg.addColorStop(1, '#0b3438'); g.fillStyle = fg; g.fillRect(c0, c0, c1 - c0, c1 - c0);
+  g.save(); g.beginPath(); g.rect(c0, c0, c1 - c0, c1 - c0); g.clip(); g.strokeStyle = 'rgba(255,255,255,.04)'; g.lineWidth = 14; for (let k = -600; k < 900; k += 40) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k + 640, 640); g.stroke(); } g.restore();
+  g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 3; g.strokeRect(c0 + 1.5, c0 + 1.5, c1 - c0 - 3, c1 - c0 - 3);
+  for (let i = 0; i < 40; i++) tileBase(g, i);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold 34px Georgia, serif'; g.fillStyle = 'rgba(0,0,0,.45)'; g.fillText('FOOD COURT EMPIRE', W / 2 + 2, 104 + 3); const tg = g.createLinearGradient(0, 84, 0, 124); tg.addColorStop(0, '#fff3c4'); tg.addColorStop(1, '#f0b429'); g.fillStyle = tg; g.fillText('FOOD COURT EMPIRE', W / 2, 104);
+  g.font = 'italic 15px Georgia, serif'; g.fillStyle = 'rgba(255,255,255,.7)'; g.fillText('Tidehaven High Street · food shops for sale', W / 2, 134);
+  ['pizza', 'coffee', 'burger', 'icecream', 'lobster', 'sushi', 'beer'].forEach((n, k) => { g.globalAlpha = .9; TCI.draw(g, n, W / 2 - 150 + k * 50, 158, .78); g.globalAlpha = 1; });
+}
+function storefront(g, cx, cy, col, s) {
+  g.save(); g.translate(cx, cy); g.scale(s, s); g.lineJoin = 'round'; g.strokeStyle = '#1c1409'; g.lineWidth = 1;
+  g.fillStyle = '#fff7e0'; g.fillRect(-4.6, -1, 9.2, 6.6); g.strokeRect(-4.6, -1, 9.2, 6.6); g.fillStyle = '#7a4a22'; g.fillRect(-1.2, 1.8, 2.4, 3.8); g.fillStyle = '#9fd3f0'; g.fillRect(1.9, 0.6, 2, 2);
+  g.beginPath(); g.moveTo(-5.8, -1); g.lineTo(-4.6, -5.4); g.lineTo(4.6, -5.4); g.lineTo(5.8, -1); g.closePath(); g.fillStyle = '#fff'; g.fill(); g.stroke(); g.fillStyle = '#e03a2f'; for (const x of [-4.6, -1.5, 1.6]) { g.beginPath(); g.moveTo(x, -5.4); g.lineTo(x + 1.5, -5.4); g.lineTo(x + 1.7 + (x < 0 ? -.2 : .2), -1); g.lineTo(x + .2, -1); g.closePath(); g.fill(); }
+  g.restore();
+}
+function flagship(g, cx, cy, s) {
+  g.save(); g.translate(cx, cy); g.scale(s, s); g.lineJoin = 'round'; g.strokeStyle = '#1c1409'; g.lineWidth = 1;
+  g.fillStyle = '#fff7e0'; g.fillRect(-10, -3, 20, 9); g.strokeRect(-10, -3, 20, 9); g.beginPath(); g.moveTo(-12, -3); g.lineTo(0, -10); g.lineTo(12, -3); g.closePath(); g.fillStyle = '#b8261c'; g.fill(); g.stroke();
+  g.fillStyle = '#f2c230'; g.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 1.7 : 3.6; g.lineTo(Math.cos(a) * r, -3.6 + Math.sin(a) * r); } g.closePath(); g.fill();
+  g.fillStyle = '#7a4a22'; g.fillRect(-2, 1, 4, 5); g.fillStyle = '#9fd3f0'; g.fillRect(-8, -.4, 4.5, 3.6); g.fillRect(3.5, -.4, 4.5, 3.6); g.strokeRect(-8, -.4, 4.5, 3.6); g.strokeRect(3.5, -.4, 4.5, 3.6);
+  g.restore();
+}
+function drawTileTop(g, i, t, full) {
+  const b = TC_BOARD[i], r = CEN[i], o = S.owner[i];
+  if (b.t === 'prop' && S.houses[i]) { const h = S.houses[i], bd = r.band, vert = r.side === 'l' || r.side === 'r', cx = bd.x + bd.w / 2, cy = bd.y + bd.h / 2;
+    if (h === 5) flagship(g, cx, cy + (vert ? 0 : 1), vert ? .7 : .95);
+    else for (let k = 0; k < h; k++) { const off = (k - (h - 1) / 2) * 12.5; storefront(g, vert ? cx : cx + off, vert ? cy + off : cy + 1, 0, 1); } }
+  if (o >= 0) { const bw = 6, c = COLS[o]; g.fillStyle = c; if (r.side === 'b') g.fillRect(r.x, r.y + r.h - bw, r.w, bw); else if (r.side === 't') g.fillRect(r.x, r.y, r.w, bw); else if (r.side === 'l') g.fillRect(r.x, r.y, bw, r.h); else g.fillRect(r.x + r.w - bw, r.y, bw, r.h); g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 1; if (r.side === 'b') g.strokeRect(r.x + .5, r.y + r.h - bw + .5, r.w - 1, bw - 1); else if (r.side === 't') g.strokeRect(r.x + .5, r.y + .5, r.w - 1, bw - 1); else if (r.side === 'l') g.strokeRect(r.x + .5, r.y + .5, bw - 1, r.h - 1); else g.strokeRect(r.x + r.w - bw + .5, r.y + .5, bw - 1, r.h - 1); }
+  if (full) { g.strokeStyle = 'rgba(255,214,70,.95)'; g.lineWidth = 2.2; g.strokeRect(r.x + 1.5, r.y + 1.5, r.w - 3, r.h - 3); }
+  if (S.mort[i]) { g.fillStyle = 'rgba(70,70,76,.62)'; g.fillRect(r.x, r.y, r.w, r.h); g.save(); g.translate(r.cx, r.cy); g.rotate(-.5); g.fillStyle = '#c0281e'; g.fillRect(-21, -7, 42, 14); g.fillStyle = '#fff'; g.font = 'bold 10px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('CLOSED', 0, 0.5); g.restore(); }
+  if (flashes[i] > t) { g.fillStyle = 'rgba(255,255,255,' + (flashes[i] - t) / 500 * .6 + ')'; g.fillRect(r.x, r.y, r.w, r.h); }
+  if (i === sel) { g.strokeStyle = '#fff'; g.lineWidth = 3; g.strokeRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4); g.strokeStyle = '#000'; g.lineWidth = 1; g.strokeRect(r.x + 4.5, r.y + 4.5, r.w - 9, r.h - 9); }
+  if (i === hintSq && hintT > t) { g.strokeStyle = '#3da0ff'; g.lineWidth = 4; g.strokeRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4); }
+}
+function wrap(g, text, x, y, maxW, lh) { const words = text.split(' '); let line = '', yy = y; for (const w of words) { const test = line ? line + ' ' + w : w; if (g.measureText(test).width > maxW && line) { g.fillText(line, x, yy); line = w; yy += lh; } else line = test; } g.fillText(line, x, yy); }
+function deed(g, i) {
+  const b = TC_BOARD[i], x = 150, y = 238, w = 340, h = 112, col = b.t === 'prop' ? TC_GROUPS[b.g].col : b.t === 'transit' ? '#546e7a' : b.t === 'util' ? '#8d6e63' : b.t === 'card' ? (b.deck ? '#1d4f91' : '#b35c00') : '#6b7280';
+  g.save(); g.fillStyle = 'rgba(0,0,0,.35)'; rr(g, x + 3, y + 5, w, h, 10); g.fill(); g.fillStyle = '#fbf6e6'; rr(g, x, y, w, h, 10); g.fill(); g.strokeStyle = '#2a2014'; g.lineWidth = 2; g.stroke();
+  g.fillStyle = col; g.save(); rr(g, x, y, 82, h, 10); g.clip(); g.fillRect(x, y, 82, h); g.restore(); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x, y, 41, h);
+  if (b.ic) { g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(x + 41, y + h / 2, 31, 0, 7); g.fill(); TCI.draw(g, b.ic, x + 41, y + h / 2, 2.3); }
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#2a2014'; g.font = 'bold 20px Georgia, serif'; g.fillText(b.n, x + 94, y + 30);
+  g.font = '14px sans-serif'; g.fillStyle = '#5a4a30'; let l2 = b.t === 'prop' ? TC_GROUPS[b.g].name + ' trade · ' + money(b.p) : b.t === 'transit' ? 'Takeaway · ' + money(b.p) : b.t === 'util' ? 'Supplier · ' + money(b.p) : b.t === 'tax' ? 'Pay ' + money(b.amt) : b.t === 'card' ? 'Take a card' : b.t === 'start' ? 'Collect $200' : b.t === 'jail' ? 'Just visiting' : b.t === 'gotojail' ? 'Go to the Lockup' : 'Take a rest'; g.fillText(l2, x + 94, y + 54);
+  if (tcBuyable(i)) { const o = S.owner[i]; g.fillStyle = o < 0 ? '#1c7c3c' : COLS[o]; g.font = 'bold 15px sans-serif'; g.fillText(o < 0 ? 'For sale' : 'Owner: ' + S.pl[o].name + (S.mort[i] ? ' (closed)' : S.houses[i] ? ' · ' + shopWord(S.houses[i]) : ''), x + 94, y + 79); if (o >= 0 && !S.mort[i]) { g.fillStyle = '#5a4a30'; g.font = '13px sans-serif'; g.fillText('Rent now ' + money(tcRent(S, i, S.dice[0] ? S.dice : [3, 4])), x + 94, y + 99); } else if (o < 0 && b.t === 'prop') { g.fillStyle = '#5a4a30'; g.font = '13px sans-serif'; g.fillText('Rent ' + money(tcBase(i)) + ', up to ' + money(tcBase(i) * TC_MULT[5]) + ' with a flagship', x + 94, y + 99); } }
+  g.restore();
+}
+function cardEffect(c) {
+  switch (c.t) { case 'gain': return '+$' + c.a; case 'pay': return '-$' + c.a; case 'goto': return 'Go to ' + TC_BOARD[c.to].n; case 'jail': return 'Go to the Lockup'; case 'back': return 'Go back ' + c.n + ' squares'; case 'near': return 'Next takeaway · double rent'; case 'repair': return 'Shop repairs: $' + c.h + ' per shop, $' + c.k + ' per flagship'; case 'out': return 'Keep it: leave the Lockup free'; case 'each': return 'Pay $' + c.a + ' to each player'; case 'collect': return 'Collect $' + c.a + ' from each player'; }
+  return '';
+}
+function cardPic(g) {
+  const k = cardShow, c = DECKS[k.d][k.id], x = 130, y = 232, w = 380, h = 112, col = k.d ? '#1d4f91' : '#b35c00', lite = k.d ? '#dbeafb' : '#fde9c8', who = S.pl[k.p];
+  g.save(); g.translate(x + w / 2, y + h / 2); g.rotate(-.015); g.translate(-w / 2, -h / 2);
+  g.fillStyle = 'rgba(0,0,0,.4)'; rr(g, 4, 6, w, h, 12); g.fill(); g.fillStyle = '#fffdf6'; rr(g, 0, 0, w, h, 12); g.fill(); g.lineWidth = 3; g.strokeStyle = col; g.stroke();
+  g.fillStyle = col; g.save(); rr(g, 0, 0, w, 30, 12); g.clip(); g.fillRect(0, 0, w, 30); g.restore(); g.fillRect(0, 18, w, 12);
+  g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillStyle = '#fff'; g.font = 'bold 15px Georgia, serif'; g.fillText((k.d ? 'COUNCIL CARD' : 'FORTUNE CARD'), 14, 16); g.textAlign = 'right'; g.font = 'bold 12px sans-serif'; g.fillText(who.name + ' drew this', w - 12, 16);
+  g.fillStyle = lite; g.beginPath(); g.arc(46, 72, 28, 0, 7); g.fill(); g.strokeStyle = col; g.lineWidth = 2; g.stroke(); g.fillStyle = col; g.textAlign = 'center'; g.font = 'bold 40px Georgia, serif'; g.fillText(k.d ? "§" : "?", 46, 73);
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#2a2014'; g.font = 'bold 15.5px sans-serif'; wrap(g, c.x, 90, 58, w - 104, 19);
+  g.fillStyle = col; g.fillRect(90, h - 30, w - 104, 1.5); g.font = 'bold 14px sans-serif'; g.fillStyle = col; g.fillText(cardEffect(c), 90, h - 11);
+  g.restore();
+}
+function drawToken(g, i, x, y, s, lift) { TCP.draw(g, TCP.kinds[i], x, y, s, COLS[i], lift); }
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / W, 0, 0); if (!S) return; const t = performance.now(); if (!cache) bakeBoard();
+  g.drawImage(cache, 0, 0, W, W);
+  const full = TC_GROUPS.map((_, k) => { const o = S.owner[tcGroupSqs(k)[0]]; return o >= 0 && tcHasGroup(S, o, k); });
+  for (let i = 0; i < 40; i++) drawTileTop(g, i, t, TC_BOARD[i].t === 'prop' && full[TC_BOARD[i].g]);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const d = rolling ? randDice : S.dice, bob = rolling ? Math.sin(t / 45) * 4 : 0; pips(g, W / 2 - 66, 176 + bob, 54, d[0] || 1); pips(g, W / 2 + 12, 176 - bob, 54, d[1] || 1);
+  if (cardShow && !rolling) cardPic(g); else deed(g, sel >= 0 ? sel : S.pl[Math.min(S.cur, S.np - 1)].pos);
+  g.fillStyle = 'rgba(255,255,255,.55)'; g.font = 'bold 13px sans-serif'; g.fillText('Round ' + S.round + ' of ' + (S.short ? TC_SHORT_ROUNDS : TC_LONG_ROUNDS), W / 2, 558);
+  // tokens
+  if (anim) { const k = Math.min(1, (t - anim.t0) / anim.dur); vis[anim.p] = anim.steps ? (anim.from + anim.steps * k) % 40 : (k > .5 ? anim.to : anim.from); if (k >= 1) { const cb = anim.cb; vis[anim.p] = anim.to; anim = null; setTimeout(cb, 0); } }
+  const groups = {}; S.pl.forEach((p, i) => { if (!p.alive) return; const pos = anim && anim.p === i ? vis[i] : p.pos; vis[i] = pos; const key = Math.round(pos); (groups[key] = groups[key] || []).push([i, pos]); });
+  const list = []; for (const key in groups) groups[key].forEach(([i, pos], n) => {
+    const a = CEN[Math.floor(pos) % 40], b = CEN[Math.ceil(pos) % 40], f = pos - Math.floor(pos); let x = a.cx + (b.cx - a.cx) * f, y = a.cy + (b.cy - a.cy) * f; const multi = groups[key].length > 1;
+    const off = multi ? [[-11, -8], [11, -8], [-11, 9], [11, 9], [0, 0]][n % 5] : [0, 0]; x += off[0]; y += off[1] - 2; if (+key === TC_JAIL && S.pl[i].jail) { x += 8; y -= 8; }
+    const cur = i === S.cur && S.phase !== 'over', lift = cur && anim && anim.p === i ? Math.sin(((t - anim.t0) / 85 % 1) * Math.PI) * 6 : (cur && !anim ? Math.sin(t / 260) * 1.5 + 1.5 : 0);
+    list.push([y, i, x, y, multi ? .78 : .95, lift, cur]);
+  });
+  list.sort((a, b) => a[0] - b[0]); for (const [, i, x, y, s, lift, cur] of list) { if (cur) { g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(x, y + 14 * s, 15 * s, 5.4 * s, 0, 0, 7); g.fill(); } drawToken(g, i, x, y, s, lift); }
+}
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get st() { return st; }, get lock() { return lock(); }, get human() { return humanTurn(); }, get card() { return cardShow; }, get manOpen() { return manOpen; },
+  ts: x => { TS = x; }, force: d => { forcedDice = d; }, newGame, edit: fn => { fn(S); vis = S.pl.map(p => p.pos); hud(); renderLog(); drive(); },
+  xy: i => { const r = cv.getBoundingClientRect(), c = CEN[i]; return [r.left + c.cx / W * r.width, r.top + c.cy / W * r.height]; }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

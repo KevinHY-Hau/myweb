@@ -1,0 +1,31 @@
+{
+  "name": "Senet",
+  "short_name": "Senet",
+  "description": "The ancient Egyptian game of passing. Throw four sticks, race five pieces along an S-shaped track of thirty houses, swap places with your rival, and beware the House of Water",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#5b3d1a",
+  "theme_color": "#5b3d1a",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

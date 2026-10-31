@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 20 · Patchwork</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Patchwork">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:620px;--tcell:#f6efe0;--tline:#cfc3a8;--tbox:#3b352a;--tmark:#1f2937;--tmarkfg:#fff;--tbad:#dc2626}
+:root[data-theme="dark"]{--tcell:#1e2430;--tline:#3a4254;--tbox:#c7d0e0;--tmark:#e5e9f2;--tmarkfg:#10141c}
+.twrap{display:flex;flex-direction:column;gap:10px}
+.thead{display:flex;gap:8px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
+.tstat small{display:block;font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.tstat b{font-size:17px;color:var(--accent-light)}
+.tboardwrap{position:relative;display:flex;justify-content:center}
+.tb{--w:6;--h:6;--fs:60px;position:relative;display:grid;grid-template-columns:repeat(var(--w),1fr);grid-template-rows:repeat(var(--h),1fr);width:100%;aspect-ratio:var(--w)/var(--h);outline:none;user-select:none;-webkit-user-select:none;touch-action:none;font-size:var(--fs);-webkit-touch-callout:none}
+.tc{position:relative;background:var(--tcell);border:1px solid var(--tline);box-sizing:border-box;line-height:1;display:flex;align-items:center;justify-content:center}
+.tc.hole{visibility:hidden;border:0;background:none}
+.rects{position:absolute;inset:0;pointer-events:none;z-index:1}
+.rc{position:absolute;box-sizing:border-box;border:.05em solid rgba(0,0,0,.35);transition:opacity .15s}
+.rc.sq{border-radius:.04em}.rc.rounded{border-radius:.2em}.rc.round{border-radius:.5em}
+.rc.off{opacity:.45;background-image:repeating-linear-gradient(45deg,transparent 0 .1em,rgba(0,0,0,.18) .1em .17em)}
+.rc.prev{border:.06em dashed var(--tbox);background:rgba(255,255,255,.16)!important}
+.rc.prev.no{border-color:var(--tbad);background:rgba(220,38,38,.18)!important}
+.rc.hintr{animation:rpulse 1s 2}
+@keyframes rpulse{50%{filter:brightness(1.6)}}
+.mk{--u:var(--fs);position:relative;z-index:3;width:calc(var(--u)*.62);height:calc(var(--u)*.62);display:flex;align-items:center;justify-content:center;background:var(--tmark);color:var(--tmarkfg);font-weight:900;font-size:calc(var(--u)*.3);font-family:system-ui,sans-serif;pointer-events:none}
+.mk b{font-size:1.5em;line-height:1}
+.mk.circle{border-radius:50%}
+.mk.square{border-radius:18%}
+.mk.diamond{clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);width:calc(var(--u)*.78);height:calc(var(--u)*.78)}
+.mk.hex{clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);width:calc(var(--u)*.72);height:calc(var(--u)*.72)}
+.mk.star{clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);width:calc(var(--u)*.86);height:calc(var(--u)*.86);font-size:calc(var(--u)*.24)}
+.mk.star b{margin-top:.3em}
+.hg{position:absolute;z-index:4;right:.07em;top:.07em;border:.045em solid var(--tmark);border-radius:.02em;opacity:.9;pointer-events:none;background:rgba(255,255,255,.5)}
+.hg.w1{width:.2em;height:.11em}.hg.w2{width:.11em;height:.2em}.hg.w3{width:.15em;height:.15em}
+.tmsg{min-height:2.6em;font-size:14px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.tbar .kl{color:var(--muted);font-size:14px}
+.tbar .btn.on{background:var(--accent);color:#000}
+.tpanel{margin-top:2px}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Patchwork</h2>
+  <p>Chapter 20 · Cut the board into rectangles. Every patch holds exactly one number, and the number tells you its size. Boards come in all kinds of shapes</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TIME</small><b id="tm">0:00</b></div>
+    <div class="tstat"><small>PATCHES</small><b id="sz">0/0</b></div>
+    <div class="tstat"><small>BEST</small><b id="bt">-</b></div>
+    <div class="tstat"><small>HINTS</small><b id="hn">0</b></div>
+  </div>
+  <div class="tboardwrap">
+    <div id="tb" class="tb" tabindex="0" aria-label="Patchwork board"><div id="rects" class="rects"></div></div>
+    <div class="ov" id="ovWin"><h3>Solved!</h3><p id="winTxt"></p><div><button class="btn primary" data-act="new" type="button">New puzzle</button> <button class="btn" data-act="winClose" type="button">Look at board</button></div></div>
+    <div class="ov" id="ovPause"><h3>Paused</h3><p>The board is hidden while paused.</p><button class="btn primary" data-act="pause" type="button">Resume</button></div>
+  </div>
+  <div class="tmsg" id="tmsg"></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" id="bUndo" type="button">↶ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="clear" type="button">🧹 Clear</button>
+    <button class="btn sm" data-act="pause" type="button">⏸ Pause</button>
+  </div>
+  <div class="tbar"><span class="kl">Level:</span><span id="levels"></span><button class="btn sm" data-act="daily" type="button">📅 Daily</button></div>
+  <div class="tbar"><span class="kl">Shape:</span><span id="shapes"></span></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <p class="hint">Rules: cover every square with rectangles (squares count as rectangles). The smallest patch has 2 squares. Each rectangle has exactly one number in it, and the number is how many squares the rectangle covers. A small outline next to a number tells you the shape: wide ▭, tall ▯ or square □. Drag from one corner to the opposite corner to draw a patch. Drawing over an old patch replaces it. Tap a patch to remove it. Keys: Z undo, H hint, P pause.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 This is a classic puzzle (known as Shikaku or Rectangles, a bit like the popular daily 'patches' games). The puzzles are made by my own generator, each has exactly one solution. Code, shapes and colours are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else last = performance.now(); });
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* made by tools/genall.js. Every puzzle has exactly one solution (checked twice, see tools/verify.py) */
+const PUZ={"square5":{"w":5,"h":5,"m":"#####/#####/#####/#####/#####","easy":[{"c":[10,6,2,4,6,1,12,6,1,15,4,3,23,3,1],"s":[0,0,2,1,0,2,1,4,2,2,3,4,3,0,4,1,4,2,4,4]},{"c":[6,6,2,2,6,1,13,6,1,21,4,3,23,3,1],"s":[0,0,2,1,0,2,1,4,2,2,3,4,3,0,4,1,4,2,4,4]},{"c":[4,5,1,6,6,1,8,4,3,15,6,1,18,4,3],"s":[0,0,0,4,1,0,2,2,1,3,2,4,3,0,4,2,3,3,4,4]},{"c":[5,6,1,4,6,2,21,6,2,17,2,2,19,2,1,23,3,1],"s":[0,0,1,2,0,3,2,4,2,0,4,1,2,2,3,2,3,3,3,4,4,2,4,4]}],"normal":[],"hard":[]},"cross":{"w":6,"h":6,"m":"..##../..##../######/######/..##../..##..","easy":[{"c":[8,6,2,19,4,3,16,4,3,20,6,2],"s":[0,2,2,3,2,0,3,1,2,4,3,5,3,2,5,3]},{"c":[14,6,2,3,6,2,18,4,3,22,4,3],"s":[0,2,5,2,0,3,5,3,2,0,3,1,2,4,3,5]},{"c":[8,5,2,15,5,2,13,4,3,16,4,3,32,2,1],"s":[0,2,4,2,0,3,4,3,2,0,3,1,2,4,3,5,5,2,5,3]},{"c":[14,6,2,9,6,2,12,4,3,23,4,3],"s":[0,2,5,2,0,3,5,3,2,0,3,1,2,4,3,5]}],"normal":[],"hard":[]},"ell":{"w":6,"h":6,"m":"###.../###.../###.../######/######/######","easy":[{"c":[7,6,2,20,4,2,31,6,2,28,6,1,32,2,2,34,3,1],"s":[0,0,2,1,0,2,3,2,3,0,5,1,3,3,4,5,4,2,5,2,5,3,5,5]},{"c":[6,6,2,14,6,2,25,6,1,34,6,2,31,3,1],"s":[0,0,5,0,0,1,2,2,3,1,4,3,3,4,5,5,5,1,5,3]},{"c":[6,6,1,20,6,1,34,6,2,29,3,2,25,3,1,32,3,1],"s":[0,0,1,2,2,0,3,2,3,3,5,4,3,5,5,5,4,0,4,2,5,0,5,2]},{"c":[0,6,2,7,6,2,14,5,2,27,6,1,34,4,1],"s":[0,0,5,0,0,1,5,1,0,2,4,2,3,3,4,5,5,2,5,5]}],"normal":[{"c":[6,8,2,8,6,2,23,6,0,30,4,3,35,3,1],"s":[0,0,3,1,0,2,5,2,3,3,4,5,4,0,5,1,5,3,5,5]},{"c":[19,8,0,2,5,0,23,6,0,24,4,3,34,4,1],"s":[0,0,3,1,0,2,4,2,3,3,4,5,4,0,5,1,5,2,5,5]},{"c":[0,8,2,8,5,0,27,6,0,30,4,3,35,4,0],"s":[0,0,3,1,0,2,4,2,3,3,4,5,4,0,5,1,5,2,5,5]},{"c":[6,6,2,20,6,2,18,6,2,29,6,0,35,3,1],"s":[0,0,2,1,0,2,5,2,3,0,5,1,3,3,4,5,5,3,5,5]}],"hard":[]},"tee":{"w":7,"h":7,"m":"#######/#######/#######/..###../..###../..###../..###..","easy":[{"c":[8,6,2,30,5,2,17,6,2,19,6,2,38,6,2,37,2,2,45,2,1],"s":[0,0,2,1,0,2,4,2,0,3,2,4,0,5,2,6,3,3,5,4,5,2,6,2,6,3,6,4]},{"c":[15,6,2,3,6,1,5,6,2,44,5,2,24,5,2,25,5,2],"s":[0,0,2,1,0,2,1,4,0,5,2,6,2,2,6,2,2,3,6,3,2,4,6,4]},{"c":[1,6,2,16,6,2,18,6,2,5,6,2,31,4,3,39,2,1,45,3,1],"s":[0,0,2,1,0,2,5,2,0,3,2,4,0,5,2,6,3,3,4,4,5,3,5,4,6,2,6,4]},{"c":[0,6,1,6,3,2,8,6,1,15,6,1,30,6,1,37,3,1,45,3,1],"s":[0,0,0,5,0,6,2,6,1,0,1,5,2,0,2,5,3,2,4,4,5,2,5,4,6,2,6,4]}],"normal":[],"hard":[]},"plus":{"w":7,"h":7,"m":"..###../..###../#######/#######/#######/..###../..###..","easy":[{"c":[10,6,1,15,5,1,19,6,2,23,6,1,24,4,2,25,4,2,44,2,2],"s":[0,2,1,4,2,0,2,4,2,5,4,6,3,0,4,2,3,3,6,3,3,4,6,4,5,2,6,2]},{"c":[17,6,2,4,5,2,15,4,3,27,6,2,38,6,2,28,2,1,39,2,2,45,2,1],"s":[0,2,2,3,0,4,4,4,2,0,3,1,2,5,4,6,3,2,5,3,4,0,4,1,5,4,6,4,6,2,6,3]},{"c":[16,6,2,18,6,2,22,6,2,20,4,3,39,6,2,34,2,1,44,3,1],"s":[0,2,5,2,0,3,2,4,2,0,4,1,2,5,3,6,3,3,5,4,4,5,4,6,6,2,6,4]},{"c":[9,6,1,22,6,1,18,6,2,27,6,2,29,3,1,39,6,1],"s":[0,2,1,4,2,0,3,2,2,3,4,4,2,5,4,6,4,0,4,2,5,2,6,4]}],"normal":[{"c":[9,8,0,4,6,2,22,6,2,20,6,2,30,4,3,44,3,0],"s":[0,2,3,3,0,4,5,4,2,0,4,1,2,5,4,6,4,2,5,3,6,2,6,4]},{"c":[2,6,1,21,8,0,25,6,0,27,3,2,30,4,1,44,6,1],"s":[0,2,1,4,2,0,3,3,2,4,4,5,2,6,4,6,4,0,4,3,5,2,6,4]},{"c":[2,8,2,11,6,0,22,6,2,20,4,3,30,2,1,34,2,1,37,2,0,44,3,0],"s":[0,2,3,3,0,4,5,4,2,0,4,1,2,5,3,6,4,2,4,3,4,5,4,6,5,2,5,3,6,2,6,4]},{"c":[10,6,1,21,8,0,26,6,1,31,4,0,33,3,1,46,6,1],"s":[0,2,1,4,2,0,3,3,2,4,3,6,4,0,4,3,4,4,4,6,5,2,6,4]}],"hard":[]},"house":{"w":7,"h":7,"m":"...#.../..###../.#####./#######/#######/#######/#######","easy":[{"c":[17,6,2,9,6,2,11,5,2,36,5,2,26,5,2,28,4,2,41,4,2,46,2,1],"s":[0,3,5,3,1,2,6,2,1,4,5,4,2,1,6,1,2,5,6,5,3,0,6,0,3,6,6,6,6,3,6,4]},{"c":[17,4,2,9,6,2,39,5,2,22,5,2,26,5,2,28,4,2,48,4,2,38,2,2,46,2,1],"s":[0,3,3,3,1,2,6,2,1,4,5,4,2,1,6,1,2,5,6,5,3,0,6,0,3,6,6,6,4,3,5,3,6,3,6,4]},{"c":[17,6,2,9,6,2,18,4,2,29,4,2,26,3,2,21,3,2,48,4,2,39,2,1,43,2,1,45,3,1],"s":[0,3,5,3,1,2,6,2,1,4,4,4,2,1,5,1,2,5,4,5,3,0,5,0,3,6,6,6,5,4,5,5,6,0,6,1,6,3,6,5]},{"c":[24,5,2,37,5,2,32,6,2,29,4,2,19,4,2,28,3,2,41,3,2,38,2,2,44,3,1,48,2,1],"s":[0,3,4,3,1,2,5,2,1,4,6,4,2,1,5,1,2,5,5,5,3,0,5,0,3,6,5,6,5,3,6,3,6,0,6,2,6,5,6,6]}],"normal":[{"c":[31,5,2,30,6,2,46,6,2,29,4,0,26,5,0,21,3,2,27,4,0,38,2,2,42,2,1],"s":[0,3,4,3,1,2,6,2,1,4,6,4,2,1,5,1,2,5,6,5,3,0,5,0,3,6,6,6,5,3,6,3,6,0,6,1]},{"c":[3,6,0,16,6,2,18,5,0,22,4,2,19,4,0,21,3,2,41,4,0,42,2,1,45,3,1],"s":[0,3,5,3,1,2,6,2,1,4,5,4,2,1,5,1,2,5,5,5,3,0,5,0,3,6,6,6,6,0,6,1,6,3,6,5]},{"c":[24,4,2,23,6,0,11,3,2,36,5,0,40,4,2,42,4,2,27,4,0,32,4,3,45,3,1],"s":[0,3,3,3,1,2,6,2,1,4,3,4,2,1,6,1,2,5,5,5,3,0,6,0,3,6,6,6,4,3,5,4,6,3,6,5]},{"c":[38,6,2,16,6,2,18,5,0,22,5,0,47,5,2,21,4,0,48,4,2,46,2,1],"s":[0,3,5,3,1,2,6,2,1,4,5,4,2,1,6,1,2,5,6,5,3,0,6,0,3,6,6,6,6,3,6,4]}],"hard":[]},"square6":{"w":6,"h":6,"m":"######/######/######/######/######/######","easy":[],"normal":[{"c":[1,8,0,3,8,0,16,6,2,11,4,0,30,8,1,29,2,0],"s":[0,0,3,1,0,2,3,3,0,4,5,4,0,5,3,5,4,0,5,3,4,5,5,5]},{"c":[7,8,0,3,8,0,10,8,2,32,8,1,29,4,0],"s":[0,0,3,1,0,2,3,3,0,4,3,5,4,0,5,3,4,4,5,5]},{"c":[30,6,2,14,8,2,15,8,0,17,6,0,27,8,0],"s":[0,0,5,0,0,1,3,2,0,3,3,4,0,5,5,5,4,1,5,4]},{"c":[24,6,2,2,5,0,13,8,0,9,8,0,11,3,2,35,2,0,34,4,1],"s":[0,0,5,0,0,1,0,5,1,1,4,2,1,3,4,4,1,5,3,5,4,5,5,5,5,1,5,4]}],"hard":[]},"ring":{"w":7,"h":7,"m":"#######/#######/##...##/##...##/##...##/#######/#######","easy":[],"normal":[{"c":[14,8,2,11,8,0,27,4,0,19,5,2,35,4,0,41,3,2,45,6,0,42,2,1],"s":[0,0,3,1,0,2,1,5,0,6,3,6,2,5,6,5,4,0,5,1,4,6,6,6,5,2,6,4,6,0,6,1]},{"c":[7,6,0,12,6,1,27,6,0,36,8,2,26,4,2,38,4,3,39,2,0,43,2,0,48,2,1],"s":[0,0,1,2,0,3,1,5,0,6,5,6,2,0,5,1,2,5,5,5,5,2,6,3,5,4,6,4,6,0,6,1,6,5,6,6]},{"c":[8,8,2,11,8,0,20,6,2,26,3,0,42,6,2,45,4,0,40,2,1,47,3,1],"s":[0,0,3,1,0,2,1,5,0,6,5,6,2,5,4,5,4,0,6,1,5,2,6,3,5,4,5,5,6,4,6,6]},{"c":[1,8,0,4,6,1,22,8,2,20,6,2,40,8,1,48,2,2,42,2,1],"s":[0,0,1,3,0,4,1,6,2,0,5,1,2,5,4,6,5,2,6,5,5,6,6,6,6,0,6,1]}],"hard":[{"c":[1,10,0,20,8,0,36,10,0,40,6,0,46,6,0],"s":[0,0,1,4,0,5,3,6,2,0,6,1,4,5,6,6,5,2,6,4]},{"c":[0,10,0,13,10,0,47,10,0,45,10,0],"s":[0,0,4,1,0,2,1,6,2,5,6,6,5,0,6,4]},{"c":[28,10,0,9,8,0,6,6,0,19,4,0,35,8,0,46,2,0,48,2,0],"s":[0,0,4,1,0,2,1,5,0,6,5,6,2,5,5,5,5,0,6,3,5,4,6,4,6,5,6,6]},{"c":[15,10,0,4,6,0,26,10,0,36,6,0,41,2,0,44,4,0,46,2,0],"s":[0,0,4,1,0,2,1,4,0,5,4,6,5,0,5,5,5,6,6,6,6,0,6,3,6,4,6,5]}]},"heart":{"w":9,"h":8,"m":".###.###./#########/#########/#########/.#######./..#####../...###.../....#....","easy":[],"normal":[{"c":[10,6,1,6,8,2,7,5,2,27,3,2,22,4,2,26,3,0,19,3,1,37,2,0,29,3,2,48,4,2,50,3,0,42,2,2,49,3,2],"s":[0,1,1,3,0,5,3,6,0,7,4,7,1,0,3,0,1,4,4,4,1,8,3,8,2,1,2,3,3,1,4,1,3,2,5,2,3,3,6,3,4,5,6,5,4,6,5,6,5,4,7,4]},{"c":[2,6,1,24,8,2,25,3,2,27,3,2,13,4,0,26,3,0,20,3,0,28,2,2,29,2,0,34,2,2,47,2,0,39,3,2,50,3,0,51,2,0,49,3,2],"s":[0,1,1,3,0,5,3,6,0,7,2,7,1,0,3,0,1,4,4,4,1,8,3,8,2,1,2,3,3,1,4,1,3,2,3,3,3,7,4,7,4,2,5,2,4,3,6,3,4,5,6,5,4,6,5,6,5,4,7,4]},{"c":[10,6,1,15,8,0,25,5,2,18,3,0,22,5,0,26,3,0,19,3,1,37,2,0,29,3,2,48,4,2,59,3,2,51,2,0,67,2,0],"s":[0,1,1,3,0,5,3,6,0,7,4,7,1,0,3,0,1,4,5,4,1,8,3,8,2,1,2,3,3,1,4,1,3,2,5,2,3,3,6,3,4,5,6,5,4,6,5,6,6,4,7,4]},{"c":[19,5,2,29,8,0,5,8,0,34,5,0,18,3,0,13,5,2,26,3,0,38,2,2,48,3,0,41,3,2,42,2,2,58,2,2],"s":[0,1,4,1,0,2,3,3,0,5,3,6,0,7,4,7,1,0,3,0,1,4,5,4,1,8,3,8,4,2,5,2,4,3,6,3,4,5,6,5,4,6,5,6,6,4,7,4]}],"hard":[{"c":[11,9,0,23,8,0,25,5,0,27,3,0,31,5,0,35,3,0,37,2,0,47,3,0,39,4,0,50,3,0,51,2,0,58,2,0],"s":[0,1,2,3,0,5,3,6,0,7,4,7,1,0,3,0,1,4,5,4,1,8,3,8,3,1,4,1,3,2,5,2,3,3,6,3,4,5,6,5,4,6,5,6,6,4,7,4]},{"c":[20,9,0,24,9,0,18,3,0,40,4,0,17,3,0,28,2,0,47,3,0,30,4,0,50,4,0,33,3,0,43,2,0,49,3,0],"s":[0,1,2,3,0,5,2,7,1,0,3,0,1,4,4,4,1,8,3,8,3,1,4,1,3,2,5,2,3,3,6,3,3,5,6,5,3,6,5,6,3,7,4,7,5,4,7,4]},{"c":[11,9,0,24,9,0,9,3,0,22,5,0,35,3,0,37,2,0,29,2,0,59,4,0,33,3,0,43,2,0,38,2,0,48,3,0,58,2,0],"s":[0,1,2,3,0,5,2,7,1,0,3,0,1,4,5,4,1,8,3,8,3,1,4,1,3,2,3,3,3,5,6,5,3,6,5,6,3,7,4,7,4,2,5,2,4,3,6,3,6,4,7,4]},{"c":[2,9,0,5,9,0,9,3,0,40,5,0,35,3,0,37,2,0,47,3,0,30,4,0,50,4,0,42,3,0,43,2,0,58,2,0],"s":[0,1,2,3,0,5,2,7,1,0,3,0,1,4,5,4,1,8,3,8,3,1,4,1,3,2,5,2,3,3,6,3,3,5,6,5,3,6,5,6,3,7,4,7,6,4,7,4]}]},"hourglass":{"w":9,"h":7,"m":"#########/.#######./..#####../...###.../..#####../.#######./#########","easy":[],"normal":[{"c":[2,4,1,5,4,0,7,3,1,11,3,1,16,2,1,21,5,1,32,3,0,40,5,0,50,5,0,51,2,0,57,6,0,60,3,0],"s":[0,0,0,3,0,4,1,5,0,6,0,8,1,1,1,3,1,6,1,7,2,2,2,6,3,3,3,5,4,2,4,6,5,1,5,5,5,6,5,7,6,0,6,5,6,6,6,8]},{"c":[1,5,1,6,4,1,10,5,0,16,2,1,20,3,0,24,2,1,32,3,0,42,5,0,49,5,1,51,2,0,54,5,0,61,4,0],"s":[0,0,0,4,0,5,0,8,1,1,1,5,1,6,1,7,2,2,2,4,2,5,2,6,3,3,3,5,4,2,4,6,5,1,5,5,5,6,5,7,6,0,6,4,6,5,6,8]},{"c":[3,6,0,8,3,0,10,5,0,16,2,1,20,3,0,23,2,0,32,3,0,40,3,0,41,2,0,46,5,0,51,2,0,59,6,0,60,3,0],"s":[0,0,0,5,0,6,0,8,1,1,1,5,1,6,1,7,2,2,2,4,2,5,2,6,3,3,3,5,4,2,4,4,4,5,4,6,5,1,5,5,5,6,5,7,6,0,6,5,6,6,6,8]},{"c":[3,6,0,7,3,1,13,5,1,16,2,1,21,3,1,23,2,0,32,3,0,42,5,0,46,5,0,52,2,1,56,5,0,62,4,1],"s":[0,0,0,5,0,6,0,8,1,1,1,5,1,6,1,7,2,2,2,4,2,5,2,6,3,3,3,5,4,2,4,6,5,1,5,5,5,6,5,7,6,0,6,4,6,5,6,8]}],"hard":[{"c":[2,5,0,7,4,0,10,3,0,14,4,0,22,5,0,32,3,0,39,5,0,46,5,0,52,2,0,54,4,0,58,5,0],"s":[0,0,0,4,0,5,0,8,1,1,1,3,1,4,1,7,2,2,2,6,3,3,3,5,4,2,4,6,5,1,5,5,5,6,5,7,6,0,6,3,6,4,6,8]},{"c":[1,6,0,6,3,0,10,5,0,16,2,0,24,5,0,32,3,0,38,5,0,49,5,0,51,2,0,59,6,0,61,3,0],"s":[0,0,0,5,0,6,0,8,1,1,1,5,1,6,1,7,2,2,2,6,3,3,3,5,4,2,4,6,5,1,5,5,5,6,5,7,6,0,6,5,6,6,6,8]},{"c":[4,5,0,5,4,0,10,5,0,16,2,0,22,3,0,23,2,0,30,3,0,42,5,0,48,5,0,51,2,0,57,5,0,62,4,0],"s":[0,0,0,4,0,5,0,8,1,1,1,5,1,6,1,7,2,2,2,4,2,5,2,6,3,3,3,5,4,2,4,6,5,1,5,5,5,6,5,7,6,0,6,4,6,5,6,8]},{"c":[1,5,0,6,4,0,12,5,0,16,2,0,22,5,0,32,3,0,39,5,0,50,5,0,51,2,0,56,6,0,60,3,0],"s":[0,0,0,4,0,5,0,8,1,1,1,5,1,6,1,7,2,2,2,6,3,3,3,5,4,2,4,6,5,1,5,5,5,6,5,7,6,0,6,5,6,6,6,8]}]},"zig":{"w":9,"h":7,"m":"#####..../#####..../..#######/..#######/....#####/....#####/#########","easy":[],"normal":[{"c":[1,6,0,22,8,2,20,2,2,41,8,0,43,8,0,58,3,0,56,4,1,60,4,1],"s":[0,0,1,2,0,3,3,4,2,2,3,2,2,5,5,6,2,7,5,8,4,4,6,4,6,0,6,3,6,5,6,8]},{"c":[2,6,1,3,6,0,20,2,2,24,8,1,30,2,1,51,6,0,44,6,2,57,4,0,60,3,0],"s":[0,0,1,2,0,3,2,4,2,2,3,2,2,5,3,8,3,3,3,4,4,4,5,6,4,7,6,8,6,0,6,3,6,4,6,6]},{"c":[3,8,0,31,6,0,29,4,0,50,5,0,52,8,2,26,5,0,54,5,0,60,2,1],"s":[0,0,1,3,0,4,5,4,2,2,3,3,2,5,6,5,2,6,5,7,2,8,6,8,6,0,6,4,6,6,6,7]},{"c":[9,8,0,4,6,2,29,4,0,24,8,1,41,6,0,62,6,2,56,5,0],"s":[0,0,1,3,0,4,5,4,2,2,3,3,2,5,3,8,4,5,6,6,4,7,6,8,6,0,6,4]}],"hard":[{"c":[13,10,0,23,10,0,25,10,0,40,9,0,56,4,0],"s":[0,0,1,4,2,2,3,6,2,7,6,8,4,4,6,6,6,0,6,3]},{"c":[4,10,0,32,10,0,62,10,0,51,9,0,57,4,0],"s":[0,0,1,4,2,2,3,6,2,7,6,8,4,4,6,6,6,0,6,3]},{"c":[10,10,0,32,10,0,61,10,0,49,9,0,56,4,0],"s":[0,0,1,4,2,2,3,6,2,7,6,8,4,4,6,6,6,0,6,3]},{"c":[0,10,0,21,8,0,24,9,0,49,6,0,61,6,0,54,4,0],"s":[0,0,1,4,2,2,3,5,2,6,4,8,4,4,6,5,5,6,6,8,6,0,6,3]}]},"blob":{"w":9,"h":7,"m":"..#####../.#######./#########/#########/#########/.#######./..#####..","easy":[],"normal":[],"hard":[{"c":[30,10,0,13,9,0,37,5,0,52,5,0,18,3,0,26,3,0,50,6,0,51,4,0,48,4,0,59,2,0],"s":[0,2,4,3,0,4,2,6,1,1,5,1,1,7,5,7,2,0,4,0,2,8,4,8,3,4,5,5,3,6,6,6,5,2,6,3,6,4,6,5]},{"c":[3,10,0,23,10,0,33,6,0,28,4,0,16,5,0,18,3,0,35,3,0,50,5,0,59,5,0],"s":[0,2,4,3,0,4,4,5,0,6,5,6,1,1,4,1,1,7,5,7,2,0,4,0,2,8,4,8,5,1,5,5,6,2,6,6]},{"c":[21,10,0,14,9,0,10,4,0,34,5,0,36,3,0,35,3,0,32,9,0,48,3,0,56,5,0],"s":[0,2,4,3,0,4,2,6,1,1,4,1,1,7,5,7,2,0,4,0,2,8,4,8,3,4,5,6,5,1,5,3,6,2,6,6]},{"c":[30,10,0,4,10,0,15,5,0,10,4,0,43,5,0,36,3,0,35,3,0,47,5,0,51,2,0,56,4,0],"s":[0,2,4,3,0,4,4,5,0,6,4,6,1,1,4,1,1,7,5,7,2,0,4,0,2,8,4,8,5,1,5,5,5,6,6,6,6,2,6,5]}]},"frame":{"w":9,"h":9,"m":"#########/#########/##.....##/##.....##/##.....##/##.....##/##.....##/#########/#########","easy":[],"normal":[],"hard":[{"c":[36,10,0,4,8,0,6,6,0,44,10,0,72,8,0,76,8,0,80,6,0],"s":[0,0,4,1,0,2,1,5,0,6,1,8,2,7,6,8,5,0,8,1,7,2,8,5,7,6,8,8]},{"c":[10,10,0,8,8,0,45,8,0,43,8,0,63,4,0,62,6,0,66,8,0,69,2,0,73,2,0],"s":[0,0,1,4,0,5,1,8,2,0,5,1,2,7,5,8,6,0,7,1,6,7,8,8,7,2,8,5,7,6,8,6,8,0,8,1]},{"c":[1,10,0,3,10,0,34,10,0,55,6,0,52,8,0,78,10,0,72,2,0],"s":[0,0,4,1,0,2,1,6,0,7,4,8,5,0,7,1,5,7,8,8,7,2,8,6,8,0,8,1]},{"c":[37,10,0,12,10,0,17,10,0,55,8,0,71,8,0,67,8,0,78,2,0],"s":[0,0,4,1,0,2,1,6,0,7,4,8,5,0,8,1,5,7,8,8,7,2,8,5,7,6,8,6]}]},"big":{"w":10,"h":8,"m":"##########/##########/##########/##########/##########/##########/##########/##########","easy":[],"normal":[],"hard":[{"c":[1,9,0,43,10,0,16,10,0,56,10,0,27,8,0,59,6,0,61,8,0,32,5,0,74,6,0,68,4,0,71,2,0,76,2,0],"s":[0,0,2,2,0,3,4,4,0,5,1,9,2,5,6,6,2,7,5,8,2,9,7,9,3,0,6,1,3,2,7,2,5,3,7,4,6,7,7,8,7,0,7,1,7,5,7,6]},{"c":[1,10,0,25,10,0,27,9,0,21,10,0,53,10,0,24,6,0,78,10,0,59,5,0,76,6,0,71,4,0],"s":[0,0,1,4,0,5,4,6,0,7,2,9,2,0,6,1,2,2,6,3,2,4,7,4,3,7,7,8,3,9,7,9,5,5,7,6,7,0,7,3]},{"c":[31,10,0,22,9,0,5,10,0,7,10,0,19,5,0,33,10,0,54,5,0,50,6,0,68,8,0,69,2,0,79,5,0],"s":[0,0,4,1,0,2,2,4,0,5,4,6,0,7,4,8,0,9,4,9,3,2,7,3,3,4,7,4,5,0,7,1,5,5,6,8,5,9,6,9,7,5,7,9]},{"c":[0,9,0,44,10,0,18,8,0,29,4,0,47,9,0,28,6,0,30,10,0,72,5,0,69,4,0,66,10,0,73,5,0],"s":[0,0,2,2,0,3,4,4,0,5,1,8,0,9,3,9,2,5,4,7,2,8,7,8,3,0,7,1,3,2,7,2,4,9,7,9,5,3,6,7,7,3,7,7]}]}};
+
+/* Patchwork on the kit. Puzzles (PUZ) are made offline by tools/genall.js: one solution each. Boards are masks, so any shape works. */
+(() => {
+const { $, store, ui, rng, sfx, settings } = KIT;
+const S = store('kevinhyhau.ch20.v1', { dark: true, sound: true, palette: 'pastel', marker: 'circle', corner: 'rounded', hints: true, errors: true, shape: 'any', level: 'normal', best: {}, daily: { d: '', t: 0 }, game: null }), st = S.st;
+ui.theme($('themeBtn'), st, S.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovWin', 'ovPause']);
+const NAMES = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
+const SHAPE_LABEL = { square5: '⬜ Square 5', square6: '⬜ Square 6', ell: '🅻 L-bend', tee: '🅃 T-bar', plus: '➕ Plus', ring: '⭕ Ring', diamond: '🔷 Diamond', stairs: '🪜 Stairs', house: '🏠 House', heart: '❤️ Heart', arrow: '⬆️ Arrow', frame: '🖼️ Frame', blob: '🫧 Blob', hourglass: '⏳ Hourglass', zig: '📶 Zigzag', cross: '✝️ Cross', big: '🧱 Big square' };
+const PAL = {
+  pastel: ['#f9a8d4', '#fcd34d', '#86efac', '#93c5fd', '#c4b5fd', '#fdba74', '#5eead4', '#fca5a5', '#bef264', '#a5b4fc'],
+  bright: ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#14b8a6', '#eab308', '#6366f1', '#f97316'],
+  earth: ['#c2410c', '#b45309', '#4d7c0f', '#0f766e', '#7c2d12', '#a16207', '#65a30d', '#9a3412', '#854d0e', '#115e59'],
+  ocean: ['#0ea5e9', '#06b6d4', '#38bdf8', '#2dd4bf', '#60a5fa', '#22d3ee', '#818cf8', '#67e8f9', '#7dd3fc', '#5eead4'],
+  candy: ['#f472b6', '#fb7185', '#c084fc', '#f0abfc', '#fda4af', '#d8b4fe', '#f9a8d4', '#fecdd3', '#e879f9', '#fb923c'],
+  mono: ['#94a3b8', '#cbd5e1', '#64748b', '#a8b3c5', '#7b8aa0', '#b9c3d3', '#8190a6', '#d2dae6', '#6b7a90', '#9fb0c6']
+};
+settings([
+  { id: 'palette', label: 'Patch colours', type: 'select', options: [['pastel', '🍭 Pastel'], ['bright', '🎨 Bright'], ['earth', '🍂 Earth'], ['ocean', '🌊 Ocean'], ['candy', '🍬 Candy'], ['mono', '⚪ Quiet grey']], def: 'pastel' },
+  { id: 'marker', label: 'Number markers', type: 'select', options: [['circle', '● Circle'], ['square', '■ Rounded square'], ['diamond', '◆ Diamond'], ['hex', '⬢ Hexagon'], ['star', '★ Star']], def: 'circle' },
+  { id: 'corner', label: 'Patch corners', type: 'select', options: [['sq', 'Sharp'], ['rounded', 'Rounded'], ['round', 'Pill']], def: 'rounded' },
+  { id: 'hints', label: 'Show the shape hints (▭ ▯ □)', type: 'check', def: true },
+  { id: 'errors', label: 'Dim patches that break a rule', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S.save(); if (G) { applyLook(); paintAll(); } });
+
+let G = null; const cells = [];
+function symmap(w, h, k) { const fr = k & 1, fc = k & 2, T = k & 4, w2 = T ? h : w, h2 = T ? w : h, map = new Array(w * h);
+  for (let i = 0; i < w * h; i++) { let r = (i / w) | 0, c = i % w; if (fr) r = h - 1 - r; if (fc) c = w - 1 - c; if (T) [r, c] = [c, r]; map[i] = r * w2 + c; } return { map, w: w2, h: h2 }; }
+const has = (shape, level) => PUZ[shape] && PUZ[shape][level] && PUZ[shape][level].length;
+function load(shape, level, idx, tseed, daily) {
+  const D = PUZ[shape], p = D[level][idx], r = rng.mulberry(tseed), k8 = Math.floor(r() * 8), sy = symmap(D.w, D.h, k8), transposed = !!(k8 & 4), map = sy.map, rows = D.m.split('/');
+  const ok = new Array(sy.w * sy.h).fill(false); for (let i = 0; i < D.w * D.h; i++) if (rows[(i / D.w) | 0][i % D.w] === '#') ok[map[i]] = true;
+  const num = new Array(ok.length).fill(0), hint = new Array(ok.length).fill(0);
+  // hints (1 wide, 2 tall, 3 square) swap when the board is transposed
+  for (let k = 0; k < p.c.length; k += 3) { const cell = map[p.c[k]]; num[cell] = p.c[k + 1]; let h = p.c[k + 2]; if (transposed && (h === 1 || h === 2)) h = 3 - h; hint[cell] = h; }
+  const sol = []; for (let k = 0; k < p.s.length; k += 4) { const a = map[p.s[k] * D.w + p.s[k + 1]], b = map[p.s[k + 2] * D.w + p.s[k + 3]], ar = (a / sy.w) | 0, ac = a % sy.w, br = (b / sy.w) | 0, bc = b % sy.w; sol.push([Math.min(ar, br), Math.min(ac, bc), Math.max(ar, br), Math.max(ac, bc)]); }
+  G = { shape, level, idx, tseed, daily: !!daily, W: sy.w, H: sy.h, ok, num, hint, sol, total: ok.filter(x => x).length, clues: num.filter(x => x).length, rects: [], hist: [], secs: 0, hints: 0, done: false, paused: false, hintRect: -1, drag: null };
+  st.level = level;
+}
+function pick(shape, level) { const shapes = Object.keys(PUZ).filter(s => has(s, level)); if (!shapes.length) return null;
+  const s = shape && shape !== 'any' && has(shape, level) ? shape : shapes[Math.floor(Math.random() * shapes.length)]; return [s, Math.floor(Math.random() * PUZ[s][level].length)]; }
+function newGame(shape, level) { level = level || st.level; if (shape === undefined) shape = st.shape; const p = pick(shape, level) || pick('any', 'normal');
+  load(p[0], level, p[1], (Math.random() * 4294967296) >>> 0, false); st.shape = shape || 'any'; start(); }
+function dailyGame() { const seed = rng.dailySeed('patchwork'), level = ['easy', 'normal', 'hard'][(seed >>> 3) % 3], shapes = Object.keys(PUZ).filter(s => has(s, level)).sort(), s = shapes[(seed >>> 7) % shapes.length];
+  load(s, level, Math.floor(rng.mulberry(seed)() * PUZ[s][level].length), seed, true); start(); }
+function start() { O.hideAll(); build(); paintAll(); persist(); }
+
+/* ---------- board ---------- */
+const tb = $('tb'), rectBox = $('rects');
+function build() {
+  const { W, H } = G; [...tb.querySelectorAll('.tc')].forEach(e => e.remove()); cells.length = 0; tb.style.setProperty('--w', W); tb.style.setProperty('--h', H);
+  for (let i = 0; i < W * H; i++) { const el = KIT.el('div', { class: 'tc' + (G.ok[i] ? '' : ' hole') }); el.dataset.i = i; tb.insertBefore(el, rectBox); cells.push(el);
+    if (G.ok[i] && G.num[i]) { const m = KIT.el('div', { class: 'mk' }), nb = KIT.el('b', {}, String(G.num[i])); m.appendChild(nb); el.appendChild(m);
+      if (G.hint[i]) el.appendChild(KIT.el('div', { class: 'hg w' + G.hint[i] })); } }
+  applyLook(); fit(); buildPickers();
+}
+function applyLook() { cells.forEach(el => { const m = el.querySelector('.mk'); if (m) m.className = 'mk ' + (st.marker || 'circle'); const hg = el.querySelector('.hg'); if (hg) hg.style.display = st.hints ? '' : 'none'; }); }
+function fit() { if (!G) return; const wrap = tb.parentElement, maxW = wrap.clientWidth || 360, cs = Math.min(maxW / G.W, 80, (window.innerHeight * .62) / G.H); tb.style.width = (cs * G.W) + 'px'; tb.style.setProperty('--fs', cs + 'px'); }
+window.addEventListener('resize', fit);
+function buildPickers() {
+  const sh = $('shapes'), lv = $('levels');
+  if (!lv.children.length) ['easy', 'normal', 'hard'].forEach(l => lv.appendChild(KIT.el('button', { class: 'btn sm', type: 'button', 'data-act': 'level', 'data-l': l }, NAMES[l])));
+  [...lv.children].forEach(b => b.classList.toggle('on', b.dataset.l === G.level && !G.daily));
+  sh.innerHTML = ''; sh.appendChild(KIT.el('button', { class: 'btn sm' + (st.shape === 'any' && !G.daily ? ' on' : ''), type: 'button', 'data-act': 'shape', 'data-s': 'any' }, '🎲 Any'));
+  Object.keys(PUZ).filter(s => has(s, G.level)).forEach(s => sh.appendChild(KIT.el('button', { class: 'btn sm' + (st.shape === s && !G.daily ? ' on' : ''), type: 'button', 'data-act': 'shape', 'data-s': s }, SHAPE_LABEL[s] || s)));
+}
+
+/* ---------- rules ---------- */
+const area = r => (r[2] - r[0] + 1) * (r[3] - r[1] + 1);
+function cellsOf(r) { const out = []; for (let a = r[0]; a <= r[2]; a++) for (let b = r[1]; b <= r[3]; b++) out.push(a * G.W + b); return out; }
+function rectOk(r) { const cs = cellsOf(r); if (cs.some(i => !G.ok[i])) return false;
+  const cl = cs.filter(i => G.num[i]); if (cl.length !== 1 || G.num[cl[0]] !== cs.length) return false;
+  const h = G.hint[cl[0]], a = r[2] - r[0] + 1, b = r[3] - r[1] + 1; if (h && h !== (a === b ? 3 : b > a ? 1 : 2)) return false; return true; }
+const covered = () => { const s = new Set(); G.rects.forEach(r => cellsOf(r).forEach(i => s.add(i))); return s; };
+const solved = () => G.rects.length > 0 && covered().size === G.total && G.rects.every(rectOk);
+const overlap = (a, b) => !(a[2] < b[0] || b[2] < a[0] || a[3] < b[1] || b[3] < a[1]);
+
+/* ---------- paint ---------- */
+function drawRect(r, cls) { const d = KIT.el('div', { class: 'rc ' + cls }); d.style.left = (r[1] / G.W * 100) + '%'; d.style.top = (r[0] / G.H * 100) + '%'; d.style.width = ((r[3] - r[1] + 1) / G.W * 100) + '%'; d.style.height = ((r[2] - r[0] + 1) / G.H * 100) + '%'; return d; }
+function paintAll() {
+  if (!G) return; rectBox.innerHTML = ''; const pal = PAL[st.palette] || PAL.pastel; let good = 0;
+  G.rects.forEach((r, k) => { const ok = rectOk(r); if (ok) good++; const d = drawRect(r, (st.corner || 'rounded') + (st.errors && !ok ? ' off' : '') + (G.hintRect === k ? ' hintr' : ''));
+    d.style.background = pal[k % pal.length] + (st.dark === false ? '' : 'dd'); rectBox.appendChild(d); });
+  if (G.drag && G.drag.rect) { const d = drawRect(G.drag.rect, 'prev' + (G.drag.valid ? '' : ' no')); rectBox.appendChild(d); }
+  KIT.setText($('sz'), good + '/' + G.clues); const b = st.best[G.level]; KIT.setText($('bt'), b ? fmt(b) : '-'); KIT.setText($('hn'), G.hints); KIT.setText($('tm'), fmt(G.secs)); $('bUndo').disabled = !G.hist.length || G.done;
+  const left = G.total - covered().size;
+  $('tmsg').textContent = G.done ? 'Solved!' : !G.rects.length ? NAMES[G.level] + (G.daily ? ' (daily)' : '') + ' · ' + (SHAPE_LABEL[G.shape] || G.shape) + ' · drag across squares to draw a patch.' : (st.errors && G.rects.some(r => !rectOk(r)) ? 'Dimmed patches break a rule (they need one number equal to their size). ' : '') + left + ' square' + (left === 1 ? '' : 's') + ' not covered yet.';
+}
+const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+/* ---------- actions ---------- */
+function snap() { G.hist.push(JSON.stringify(G.rects)); if (G.hist.length > 200) G.hist.shift(); }
+function after() { paintAll(); persist(); if (!G.done && solved()) win(); }
+function addRect(r) { snap(); G.rects = G.rects.filter(o => !overlap(o, r)); G.rects.push(r); G.hintRect = -1; A.beep(520, .05, 'triangle', .07); after(); }
+function removeAt(i) { const k = G.rects.findIndex(r => cellsOf(r).includes(i)); if (k < 0) return false; snap(); G.rects.splice(k, 1); G.hintRect = -1; A.beep(300, .04, 'sine', .05); after(); return true; }
+function undo() { if (!G || G.done || !G.hist.length) return; G.rects = JSON.parse(G.hist.pop()); G.hintRect = -1; paintAll(); persist(); }
+function clearAll() { if (!G || G.done || !G.rects.length) return; snap(); G.rects = []; G.hintRect = -1; paintAll(); persist(); }
+function hint() {
+  if (!G || G.done || G.paused) return; const miss = G.sol.filter(s => !G.rects.some(r => r[0] === s[0] && r[1] === s[1] && r[2] === s[2] && r[3] === s[3]));
+  if (!miss.length) return; const s = miss[Math.floor(Math.random() * miss.length)].slice(); snap(); G.rects = G.rects.filter(o => !overlap(o, s)); G.rects.push(s); G.hintRect = G.rects.length - 1; G.hints++; A.slide(400, 900, .15, 'triangle', .08); after();
+}
+function win() {
+  G.done = true; const t = G.secs; let msg = 'Time ' + fmt(t) + ' · hints ' + G.hints;
+  if (!G.hints) { if (!st.best[G.level] || t < st.best[G.level]) { st.best[G.level] = t; msg += ' · 🏆 new best'; } } else msg += ' · (best times count only without hints)';
+  if (G.daily && !G.hints) st.daily = { d: new Date().toISOString().slice(0, 10), t };
+  $('winTxt').textContent = msg; O.show('ovWin'); st.game = null; S.save(); paintAll();
+  [523, 659, 784, 1047].forEach((f, i) => A.beep(f, .14, 'triangle', .12, i * .08));
+}
+function persist() { if (!G || G.done) return; st.game = { shape: G.shape, level: G.level, idx: G.idx, tseed: G.tseed, daily: G.daily, rects: G.rects, secs: G.secs, hints: G.hints }; S.save(); }
+function pause() { if (!G || G.done) return; G.paused = !G.paused; if (G.paused) { O.show('ovPause'); persist(); } else O.hide('ovPause'); }
+
+let last = performance.now();
+setInterval(() => { const now = performance.now(), dt = now - last; last = now;
+  if (G && !G.done && !G.paused && !document.hidden && dt < 3000 && G.rects.length) { G.acc = (G.acc || 0) + dt; while (G.acc >= 1000) { G.acc -= 1000; G.secs++; } KIT.setText($('tm'), fmt(G.secs)); if (G.secs % 5 === 0) persist(); } }, 250);
+document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
+
+/* ---------- drawing: drag from one corner to the opposite corner; tap a patch to remove it ---------- */
+function cellAt(x, y) { const r = tb.getBoundingClientRect(), c = Math.floor((x - r.left) / r.width * G.W), rr = Math.floor((y - r.top) / r.height * G.H); return c < 0 || rr < 0 || c >= G.W || rr >= G.H ? -1 : rr * G.W + c; }
+function boxOf(a, b) { return [Math.min((a / G.W) | 0, (b / G.W) | 0), Math.min(a % G.W, b % G.W), Math.max((a / G.W) | 0, (b / G.W) | 0), Math.max(a % G.W, b % G.W)]; }
+tb.addEventListener('pointerdown', e => { if (!G || G.done || G.paused) return; const c = cellAt(e.clientX, e.clientY); if (c < 0 || !G.ok[c]) return; e.preventDefault(); try { tb.setPointerCapture(e.pointerId); } catch (_) {}
+  G.drag = { start: c, cur: c, moved: false, rect: [(c / G.W) | 0, c % G.W, (c / G.W) | 0, c % G.W], valid: true }; G.drag.valid = !boxOf(c, c).length || cellsOf(G.drag.rect).every(i => G.ok[i]); });
+tb.addEventListener('pointermove', e => { if (!G || !G.drag) return; e.preventDefault(); const c = cellAt(e.clientX, e.clientY); if (c < 0 || c === G.drag.cur) return;
+  G.drag.cur = c; G.drag.moved = true; G.drag.rect = boxOf(G.drag.start, c); G.drag.valid = cellsOf(G.drag.rect).every(i => G.ok[i]); paintAll(); });
+function endDrag(e, cancel) { if (!G || !G.drag) return; const d = G.drag; G.drag = null;
+  if (cancel) { paintAll(); return; }
+  if (!d.moved) { if (!removeAt(d.start)) paintAll(); return; }
+  if (d.valid) addRect(d.rect); else { A.beep(200, .08, 'square', .05); paintAll(); } }
+tb.addEventListener('pointerup', e => endDrag(e, false)); tb.addEventListener('pointercancel', e => endDrag(e, true)); tb.addEventListener('contextmenu', e => e.preventDefault());
+ui.actions(document.body, { undo, hint, clear: clearAll, pause, new: () => newGame(), winClose: () => O.hide('ovWin'), level: b => newGame(undefined, b.dataset.l), shape: b => { st.shape = b.dataset.s; newGame(b.dataset.s, G && G.level); }, daily: dailyGame });
+window.addEventListener('keydown', e => { if (!G || e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key.toLowerCase(); if (k === 'z') undo(); else if (k === 'h') hint(); else if (k === 'p') pause(); });
+
+KIT.pwa.register('sw.js'); KIT.pwa.hint($('iosHint')); KIT.pwa.installButton($('installBtn'));
+(function boot() {
+  const g = st.game;
+  try { if (g && has(g.shape, g.level) && PUZ[g.shape][g.level][g.idx] && Array.isArray(g.rects)) { load(g.shape, g.level, g.idx, g.tseed, g.daily); build();
+      for (const r of g.rects) if (Array.isArray(r) && r.length === 4 && r.every(Number.isInteger) && r[0] >= 0 && r[1] >= 0 && r[2] < G.H && r[3] < G.W && r[0] <= r[2] && r[1] <= r[3] && cellsOf(r).every(i => G.ok[i]) && !G.rects.some(o => overlap(o, r))) G.rects.push(r);
+      G.secs = g.secs | 0; G.hints = g.hints | 0; paintAll(); if (solved()) newGame(); return; } } catch (e) {}
+  newGame();
+})();
+KIT.hook({ get G() { return G; }, load, addRect, removeAt, hint, undo, solved, rectOk, newGame, PUZ, symmap });
+})();
+
+</script>
+</body>
+<script src="../nav.js"></script>
+</html>

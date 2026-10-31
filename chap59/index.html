@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 59 · Flock</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3b2f24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flock">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:1.6em;font-weight:700;font-size:15px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:520px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;background:#3b2f24}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.btn.big{font-size:18px;padding:.7rem 1.6rem}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+.learn{display:flex;flex-direction:column;gap:8px;align-items:center;max-width:92%;text-align:center}
+.learn canvas{width:min(150px,38vw);height:min(150px,38vw);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.4)}.learn p{margin:0;font-size:12.5px;line-height:1.38}
+#ovLearn{gap:6px}
+.dots{display:flex;gap:6px}.dots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3)}.dots i.on{background:var(--accent)}
+#ovLearn h3{margin:0;font-size:clamp(20px,5.2vw,28px)}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Flock</h2>
+  <p>Chapter 59 · A new two-player board game I invented: stones move as far as their flock is big, and you win by sandwiching three enemy stones. Three rules, a computer opponent with four levels, or play a friend</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap flwrap">
+  <div class="thead">
+    <div class="tstat"><small>LIGHT</small><b id="s1">0 / 3</b></div>
+    <div class="tstat"><small>TURN</small><b id="s2">Light</b></div>
+    <div class="tstat"><small>DARK</small><b id="s3">0 / 3</b></div>
+    <div class="tstat"><small>MOVE</small><b id="s4">1</b></div>
+  </div>
+  <div class="tmsg" id="msg">Your move</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv flcv" aria-label="Flock board"></canvas>
+    <div class="ov" id="ovLearn"><h3>Flock in 30 seconds</h3>
+      <div class="learn"><canvas id="mini" width="220" height="220"></canvas><p id="miniP"></p><div class="dots" id="miniDots"></div></div>
+      <div class="tbar"><button class="btn" data-act="lback" id="lBack" type="button">◀ Back</button><button class="btn primary big" data-act="lnext" id="lNext" type="button">Next ▶</button></div></div>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win!</h3><p id="endP"></p><div class="tbar"><button class="btn primary big" data-act="newgame" type="button">Play again</button><button class="btn" data-act="undo" type="button">Take back last move</button></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" id="bUndo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" id="bHint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="newgame" type="button">🔄 New game</button>
+    <button class="btn sm" data-act="learn" type="button">❓ How to play</button>
+  </div>
+  <div class="tbar"><span class="kl">Play:</span><span id="vsBar"></span></div>
+  <div class="tbar" id="sideRow"><span class="kl">You are:</span><span id="sideBar"></span></div>
+  <div class="tbar" id="lvRow"><span class="kl">Computer:</span><span id="lvBar"></span></div>
+  <div class="tbar"><span class="kl">Board:</span><span id="sizeBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to play Flock</h2>
+    <p>Flock is a new board game, invented for this chapter. The whole game is three rules.</p>
+    <h3>The three rules</h3>
+    <ul>
+      <li><b>1. Move.</b> On your turn move <b>one</b> stone in a straight line (up, down, left or right) over empty squares. It may go <b>as many squares as its flock has stones</b>, up to 3. A flock is stones of the same colour that touch each other (up, down, left or right). A lone stone moves just 1; three stones in a clump can each move up to 3. The little number on each stone shows its range. Stones cannot jump over anything.</li>
+      <li><b>2. Sandwich.</b> After you move, look at the four squares around the stone you moved. Every enemy stone that has <b>one of your stones directly behind it</b> (in the same straight line) is captured and removed. The edge of the board does not count. Only the stone that just moved captures, so stepping <i>between</i> two enemy stones is safe.</li>
+      <li><b>3. Win.</b> Capture <b>3</b> enemy stones. You also win if your opponent cannot move. If 100 moves pass (50 each) the side with more stones wins, and equal stones is a draw. You may not move a stone straight back to the square it just left on your previous turn.</li>
+    </ul>
+    <h3>Tips</h3>
+    <ul>
+      <li>A clump is fast but it is also a target: the stones at its ends can still be sandwiched across the clump, from above and below. Stones in a row protect each other <i>along</i> the row.</li>
+      <li>Fast flocks threaten from far away. A lone stone is slow, so keep it behind your clump or use it as bait.</li>
+      <li>Before you move, check what the move opens up: will an enemy flock now reach a square next to one of your stones, with another of theirs behind it?</li>
+      <li>💡 Hint shows a good move. ↩ Undo takes back your last move (and the computer's reply).</li>
+    </ul>
+    <h3>Where the ideas come from</h3>
+    <ul>
+      <li><b>Chess, shogi, xiangqi:</b> every piece type has its own move. Flock keeps one piece type but lets its <i>power change</i> with the situation.</li>
+      <li><b>Draughts, dama, Hasami shogi, Tafl:</b> capture by position. Flock captures by sandwich (custodian capture), like Hasami shogi and the Tafl games.</li>
+      <li><b>Go and Othello:</b> groups matter. In Flock your groups give you speed.</li>
+      <li><b>Connect 4 and 5:</b> a tiny rule set, easy to learn and hard to master. Flock aims for the same.</li>
+      <li><b>Backgammon and mancala:</b> repeated positions are a problem, so Flock bans stepping straight back, and sets a move limit.</li>
+    </ul>
+    <p>It is a new game, so the computer's levels come from trying them against each other (a deeper search beats a shallower one every time). A human who finds a clever plan can beat even Master.</p>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🕊️ Flock is my own invention, made for this chapter after writing chess, shatranj, shogi, xiangqi, draughts, dama, Go, Othello, backgammon and many more. The rules, the computer player, the pictures and the sounds are all my own. It is a new game, so nobody has studied it: the computer levels were tuned by playing them against each other, not by experts. Not included: online play, saved games.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Flock rules. No drawing here.
+   Board n x n. Two sides (1 = Light, 2 = Dark). Rule 1: a stone moves in a straight line (up, down, left, right), over empty squares,
+   up to as many squares as its flock has stones (a flock = stones of one side touching each other, capped at CAP). Rule 2: after you
+   move, every enemy stone that sits between the stone you moved and another stone of yours (in a straight line, touching both) is
+   captured. Rule 3: you win when the other side is down to LOSE stones, or cannot move. Moving into a sandwich is safe. */
+const FK = (() => {
+const DEF = { n: 6, stones: 6, cap: 3, lose: 2, maxPly: 100, noBack: true };
+const DIRS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+function newGame(cfg) {
+  const c = Object.assign({}, DEF, cfg || {}), n = c.n, b = new Int8Array(n * n);
+  // each side fills the middle of its back row (and the next row if there are more stones than columns)
+  const place = (side, row0, dr) => { let k = c.stones; for (let r = 0; k > 0; r++) { const row = row0 + dr * r, cnt = Math.min(k, n), off = (n - cnt) >> 1; for (let i = 0; i < cnt; i++) b[row * n + off + i] = side; k -= cnt; } };
+  place(2, 0, 1); place(1, n - 1, -1);
+  return { c, n, b, turn: 1, ply: 0, n1: c.stones, n2: c.stones, over: false, winner: 0, why: '', last: null, lo: [null, null, null], hist: [] };
+}
+const clone = S => ({ c: S.c, n: S.n, b: S.b.slice(), turn: S.turn, ply: S.ply, n1: S.n1, n2: S.n2, over: S.over, winner: S.winner, why: S.why, last: S.last, lo: S.lo.slice(), hist: [] });
+/* flock size of every stone: fills `out` (Int8Array n*n) */
+function flocks(S, out) {
+  const n = S.n, b = S.b, N = n * n, st = new Int16Array(N); out.fill(0);
+  for (let i = 0; i < N; i++) { if (!b[i] || out[i]) continue; const side = b[i]; let sp = 0, head = 0; st[sp++] = i; out[i] = -1;
+    while (head < sp) { const j = st[head++], x = j % n, y = (j / n) | 0; if (x > 0 && b[j - 1] === side && !out[j - 1]) { out[j - 1] = -1; st[sp++] = j - 1; } if (x < n - 1 && b[j + 1] === side && !out[j + 1]) { out[j + 1] = -1; st[sp++] = j + 1; } if (y > 0 && b[j - n] === side && !out[j - n]) { out[j - n] = -1; st[sp++] = j - n; } if (y < n - 1 && b[j + n] === side && !out[j + n]) { out[j + n] = -1; st[sp++] = j + n; } }
+    for (let k = 0; k < sp; k++) out[st[k]] = sp; }
+  return out;
+}
+const range = (S, fl, i) => Math.min(fl[i], S.c.cap);
+function moves(S, fl) {
+  fl = flocks(S, fl || new Int8Array(S.n * S.n)); const n = S.n, b = S.b, side = S.turn, out = [];
+  for (let i = 0; i < n * n; i++) { if (b[i] !== side) continue; const R = Math.min(fl[i], S.c.cap), x = i % n, y = (i / n) | 0, lo = S.lo[side];
+    for (const [dx, dy] of DIRS) for (let s = 1; s <= R; s++) { const nx = x + dx * s, ny = y + dy * s; if (nx < 0 || ny < 0 || nx >= n || ny >= n) break; const t = ny * n + nx; if (b[t]) break; if (S.c.noBack && lo && lo.t === i && lo.f === t) continue; out.push(i * 64 + t); } }
+  return out;
+}
+const from = m => (m / 64) | 0, to = m => m % 64;
+/* the stones a move would capture, without making it */
+function capturesOf(S, m) {
+  const n = S.n, b = S.b, side = S.turn, f = from(m), t = to(m), x = t % n, y = (t / n) | 0, cap = []; const saved = b[f]; b[f] = 0; b[t] = side;
+  for (const [dx, dy] of DIRS) { const ax = x + dx, ay = y + dy, bx = x + 2 * dx, by = y + 2 * dy; if (ax < 0 || ay < 0 || ax >= n || ay >= n || bx < 0 || by < 0 || bx >= n || by >= n) continue; if (b[ay * n + ax] === 3 - side && b[by * n + bx] === side) cap.push(ay * n + ax); }
+  b[t] = 0; b[f] = saved; return cap;
+}
+/* make a move in place. Returns an undo record. */
+function make(S, m) {
+  const f = from(m), t = to(m), side = S.turn, caps = capturesOf(S, m), u = { m, caps, side, ply: S.ply, last: S.last, lo: S.lo[side], over: S.over, winner: S.winner, why: S.why };
+  S.b[f] = 0; S.b[t] = side; for (const c of caps) S.b[c] = 0;
+  if (side === 1) S.n2 -= caps.length; else S.n1 -= caps.length;
+  S.last = { f, t, caps }; S.lo[side] = { f, t }; S.ply++; S.turn = 3 - side;
+  const opp = side === 1 ? S.n2 : S.n1;
+  if (opp <= S.c.lose) { S.over = true; S.winner = side; S.why = 'captured'; }
+  else if (S.ply >= S.c.maxPly) { S.over = true; S.winner = S.n1 === S.n2 ? 0 : S.n1 > S.n2 ? 1 : 2; S.why = 'limit'; }
+  else if (!moves(S).length) { S.over = true; S.winner = side; S.why = 'blocked'; }
+  return u;
+}
+function unmake(S, u) {
+  const f = from(u.m), t = to(u.m); S.b[t] = 0; S.b[f] = u.side; for (const c of u.caps) S.b[c] = 3 - u.side;
+  if (u.side === 1) S.n2 += u.caps.length; else S.n1 += u.caps.length;
+  S.turn = u.side; S.ply = u.ply; S.last = u.last; S.lo[u.side] = u.lo; S.over = u.over; S.winner = u.winner; S.why = u.why;
+}
+/* score for the side to move (positive = good for them) */
+const FL = new Int8Array(64);
+function evaluate(S) {
+  if (S.over) return S.winner === 0 ? 0 : S.winner === S.turn ? 100000 : -100000;
+  const n = S.n, b = S.b; flocks(S, FL); let me = 0, op = 0, mo = 0, adv = 0; const side = S.turn;
+  for (let i = 0; i < n * n; i++) { const v = b[i]; if (!v) continue; const r = Math.min(FL[i], S.c.cap); if (v === side) { me += 100 + r * 6; } else { op += 100 + r * 6; } }
+  mo = moves(S).length; S.turn = 3 - side; const mo2 = moves(S).length; S.turn = side;
+  return me - op + (mo - mo2) * 1.5;
+}
+/* alpha-beta with the captures tried first */
+function search(S, depth, ms, noise) {
+  const t0 = Date.now(); let nodes = 0, stop = false, best = null, bestScore = 0;
+  const order = (list) => { const sc = list.map(m => { const c = capturesOf(S, m).length; return [m, c * 100 + Math.random()]; }); sc.sort((a, b) => b[1] - a[1]); return sc.map(x => x[0]); };
+  function ab(d, a, b) {
+    nodes++; if ((nodes & 1023) === 0 && ms && Date.now() - t0 > ms) stop = true; if (stop) return 0;
+    if (S.over || d === 0) return evaluate(S); const list = order(moves(S)); let v = -1e9;
+    for (const m of list) { const u = make(S, m); const s = -ab(d - 1, -b, -a); unmake(S, u); if (stop) return 0; if (s > v) v = s; if (v > a) a = v; if (a >= b) break; }
+    return v;
+  }
+  let result = null;
+  for (let d = 1; d <= depth; d++) {
+    const list = order(moves(S)); if (!list.length) return null; let bm = null, bs = -1e9, a = -1e9; const ranked = [];
+    for (const m of list) { const u = make(S, m); const s = -ab(d - 1, -1e9, -a) + (noise ? (Math.random() - .5) * noise : 0); unmake(S, u); if (stop) break; ranked.push([m, s]); if (s > bs) { bs = s; bm = m; } if (s > a) a = s; }
+    if (stop) break; result = { move: bm, score: bs, depth: d, nodes }; if (Math.abs(bs) > 90000) break;
+  }
+  if (!result) { const l = moves(S); result = { move: l[Math.floor(Math.random() * l.length)], score: 0, depth: 0, nodes }; }
+  result.nodes = nodes; return result;
+}
+return { newGame, clone, moves, make, unmake, capturesOf, flocks, search, evaluate, from, to, DEF, DIRS, range };
+})();
+if (typeof module !== 'undefined') module.exports = FK;
+
+/* Flock screen: draws the board and stones, takes taps, runs the computer player (flocksim.js does all the rules), plays sounds. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.flock.v1', { dark: true, sound: true, size: 5, vs: 'ai', human: 1, level: 'normal', learned: false, w: 0, l: 0, d: 0, anim: true }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovLearn', 'ovEnd']);
+settings([{ id: 'anim', label: 'Animations', type: 'check', def: true }, { id: 'sound', label: 'Sound', type: 'check', def: true }], st, $('panel'), () => S0.save());
+const cv = $('cv'), C = KIT.canvas(cv, 600, 600, 2), ctx = C.ctx, W = 600;
+const LEVELS = { easy: { d: 1, ms: 200, noise: 160, name: 'Easy' }, normal: { d: 3, ms: 600, noise: 8, name: 'Normal' }, hard: { d: 5, ms: 1000, noise: 2, name: 'Hard' }, master: { d: 9, ms: 2400, noise: 0, name: 'Master' } };
+const CFG = { 5: { n: 5, stones: 5, lose: 2 }, 6: { n: 6, stones: 6, lose: 3 } };
+let S = null, stack = [], sel = -1, backSq = -1, targets = [], hint = null, busy = false, anims = [], thinking = false, token = 0, msgText = '', hlT = 0;
+const LIGHT = 1, DARK = 2, NAME = ['', 'Light', 'Dark'];
+const isAI = side => st.vs === 'ai' && side !== st.human;
+/* ---------- drawing ---------- */
+const cell = () => (W - 40) / S.n, org = 20;
+const cx = i => org + (i % S.n + .5) * cell(), cy = i => org + (((i / S.n) | 0) + .5) * cell();
+function drawStone(c, x, y, r, side, num, alpha, scale) {
+  c.save(); c.globalAlpha = alpha == null ? 1 : alpha; c.translate(x, y); if (scale != null) c.scale(scale, scale);
+  c.beginPath(); c.arc(2, 4, r, 0, 6.283); c.fillStyle = 'rgba(0,0,0,.35)'; c.fill();
+  const g = c.createRadialGradient(-r * .35, -r * .4, r * .1, 0, 0, r); if (side === LIGHT) { g.addColorStop(0, '#fffdf5'); g.addColorStop(.7, '#e7dcc4'); g.addColorStop(1, '#bfae8c'); } else { g.addColorStop(0, '#6a7080'); g.addColorStop(.7, '#2a2e38'); g.addColorStop(1, '#0f1116'); }
+  c.beginPath(); c.arc(0, 0, r, 0, 6.283); c.fillStyle = g; c.fill(); c.lineWidth = 2; c.strokeStyle = side === LIGHT ? '#8c7b58' : '#000'; c.stroke();
+  if (num) { c.fillStyle = side === LIGHT ? '#5b4a2c' : '#e5e7eb'; c.font = 'bold ' + Math.round(r * .9) + 'px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(num, 0, r * .04); }
+  c.restore();
+}
+/* draws any square board: spec = {n, b, marks:{dots:[],hit:[],sel,last,hint}, ghost:[]} into context c at size w */
+function drawBoard(c, spec, w, o) {
+  o = o || {}; const n = spec.n, pad = w * (o.pad == null ? .035 : o.pad), cs = (w - 2 * pad) / n, X = i => pad + (i % n + .5) * cs, Y = i => pad + (((i / n) | 0) + .5) * cs;
+  const bg = c.createLinearGradient(0, 0, w, w); bg.addColorStop(0, '#d8b685'); bg.addColorStop(1, '#c19463'); c.fillStyle = bg; c.beginPath(); c.roundRect ? c.roundRect(0, 0, w, w, w * .03) : c.rect(0, 0, w, w); c.fill();
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if ((x + y) & 1) { c.fillStyle = 'rgba(90,55,20,.14)'; c.fillRect(pad + x * cs, pad + y * cs, cs, cs); }
+  c.strokeStyle = 'rgba(70,40,10,.45)'; c.lineWidth = Math.max(1, w * .004); c.strokeRect(pad, pad, n * cs, n * cs);
+  const m = spec.marks || {}; const b = spec.b;
+  // last move
+  if (m.last) { c.fillStyle = 'rgba(255,220,90,.28)'; for (const i of [m.last.f, m.last.t]) c.fillRect(pad + (i % n) * cs, pad + ((i / n) | 0) * cs, cs, cs); }
+  // flock bars
+  const fl = new Int8Array(n * n); FK.flocks({ n, b, c: { cap: 3 } }, fl);
+  for (let i = 0; i < n * n; i++) { if (!b[i] || (o.skip && o.skip.has(i))) continue; const x = i % n; for (const j of [i + 1, i + n]) { if (j >= n * n || (j === i + 1 && x === n - 1) || b[j] !== b[i] || (o.skip && o.skip.has(j))) continue; c.strokeStyle = b[i] === LIGHT ? 'rgba(255,248,225,.7)' : 'rgba(20,22,30,.7)'; c.lineWidth = cs * .42; c.lineCap = 'round'; c.beginPath(); c.moveTo(X(i), Y(i)); c.lineTo(X(j), Y(j)); c.stroke(); } }
+  if (m.sel != null && m.sel >= 0) { c.strokeStyle = '#fbbf24'; c.lineWidth = w * .008; c.beginPath(); c.arc(X(m.sel), Y(m.sel), cs * .47, 0, 6.283); c.stroke(); }
+  if (m.back != null && m.back >= 0) { const bx = X(m.back), by = Y(m.back), r = cs * .3; c.save(); c.strokeStyle = 'rgba(90,60,30,.75)'; c.lineWidth = Math.max(2, w * .009); c.lineCap = 'round'; c.setLineDash([cs * .1, cs * .08]); c.beginPath(); c.arc(bx, by, cs * .4, 0, 6.283); c.stroke(); c.setLineDash([]); c.beginPath(); c.moveTo(bx - r * .6, by - r * .6); c.lineTo(bx + r * .6, by + r * .6); c.moveTo(bx + r * .6, by - r * .6); c.lineTo(bx - r * .6, by + r * .6); c.stroke(); c.restore(); }
+  for (const t of m.dots || []) { const hit = (m.hitAt && m.hitAt[t.to]) ? 1 : 0; c.fillStyle = hit ? 'rgba(220,38,38,.75)' : 'rgba(34,120,70,.62)'; c.beginPath(); c.arc(X(t.to), Y(t.to), cs * (hit ? .2 : .14), 0, 6.283); c.fill(); if (hit) { c.strokeStyle = 'rgba(220,38,38,.9)'; c.lineWidth = w * .006; c.beginPath(); c.arc(X(t.to), Y(t.to), cs * .3, 0, 6.283); c.stroke(); } }
+  for (const v of m.hit || []) { c.strokeStyle = 'rgba(220,38,38,.95)'; c.lineWidth = w * .009; c.beginPath(); c.arc(X(v), Y(v), cs * .46, 0, 6.283); c.stroke(); }
+  if (m.hint) { const p = .5 + .5 * Math.sin(performance.now() / 160); c.strokeStyle = 'rgba(56,189,248,' + (.5 + p * .5) + ')'; c.lineWidth = w * .01; for (const i of [m.hint.f, m.hint.t]) { c.beginPath(); c.arc(X(i), Y(i), cs * (.46 + p * .04), 0, 6.283); c.stroke(); } }
+  for (let i = 0; i < n * n; i++) { if (!b[i] || (o.skip && o.skip.has(i))) continue; drawStone(c, X(i), Y(i), cs * .36, b[i], o.nums === false ? 0 : Math.min(fl[i], 3)); }
+  for (const g of spec.ghost || []) drawStone(c, X(g.i), Y(g.i), cs * .36, g.side, 0, .3);
+  for (const a of spec.arrows || []) { c.strokeStyle = '#2563eb'; c.fillStyle = '#2563eb'; c.lineWidth = w * .016; c.lineCap = 'round'; const x0 = X(a.f), y0 = Y(a.f), x1 = X(a.t), y1 = Y(a.t), ang = Math.atan2(y1 - y0, x1 - x0), sh = cs * .4; c.beginPath(); c.moveTo(x0 + Math.cos(ang) * sh, y0 + Math.sin(ang) * sh); c.lineTo(x1 - Math.cos(ang) * sh * .6, y1 - Math.sin(ang) * sh * .6); c.stroke(); c.beginPath(); c.moveTo(x1, y1); c.lineTo(x1 - Math.cos(ang - .5) * cs * .3, y1 - Math.sin(ang - .5) * cs * .3); c.lineTo(x1 - Math.cos(ang + .5) * cs * .3, y1 - Math.sin(ang + .5) * cs * .3); c.fill(); }
+}
+function frame(now) {
+  ctx.clearRect(0, 0, W, W); if (!S) return;
+  const skip = new Set(), moving = [], dying = [];
+  for (const a of anims) { const t = Math.min(1, (now - a.t0) / a.dur); a.p = t; if (a.kind === 'move') { skip.add(a.to); moving.push(a); } else if (a.kind === 'die') { skip.add(a.at); dying.push(a); } }
+  const marks = { sel: sel, dots: targets, hitAt: sel >= 0 ? hitMap() : null, back: sel >= 0 ? backSq : -1, last: S.last ? { f: S.last.f, t: S.last.t } : null, hint: hint };
+  drawBoard(ctx, { n: S.n, b: S.b, marks }, W, { skip, pad: 20 / W });
+  for (const a of moving) { const e = a.p * a.p * (3 - 2 * a.p), x = cx(a.from) + (cx(a.to) - cx(a.from)) * e, y = cy(a.from) + (cy(a.to) - cy(a.from)) * e; drawStone(ctx, x, y - Math.sin(a.p * Math.PI) * 6, cell() * .36, a.side, 0); }
+  for (const a of dying) { const p = a.p; drawStone(ctx, cx(a.at), cy(a.at), cell() * .36, a.side, 0, 1 - p, 1 + p * .3); ctx.strokeStyle = 'rgba(255,230,160,' + (1 - p) + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx(a.at), cy(a.at), cell() * (.3 + p * .5), 0, 6.283); ctx.stroke(); }
+  const before = anims.length; anims = anims.filter(a => now - a.t0 < a.dur); if (before && !anims.length) afterAnim();
+}
+function hitMap() { const h = {}; if (sel < 0) return h; for (const t of targets) if (FK.capturesOf(S, t.m).length) h[t.to] = 1; return h; }
+KIT.loop(null, () => frame(performance.now())).start();
+/* ---------- game flow ---------- */
+function newGame() {
+  token++; S = FK.newGame(CFG[st.size]); stack = []; sel = -1; targets = []; hint = null; backSq = -1; anims = []; busy = false; thinking = false; O.hide('ovEnd'); setBars(); status(); hud();
+  if (isAI(S.turn)) aiMove();
+}
+function snapshot() { stack.push(FK.clone(S)); if (stack.length > 400) stack.shift(); }
+function playMove(m) {
+  snapshot(); const side = S.turn, f = FK.from(m), t = FK.to(m), u = FK.make(S, m); hint = null; sel = -1; targets = [];
+  const T = performance.now(), caps = u.caps;
+  if (st.anim) { anims.push({ kind: 'move', from: f, to: t, side, t0: T, dur: 170 }); for (const c of caps) anims.push({ kind: 'die', at: c, side: 3 - side, t0: T + 170, dur: 320 }); busy = true; } 
+  A.beep(side === LIGHT ? 520 : 400, .06, 'triangle', .1); if (caps.length) { A.noise(.12, .22); A.beep(220, .12, 'square', .08, .08); }
+  hud(); status(); if (S.over) { finish(); return; } if (!st.anim) afterAnim();
+}
+function afterAnim() { busy = false; hud(); if (S.over) return; if (isAI(S.turn)) aiMove(); }
+function aiMove() {
+  if (S.over || thinking) return; thinking = true; const tk = token; status(); const L = LEVELS[st.level];
+  setTimeout(() => { if (tk !== token) { thinking = false; return; } const r = FK.search(FK.clone(S), L.d, L.ms, L.noise); thinking = false; if (tk !== token || S.over) return; if (!r || r.move == null) return; playMove(r.move); }, 280);
+}
+function finish() {
+  const w = S.winner; let h, p; const caps = [S.c.stones - S.n1, S.c.stones - S.n2];
+  if (w === 0) { h = 'Draw'; p = 'Equal stones after 100 moves.'; st.d++; A.beep(400, .2, 'sine', .1); }
+  else if (st.vs === 'ai') { const me = w === st.human; h = me ? '🎉 You win!' : 'The computer wins'; st[me ? 'w' : 'l']++; p = S.why === 'captured' ? NAME[w] + ' captured ' + (S.c.stones - (w === 1 ? S.n2 : S.n1)) + ' stones.' : S.why === 'blocked' ? NAME[3 - w] + ' cannot move.' : NAME[w] + ' has more stones after 100 moves.'; me ? (A.beep(660, .12, 'triangle', .1), A.beep(880, .12, 'triangle', .1, .12), A.beep(1100, .2, 'triangle', .1, .24)) : A.slide(300, 100, .5, 'sawtooth', .1); }
+  else { h = NAME[w] + ' wins!'; p = S.why === 'captured' ? NAME[w] + ' captured ' + (S.c.stones - (w === 1 ? S.n2 : S.n1)) + ' stones.' : S.why === 'blocked' ? NAME[3 - w] + ' cannot move.' : NAME[w] + ' has more stones after 100 moves.'; A.beep(660, .12, 'triangle', .1); }
+  S0.save(); $('endH').textContent = h; $('endP').textContent = p; setTimeout(() => { if (S.over) O.show('ovEnd'); }, st.anim ? 900 : 100); hud();
+}
+function hud() {
+  const need = S.c.stones - S.c.lose; $('s1').textContent = (S.c.stones - S.n2) + ' / ' + need; $('s3').textContent = (S.c.stones - S.n1) + ' / ' + need; $('s2').textContent = S.over ? 'Over' : NAME[S.turn]; $('s4').textContent = Math.min(S.ply + 1, S.c.maxPly);
+  $('recLine').textContent = st.vs === 'ai' ? 'Against the computer: ' + st.w + ' won · ' + st.l + ' lost · ' + st.d + ' drawn' : 'Two players on one screen';
+  $('bUndo').disabled = !stack.length || (busy && !S.over);
+}
+function status() {
+  let t; if (S.over) t = S.winner ? NAME[S.winner] + ' wins' : 'Draw'; else if (thinking || isAI(S.turn)) t = 'Computer is thinking…'; else if (st.vs === 'two') t = NAME[S.turn] + ': your move'; else t = 'Your move (' + NAME[S.turn] + ')';
+  $('msg').textContent = t;
+}
+/* ---------- input ---------- */
+function cellAt(e) { const p = C.pos(e), s = cell(), x = Math.floor((p.x - org) / s), y = Math.floor((p.y - org) / s); return x < 0 || y < 0 || x >= S.n || y >= S.n ? -1 : y * S.n + x; }
+function select(i) {
+  sel = i; targets = []; hint = null; backSq = -1; status();
+  if (i >= 0) {
+    for (const m of FK.moves(S)) if (FK.from(m) === i) targets.push({ to: FK.to(m), m }); A.beep(700, .03, 'square', .05);
+    const lo = S.lo[S.turn];   // the stone that moved last turn may not step straight back to the square it just left
+    if (S.c.noBack && lo && lo.t === i && S.b[lo.f] === 0) { backSq = lo.f; $('msg').textContent = 'Not allowed: this stone just came from the ✕ square, so it cannot step straight back. Move another stone first.'; }
+  }
+}
+cv.addEventListener('pointerdown', e => {
+  if (!S || busy || S.over || isAI(S.turn) || thinking) return; const i = cellAt(e); if (i < 0) return;
+  if (S.b[i] === S.turn) { select(sel === i ? -1 : i); return; }
+  const t = targets.find(x => x.to === i); if (sel >= 0 && t) { playMove(t.m); return; }
+  if (sel >= 0) { select(-1); }
+});
+function undo() {
+  if (!stack.length || (busy && !S.over)) return; token++; thinking = false; anims = []; busy = false; O.hide('ovEnd');
+  let s = stack.pop(); if (st.vs === 'ai') { while (stack.length && isAI(s.turn)) s = stack.pop(); }   // back to the last time it was the human's turn
+  S = s; sel = -1; backSq = -1; targets = []; hint = null; status(); hud(); if (isAI(S.turn)) aiMove();
+}
+function doHint() { if (!S || S.over || busy || thinking || isAI(S.turn)) return; const r = FK.search(FK.clone(S), 4, 700, 0); if (r && r.move != null) { hint = { f: FK.from(r.move), t: FK.to(r.move) }; sel = -1; targets = []; $('msg').textContent = 'Hint: try the pulsing stone'; } }
+/* ---------- bars ---------- */
+function setBars() {
+  const bar = (id, items, key, act) => { $(id).innerHTML = items.map(i => '<button class="btn sm' + (String(st[key]) === String(i[0]) ? ' on' : '') + '" data-act="' + act + '" data-v="' + i[0] + '" type="button">' + i[1] + '</button>').join(''); };
+  bar('vsBar', [['ai', 'Computer'], ['two', 'Two players']], 'vs', 'vs'); bar('sideBar', [[1, 'Light (first)'], [2, 'Dark (second)']], 'human', 'side');
+  bar('lvBar', Object.keys(LEVELS).map(k => [k, LEVELS[k].name]), 'level', 'level'); bar('sizeBar', [[5, '5 × 5 (quick)'], [6, '6 × 6 (classic)']], 'size', 'size');
+  $('sideRow').style.display = $('lvRow').style.display = st.vs === 'ai' ? '' : 'none';
+}
+/* ---------- the little teaching boards (one at a time) ---------- */
+let lstep = 0;
+const B5 = rows => { const b = new Int8Array(25); rows.forEach((r, y) => [...r].forEach((ch, x) => { b[y * 5 + x] = ch === 'L' ? 1 : ch === 'D' ? 2 : 0; })); return b; };
+const LESSONS = [
+  { t: '<b>1. Strength in numbers.</b> A stone moves in a straight line, as far as its <i>flock</i> is big. A flock is stones of one colour that touch. The number on a stone is how far it can go (most 3). Here the left three can go 3, the lone stone only 1.', spec: () => ({ n: 5, b: B5(['.....', '.....', '.....', '.....', 'LLL.L']), marks: { dots: [{ to: 16 }, { to: 11 }, { to: 6 }, { to: 19 }], sel: 21 } }) },
+  { t: '<b>2. Sandwich.</b> When you move, every enemy stone touching your stone, with another of your stones right behind it, is captured. Here the right stone steps in and the dark stone is taken.', spec: () => ({ n: 5, b: B5(['.....', '.....', 'LD..L', '.....', '.....']), arrows: [{ f: 14, t: 13 }], marks: { hit: [11] } }) },
+  { t: '<b>3. Capture 3 stones to win.</b> Stepping into a sandwich on your own move is safe (the dark stone here can step between the two light ones). You also cannot move a stone straight back at once.', spec: () => ({ n: 5, b: B5(['.....', '.....', 'L.L..', '.D...', '.....']), arrows: [{ f: 16, t: 11 }] }) }
+];
+function lesson() {
+  const L = LESSONS[lstep], c = $('mini').getContext('2d'); c.clearRect(0, 0, 220, 220); drawBoard(c, L.spec(), 220, { pad: .03 }); $('miniP').innerHTML = L.t;
+  $('miniDots').innerHTML = LESSONS.map((_, i) => '<i class="' + (i === lstep ? 'on' : '') + '"></i>').join(''); $('lBack').style.visibility = lstep ? '' : 'hidden'; $('lNext').textContent = lstep === LESSONS.length - 1 ? "Let's play" : 'Next ▶';
+}
+function showLearn() { lstep = 0; lesson(); O.show('ovLearn'); }
+ui.actions(document.body, {
+  newgame: newGame, undo, hint: doHint, learn: showLearn, lback: () => { if (lstep) { lstep--; lesson(); } }, lnext: () => { if (lstep < LESSONS.length - 1) { lstep++; lesson(); } else { O.hide('ovLearn'); st.learned = true; S0.save(); } },
+  vs: b => { st.vs = b.dataset.v; S0.save(); newGame(); }, side: b => { st.human = +b.dataset.v; S0.save(); newGame(); },
+  level: b => { st.level = b.dataset.v; S0.save(); setBars(); }, size: b => { st.size = +b.dataset.v; S0.save(); newGame(); }
+});
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame(); if (!st.learned) showLearn();
+KIT.hook({ get S() { return S; }, st, newGame, playMove, get busy() { return busy; }, get thinking() { return thinking; }, select, undo, get stack() { return stack; } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

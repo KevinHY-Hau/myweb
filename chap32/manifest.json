@@ -1,0 +1,31 @@
+{
+  "name": "Space Invaders",
+  "short_name": "Invaders",
+  "description": "Shoot the alien swarm before it lands. Pick Classic (big blocky aliens, one shot at a time) or New style (a swarm of tiny aliens, rapid fire), and catch the weapons they drop",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05060d",
+  "theme_color": "#05060d",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

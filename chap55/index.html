@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 55 · Mahjong</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d3d27">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mahjong">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:560px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;border-radius:10px;touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:pointer}
+.mjcv{aspect-ratio:480/652}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.mjacts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;min-height:46px}
+.mjacts .btn{padding:10px 16px;font-size:16px}.mjacts .btn.sm{padding:6px 10px;font-size:13px}.mjacts .btn[disabled]{opacity:.45}
+.pulse{animation:mjpulse .8s ease-in-out infinite}
+@keyframes mjpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.hintline{min-height:1.3em;text-align:center;font-size:13px;color:var(--accent-light);font-weight:600}
+.rescv{width:100%;max-width:460px;display:block;margin:6px auto}
+.resp{font-size:13.5px;text-align:left;max-width:460px;margin:0 auto}
+.yaku{list-style:none;margin:6px 0;padding:0}.yaku li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dashed rgba(128,128,128,.25)}.yaku b{color:var(--accent-light)}
+.pays{margin:4px 0;font-size:13px}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+.tclog{height:9.5em;overflow-y:auto;overscroll-behavior:contain;text-align:left;font-size:12.5px;line-height:1.45;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:6px 8px;-webkit-overflow-scrolling:touch}
+.tclog div{padding:1px 0;border-bottom:1px dashed rgba(128,128,128,.18)}
+.ov{overflow:auto}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}.mjacts .btn{padding:9px 12px;font-size:15px}}
+#ovRes,#ovEnd,#ovDice{background:rgba(10,28,20,.96)!important;justify-content:safe center;gap:6px;padding:8px;overflow:auto}
+#ovRes h3,#ovEnd h3{font-size:clamp(20px,5.6vw,28px);line-height:1.2}
+#ovRes .resp,#ovEnd .resp{color:#f3f3ee}
+
+.cmid{position:absolute;left:5%;right:5%;top:34%;display:none;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;z-index:3;padding:10px 12px;border-radius:16px;background:rgba(8,26,18,.88);border:2px solid #ffd84a;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.cmid.on{display:flex}.cmid .ctitle{flex-basis:100%;text-align:center;font-weight:800;font-size:14px;color:#ffd84a}.cmid .cnote{flex-basis:100%;text-align:center;font-size:12px;color:#ffb0b0}
+.cmid .btn{padding:11px 18px;font-size:17px}
+.tkcv{display:block;width:100%;max-width:560px;margin:0 auto;aspect-ratio:480/214;height:auto}
+.avb{background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:3px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;color:var(--text)}.avb img{border-radius:50%;display:block}.avb small{font-size:10px}.avb.on{border-color:#ffd84a}
+@media (max-width:480px){.cmid .btn{padding:10px 13px;font-size:15px}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Mahjong</h2>
+  <p>Chapter 55 · Hong Kong style (13 tiles, faan) or Taiwan style (16 tiles, tai) against three cute, dramatic animal friends who gasp, shout and cry when you 碰, 上, 槓 or 糊</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap mjwrap">
+  <div class="thead">
+    <div class="tstat"><small>ROUND</small><b id="s1">東 1</b></div>
+    <div class="tstat"><small>YOUR SCORE</small><b id="s2">0</b></div>
+    <div class="tstat"><small>WALL</small><b id="s3">0</b></div>
+    <div class="tstat"><small>DEALER</small><b id="s4">You</b></div>
+  </div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv mjcv" aria-label="Mahjong table"></canvas>
+    <div class="cmid" id="cmid" aria-live="polite"></div>
+    <div class="ov" id="ovRes"><h3 id="resH">Result</h3><canvas id="resCv" class="rescv"></canvas><div id="resP" class="resp"></div><div class="tbar"><button class="btn primary" id="resBtn" data-act="next" type="button">Next hand ▶</button></div></div>
+    <div class="ov" id="ovDice"><h3 id="diceH">Roll the dice</h3><canvas id="diceCv" class="rescv" style="max-width:300px"></canvas><div id="diceP" class="resp"></div><div class="tbar"><button class="btn primary" id="diceBtn" data-act="roll" type="button">🎲 Roll</button></div></div>
+    <div class="ov" id="ovEnd"><h3 id="endH">Game over</h3><canvas id="endCv" class="rescv"></canvas><div id="endP" class="resp"></div><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="tmsg" id="msg">Your turn</div>
+  <div class="mjacts" id="acts"></div>
+  <div class="hintline" id="hintLine"></div>
+  <canvas id="tk" class="tkcv" aria-label="Tiles left"></canvas>
+  <div class="tbar"><button class="btn sm" data-act="restart" type="button">🔄 New game</button></div>
+  <div class="tbar"><span class="kl">Rules:</span><span id="ruleBar"></span></div>
+  <div class="tbar"><span class="kl">Length:</span><span id="lenBar"></span></div>
+  <div class="tbar"><span class="kl">You are:</span></div><div class="tbar" id="avMe"></div>
+  <div class="tbar"><span class="kl">Opponents (tap to change):</span></div><div class="tbar" id="avOpp"></div>
+  <div class="tclog" id="log" aria-label="Game log"></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to play Mahjong</h2>
+    <p>You sit at the bottom. three animal friends play against you (by default <b>Mimi the cat</b> on the right, <b>Boba the panda</b> across and <b>Granny Fox</b> on the left). You can pick your own avatar and theirs from 10 animals below the table. Everyone starts on 0 points; the best score when the game ends wins. Turns go <b>round to your right</b>: you, then the animal on your right, across, and on your left.</p>
+    <h3>The tiles</h3>
+    <ul>
+      <li><b>Suits:</b> 萬 characters, 筒 circles, 索 bamboo, each 1 to 9. <b>Honours:</b> winds 東南西北 and dragons 中 (red) 發 (green) 白 (blank frame). Four of each. <b>Flowers</b> 梅蘭菊竹 and 春夏秋冬: 8 bonus tiles. Draw one and it goes aside, you take a replacement at once. A flower with your own seat’s number scores.</li>
+      <li><b>Goal:</b> make your hand into <b>sets</b> plus <b>one pair</b>. A set is a <b>chow</b> (three in a row of one suit, e.g. 3-4-5 萬) or a <b>pung</b> (three identical tiles). A <b>kong</b> is four identical tiles, counted as one set.</li>
+    </ul>
+    <h3>Your turn</h3>
+    <ul>
+      <li>You draw one tile, then <b>tap a tile to select it and tap it again</b> (or press <b>Discard</b>) to throw it. 💡 <b>Hint</b> suggests a discard; when you are one tile away, selecting a tile shows the tiles you would wait for.</li>
+      <li>When someone throws a tile you may <b>claim</b> it, using buttons that appear: <b>糊/胡 win</b> (highest priority), <b>碰 pung</b> (any player, for two identical tiles), <b>槓 kong</b> (three identical), or <b>上/吃 chow</b> (only from the player just before you, Granny Fox, using a tile that makes a run). A claimed set is shown face-up and then you must throw a tile. Pass to ignore.</li>
+      <li>With four identical tiles in hand you can declare a <b>concealed kong</b> (槓); a tile that matches one of your pungs can be added for a kong (加槓). Any kong gives you a replacement tile from the back of the wall.</li>
+      <li><b>自摸</b> is winning on a tile you drew yourself. If the wall runs down to the last 14 tiles (16 in Taiwan) without a winner, the hand is a <b>draw</b> and the dealer stays.</li>
+      <li>The <b>dealer (莊)</b> plays first; the deal passes to the next player unless the dealer wins or the hand is drawn. One round is four deals (東 round). The game ends after one round (Short) or two rounds, 東 then 南 (Long).</li>
+    </ul>
+    <div id="rulesHk">
+      <h3>🇭🇰 Hong Kong rules (13 tiles)</h3>
+      <ul>
+        <li>Each player holds 13 tiles; you win with <b>4 sets + a pair</b> (or 十三么 thirteen orphans) <b>and at least 3 faan</b> (you can lower this in the settings). Some hands are complete but too small; the game tells you and you play on.</li>
+        <li><b>Faan:</b> 自摸 self-draw 1 · 門前清 concealed (no 上/碰/明槓) 1 · 無花 no flowers 1 · 正花 own-seat flower 1 each · flower set of four 2 · 平糊 all chows with no honours 1 · 對對糊 all pungs 3 · 混一色 one suit + honours 3 · 清一色 one suit 7 · dragon pung 1 · seat wind pung 1 · round wind pung 1 · 小三元 5 · 大三元 8 · 小四喜 6 · 三暗刻 3 concealed pungs 3 · 槓上開花 1 · 海底撈月 1 · 河底撈魚 1 · 搶槓 1 · 混幺九 8.</li>
+        <li><b>Limit hands (10 faan, the maximum):</b> 十三么, 字一色 all honours, 清幺九, 大四喜, 坎坎糊 (4 concealed pungs), 十八羅漢 (4 kongs), 天糊 / 地糊.</li>
+        <li><b>Payment</b> (3-faan-minimum table): 3 faan 8 · 4 faan 16 · 5 faan 24 · 6 faan 32 · 7 faan 48 · 8 faan 64 · 9 faan 96 · 10 faan 128. If you win on someone’s discard, <b>that player pays all of it</b>. If you win by 自摸, each of the other three pays <b>half</b>. No dealer bonus.</li>
+      </ul>
+    </div>
+    <div id="rulesTw" style="display:none">
+      <h3>🇹🇼 Taiwan rules (16 tiles)</h3>
+      <ul>
+        <li>Each player holds <b>16 tiles</b>; you win with <b>5 sets + a pair</b>. There is no minimum: a win with 0 tai still wins the base.</li>
+        <li><b>Tai:</b> 自摸 1 · 門清 concealed 1 · 不求人 concealed + self-draw +1 · 平胡 all chows, no honours, no flowers, two-way wait 2 · 全求人 all sets exposed, win on a discard 2 · 碰碰胡 all pungs 4 · 混一色 4 · 清一色 8 · 字一色 16 · dragon pung 1 · seat wind 1 · round wind 1 · 小三元 4 · 大三元 8 · 小四喜 8 · 大四喜 16 · 三暗刻 2 · 四暗刻 5 · 五暗刻 8 · 獨聽 only one winning tile 1 · 正花 own-seat flower 1 each · 花槓 flower set 2 · 八仙過海 all 8 flowers 8 · 槓上開花 1 · 海底撈月 1 · 河底撈魚 1 · 搶槓 1 · 天胡 / 地胡 16.</li>
+        <li><b>Payment:</b> base <b>30 + 10 per tai</b>. The <b>dealer</b> adds 1 tai whenever they win or pay, and <b>連莊</b>: each time the dealer stays in a row it adds 2 more tai per streak. If you win on a discard, only the thrower pays; with 自摸 all three pay.</li>
+      </ul>
+    </div>
+    <h3>This version</h3>
+    <ul>
+      <li>House rules differ from table to table; I used common ones. Left out: seven pairs, nine gates, 人胡, 七搶一, 對碰 fine points, and multiple players winning on one discard (the one closest after the thrower wins).</li>
+      <li>The three friends play sensibly but not like experts, and each has a style: Mimi is careful and rarely claims, Boba claims everything, Granny Fox collects one suit. You get no help except the 💡 Hint and the wait list.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🀄 Mahjong is a traditional game; the rules here follow common Hong Kong and Taiwan house rules, so your table may differ. The tile pictures, animal characters (Mimi, Boba and Granny Fox), reaction lines, sounds, scoring code and computer players are my own. Not included: gambling money, 搶槓 variants, seven pairs, nine gates and the rarer limit hands.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Mahjong, part 1: tiles, winning shapes, shanten (how far from winning) and scoring for Hong Kong (faan) and Taiwan (tai) rules.
+   Pure functions, no drawing, no randomness. Tiles are numbers: 0-8 characters, 9-17 circles, 18-26 bamboo, 27-30 winds (E S W N), 31-33 dragons (red, green, white), 34-41 flowers. */
+const MJ = (function () {
+  const WIND = 27, DRAG = 31, FL = 34, ORPH = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+  const NUM = '一二三四五六七八九', SUIT = ['萬', '筒', '索'], HON = ['東', '南', '西', '北', '中', '發', '白'], FLN = ['梅', '蘭', '菊', '竹', '春', '夏', '秋', '冬'];
+  const tn = k => k < 27 ? (k % 9 + 1) + SUIT[Math.floor(k / 9)] : k < 34 ? HON[k - 27] : FLN[k - 34];
+  const isHon = k => k >= 27 && k < 34, isTerm = k => k < 27 && (k % 9 === 0 || k % 9 === 8), isFl = k => k >= 34;
+  const counts = arr => { const c = new Array(34).fill(0); for (const k of arr) if (k < 34) c[k]++; return c; };
+
+  /* ---------- winning shapes ---------- */
+  function decomp(c, nSets, all) { // every way to split the counts c into nSets sets plus one pair
+    const out = [], sets = [], seen = new Set(); let pair = -1, tot = 0; for (let i = 0; i < 34; i++) tot += c[i]; if (tot !== nSets * 3 + 2) return out;
+    function go(i) {
+      while (i < 34 && c[i] === 0) i++;
+      if (i >= 34) { if (pair >= 0 && sets.length === nSets) { const key = pair + ':' + sets.map(s => s[0] + s[1]).sort().join(','); if (!seen.has(key)) { seen.add(key); out.push({ pair, sets: sets.map(s => s.slice()) }); } } return !all && out.length > 0; }
+      if (c[i] >= 3 && sets.length < nSets) { c[i] -= 3; sets.push(['p', i]); const r = go(i); sets.pop(); c[i] += 3; if (r) return true; }
+      if (i < 27 && i % 9 <= 6 && c[i + 1] > 0 && c[i + 2] > 0 && sets.length < nSets) { c[i]--; c[i + 1]--; c[i + 2]--; sets.push(['c', i]); const r = go(i); sets.pop(); c[i]++; c[i + 1]++; c[i + 2]++; if (r) return true; }
+      if (pair < 0 && c[i] >= 2) { c[i] -= 2; pair = i; const r = go(i); pair = -1; c[i] += 2; if (r) return true; }
+      return false;
+    }
+    go(0); return out;
+  }
+  const isOrph = c => { let tot = 0, dup = 0; for (let i = 0; i < 34; i++) tot += c[i]; if (tot !== 14) return false; for (const k of ORPH) { if (c[k] === 0) return false; if (c[k] >= 2) dup++; } return dup === 1; };
+  const hasWin = (c, nSets, orph) => (orph && isOrph(c)) || decomp(c, nSets, false).length > 0;
+  function waits(c, nSets, orph) { // c = the hand without its last tile; which tiles would complete it?
+    const out = []; for (let k = 0; k < 34; k++) { if (c[k] >= 4) continue; c[k]++; if (hasWin(c, nSets, orph)) out.push(k); c[k]--; } return out;
+  }
+
+  /* ---------- shanten: 0 = one tile from winning, -1 = won ---------- */
+  function shanten(c, m0, N, orph) {
+    let best = 99; const cc = c.slice();
+    (function go(i, m, t, pr) {
+      while (i < 34 && cc[i] === 0) i++;
+      if (i >= 34) { const s = 2 * N - 2 * m - Math.min(t, N - m) - pr; if (s < best) best = s; return; }
+      if (best <= -1) return;
+      if (cc[i] >= 3) { cc[i] -= 3; go(i, m + 1, t, pr); cc[i] += 3; }
+      if (i < 27 && i % 9 <= 6 && cc[i + 1] && cc[i + 2]) { cc[i]--; cc[i + 1]--; cc[i + 2]--; go(i, m + 1, t, pr); cc[i]++; cc[i + 1]++; cc[i + 2]++; }
+      if (!pr && cc[i] >= 2) { cc[i] -= 2; go(i, m, t, 1); cc[i] += 2; }
+      if (cc[i] >= 2) { cc[i] -= 2; go(i, m, t + 1, pr); cc[i] += 2; }
+      if (i < 27 && i % 9 <= 7 && cc[i + 1]) { cc[i]--; cc[i + 1]--; go(i, m, t + 1, pr); cc[i]++; cc[i + 1]++; }
+      if (i < 27 && i % 9 <= 6 && cc[i + 2]) { cc[i]--; cc[i + 2]--; go(i, m, t + 1, pr); cc[i]++; cc[i + 2]++; }
+      cc[i]--; go(i, m, t, pr); cc[i]++;
+    })(0, m0, 0, 0);
+    if (orph && m0 === 0) { let d = 0, p = 0; for (const k of ORPH) { if (c[k] > 0) d++; if (c[k] > 1) p = 1; } best = Math.min(best, 13 - d - p); }
+    return best;
+  }
+
+  /* ---------- scoring ---------- */
+  const HKT = [0, 2, 4, 8, 16, 24, 32, 48, 64, 96, 128], HKLIM = 10;
+  const hkPay = f => HKT[Math.min(HKLIM, Math.max(1, f))];
+  const TWBASE = 30, TWTAI = 10;
+  function normMelds(ms) { return ms.map(m => ({ t: m.t === 'chi' ? 'c' : m.t === 'pon' ? 'p' : 'k', k: m.k, conc: m.t === 'akong', open: m.t !== 'akong' })); }
+  /* o: {rules, N, cnt (concealed incl. the winning tile), melds [{t:'chi'|'pon'|'kong'|'akong',k}], flowers [], win, self, seat 0-3, rnd 0-3, kongDraw, last, rob, heaven, earth} */
+  function score(o) {
+    const hk = o.rules === 'hk', nConc = o.N - o.melds.length; let best = null;
+    const flowerItems = items => {
+      const fl = o.flowers, A = fl.filter(k => k < 38).length, B = fl.filter(k => k >= 38).length;
+      if (!hk && fl.length === 8) { items.push(['八仙過海 All 8 flowers', 8]); return; }
+      if (hk && fl.length === 0) items.push(['無花 No flowers', 1]);
+      let seatN = 0; for (const k of fl) if ((k - 34) % 4 === o.seat) seatN++;
+      if (seatN) items.push(['正花 Seat flower' + (seatN > 1 ? 's ×' + seatN : ''), seatN]);
+      if (A === 4) items.push(['花槓 Flower set (plum, orchid…)', 2]); if (B === 4) items.push(['花槓 Flower set (seasons)', 2]);
+    };
+    const common = (items) => {
+      if (o.kongDraw && o.self) items.push(['槓上開花 Win on kong tile', 1]);
+      if (o.last) items.push([o.self ? '海底撈月 Last-tile draw' : '河底撈魚 Last-discard win', 1]);
+      if (o.rob) items.push(['搶槓 Robbing a kong', 1]);
+    };
+    const fin = (items, limit, name) => {
+      let v = 0; for (const it of items) v += it[1]; if (hk && v > HKLIM) v = HKLIM; if (hk && limit) v = HKLIM;
+      const r = { v, items, limit: !!limit, unit: hk ? 'faan' : 'tai', name: name || '' }; if (!best || r.v > best.v) best = r;
+    };
+    if (hk && o.melds.length === 0 && isOrph(o.cnt)) { const it = [['十三么 Thirteen orphans', HKLIM]]; common(it); if (o.heaven) it.push(['天糊 Heavenly hand', 0]); fin(it, true, '十三么'); }
+    const ds = decomp(o.cnt.slice(), nConc, true);
+    let dokuCnt = null;
+    for (const d of ds) {
+      const sets = normMelds(o.melds).concat(d.sets.map(s => ({ t: s[0], k: s[1], conc: !(s[0] === 'p' && s[1] === o.win && !o.self), open: false }))), items = [], P = d.pair;
+      const pungs = sets.filter(s => s.t !== 'c'), chows = sets.filter(s => s.t === 'c'), kongs = sets.filter(s => s.t === 'k');
+      const suits = new Set(); let honors = P >= 27; if (P < 27) suits.add(Math.floor(P / 9)); for (const s of sets) { if (s.k >= 27) honors = true; else suits.add(Math.floor(s.k / 9)); }
+      const openMelds = o.melds.some(m => m.t !== 'akong'), conc = !openMelds;
+      let limit = false, lname = '';
+      const allPung = chows.length === 0, allTH = allPung && P >= 27 + 0 && false;
+      const termHon = allPung && [P].concat(sets.map(s => s.k)).every(k => isTerm(k) || isHon(k)), onlyTerm = termHon && !honors;
+      const dr = pungs.filter(s => s.k >= DRAG), wd = pungs.filter(s => s.k >= WIND && s.k < DRAG);
+      const cp = pungs.filter(s => s.conc).length;
+      if (hk) {
+        if (!openMelds) items.push(o.self ? ['門前清 Concealed hand', 1] : ['門前清 Concealed hand', 1]);
+        if (o.self) items.push(['自摸 Self-draw', 1]);
+        flowerItems(items); common(items);
+        if (chows.length === sets.length && P < 27 && !honors) items.push(['平糊 All chows', 1]);
+        if (allPung) items.push(['對對糊 All pungs', 3]);
+        if (suits.size === 0) { items.push(['字一色 All honours', HKLIM]); limit = true; }
+        else if (suits.size === 1 && !honors) items.push(['清一色 One suit', 7]);
+        else if (suits.size === 1 && honors) items.push(['混一色 Suit + honours', 3]);
+        if (onlyTerm) { items.push(['清幺九 All terminals', HKLIM]); limit = true; } else if (termHon && suits.size > 0) { items.push(['混幺九 Terminals & honours', 8]); }
+        if (dr.length === 3) items.push(['大三元 Big three dragons', 8]); else if (dr.length === 2 && P >= DRAG && P < 34) items.push(['小三元 Small three dragons', 5]); else for (const s of dr) items.push(['番子 Dragon pung ' + tn(s.k), 1]);
+        if (wd.length === 4) { items.push(['大四喜 Big four winds', HKLIM]); limit = true; }
+        else if (wd.length === 3 && P >= WIND && P < DRAG) items.push(['小四喜 Small four winds', 6]);
+        else for (const s of wd) { if (s.k === WIND + o.seat) items.push(['門風 Seat wind ' + tn(s.k), 1]); if (s.k === WIND + o.rnd) items.push(['圈風 Round wind ' + tn(s.k), 1]); }
+        if (cp === 4) { items.push(['坎坎糊 Four concealed pungs', HKLIM]); limit = true; } else if (cp === 3) items.push(['三暗刻 Three concealed pungs', 3]);
+        if (kongs.length === 4) { items.push(['十八羅漢 Four kongs', HKLIM]); limit = true; }
+        if (o.heaven) { items.push(['天糊 Heavenly hand', HKLIM]); limit = true; } else if (o.earth) { items.push(['地糊 Earthly hand', HKLIM]); limit = true; }
+      } else {
+        if (!openMelds) { items.push(['門清 Concealed hand', 1]); if (o.self) items.push(['不求人 Concealed self-draw', 1]); }
+        if (o.self) items.push(['自摸 Self-draw', 1]);
+        flowerItems(items); common(items);
+        if (chows.length === sets.length && P < 27 && !honors && o.flowers.length === 0) {
+          let open = false; for (const s of chows) { const pos = o.win - s.k; if (pos === 0 && s.k % 9 !== 6) open = true; if (pos === 2 && s.k % 9 !== 0) open = true; }
+          if (open && !(o.melds.length && 0)) items.push(['平胡 All chows, two-way wait', 2]);
+        }
+        if (o.melds.length === o.N && o.melds.every(m => m.t !== 'akong') && !o.self) items.push(['全求人 All melds exposed', 2]);
+        if (allPung) items.push(['碰碰胡 All pungs', 4]);
+        if (suits.size === 0) items.push(['字一色 All honours', 16]);
+        else if (suits.size === 1 && !honors) items.push(['清一色 One suit', 8]);
+        else if (suits.size === 1 && honors) items.push(['混一色 Suit + honours', 4]);
+        if (dr.length === 3) items.push(['大三元 Big three dragons', 8]); else if (dr.length === 2 && P >= DRAG && P < 34) items.push(['小三元 Small three dragons', 4]); else for (const s of dr) items.push(['三元牌 Dragon pung ' + tn(s.k), 1]);
+        if (wd.length === 4) items.push(['大四喜 Big four winds', 16]);
+        else if (wd.length === 3 && P >= WIND && P < DRAG) items.push(['小四喜 Small four winds', 8]);
+        else for (const s of wd) { if (s.k === WIND + o.seat) items.push(['門風 Seat wind ' + tn(s.k), 1]); if (s.k === WIND + o.rnd) items.push(['圈風 Round wind ' + tn(s.k), 1]); }
+        if (cp === 5) items.push(['五暗刻 Five concealed pungs', 8]); else if (cp === 4) items.push(['四暗刻 Four concealed pungs', 5]); else if (cp === 3) items.push(['三暗刻 Three concealed pungs', 2]);
+        if (o.heaven) items.push(['天胡 Heavenly hand', 16]); else if (o.earth) items.push(['地胡 Earthly hand', 16]);
+        if (dokuCnt === null) { const c2 = o.cnt.slice(); c2[o.win]--; dokuCnt = waits(c2, nConc, false).length; }
+        if (dokuCnt === 1) items.push(['獨聽 Only one winning tile', 1]);
+      }
+      fin(items, limit);
+    }
+    return best;
+  }
+  /* ---------- helpers for who may win ---------- */
+  function winInfo(S, p, tile, self, flags) { // is this a legal win (enough faan) for player p? returns the score or null
+    const cnt = counts(S.h[p]); if (!self) cnt[tile]++;
+    const r = score(Object.assign({ rules: S.rules, N: S.N, cnt, melds: S.melds[p], flowers: S.fl[p], win: tile, self, seat: S.seatOf(p), rnd: S.rnd, kongDraw: false, last: false, rob: false, heaven: false, earth: false }, flags || {}));
+    if (!r) return null; if (S.rules === 'hk' && !r.limit && r.v < S.min) { r.low = true; return r; } return r;
+  }
+  return { WIND, DRAG, FL, ORPH, tn, isHon, isTerm, isFl, counts, decomp, isOrph, hasWin, waits, shanten, score, hkPay, HKT, HKLIM, TWBASE, TWTAI, winInfo };
+})();
+if (typeof module !== 'undefined') module.exports = MJ;
+
+/* Mahjong, part 2: the game flow and the computer players. It never draws. Everything that happens is written into S.ev
+   (draw, discard, flower, claim, win, draw game) and game.js turns that into sounds, animations and reactions. */
+const MS = (function () {
+  const M = (typeof module !== 'undefined') ? require('./mjcore.js') : MJ;
+  const { counts, shanten, score, winInfo, WIND, DRAG } = M;
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const PERS = [null,
+    { id: 'mimi', claim: .3, kong: .25, care: .9, flush: .2 },   // the nervous cat: careful, rarely claims
+    { id: 'boba', claim: .85, kong: .8, care: .15, flush: .3 },  // the show-off panda: claims everything
+    { id: 'fox', claim: .5, kong: .5, care: .6, flush: .85 }];   // the sly granny fox: loves one suit
+
+  function newGame(o) {
+    o = o || {}; const hk = o.rules !== 'tw', S = { rules: hk ? 'hk' : 'tw', min: hk ? (o.min == null ? 3 : o.min) : 0, rounds: o.rounds || 1, N: hk ? 4 : 5, HS: hk ? 13 : 16, deadN: hk ? 14 : 16,
+      dealer: o.dealer || 0, rnd: 0, handNo: 0, streak: 0, score: [0, 0, 0, 0], ev: [], finished: false, rand: mulberry(o.seed == null ? (Math.random() * 4294967296) >>> 0 : o.seed), pers: PERS.slice(), phase: 'over', wins: [0, 0, 0, 0] };
+    S.seatOf = p => (p - S.dealer + 4) % 4; S.live = () => S.wall.length - S.deadN; startHand(S); return S;
+  }
+  function startHand(S) {
+    S.handNo++; const w = []; for (let k = 0; k < 34; k++) for (let i = 0; i < 4; i++) w.push(k); for (let k = 34; k < 42; k++) w.push(k);
+    for (let i = w.length - 1; i > 0; i--) { const j = Math.floor(S.rand() * (i + 1)); [w[i], w[j]] = [w[j], w[i]]; }
+    S.wall = w; S.h = [[], [], [], []]; S.fl = [[], [], [], []]; S.melds = [[], [], [], []]; S.disc = [[], [], [], []]; S.nDisc = 0; S.noClaim = true; S.result = null; S.claim = null; S.rob = null; S.last = null; S.drawn = -1; S.opts = null; S.kongDraw = false;
+    for (let r = 0; r < S.HS; r++) for (let p = 0; p < 4; p++) S.h[p].push(S.wall.shift());
+    for (let i = 0; i < 4; i++) { const p = (S.dealer + i) % 4; for (let g = 0; g < 30; g++) { const fs = S.h[p].filter(k => k >= 34); if (!fs.length) break; for (const f of fs) { S.h[p].splice(S.h[p].indexOf(f), 1); S.fl[p].push(f); S.ev.push({ t: 'flower', p, k: f, deal: true }); S.h[p].push(S.wall.pop()); } } }
+    for (let p = 0; p < 4; p++) S.h[p].sort((a, b) => a - b);
+    S.ev.push({ t: 'deal' }); S.cur = S.dealer; turnDraw(S, S.dealer);
+  }
+  function drawFor(S, p, back) {
+    for (let g = 0; g < 20; g++) {
+      if (!back && S.live() <= 0) return -1;
+      const k = back ? S.wall.pop() : S.wall.shift();
+      if (k >= 34) { S.fl[p].push(k); S.ev.push({ t: 'flower', p, k, back }); back = true; continue; }
+      return k;
+    }
+    return -1;
+  }
+  function turnDraw(S, p, back) {
+    S.cur = p; const k = drawFor(S, p, !!back); if (k < 0) return exhaust(S);
+    S.h[p].push(k); S.h[p].sort((a, b) => a - b); S.drawn = k; S.kongDraw = !!back; S.ev.push({ t: 'draw', p, k, back: !!back }); S.opts = actOpts(S, p, k, !!back); S.phase = 'act';
+  }
+  function flags(S, p, self, kongDraw, rob) {
+    return { kongDraw, rob, last: self ? S.live() <= 0 : S.live() <= 0, heaven: self && p === S.dealer && S.nDisc === 0 && S.noClaim, earth: S.noClaim && S.nDisc <= 3 && p !== S.dealer };
+  }
+  function actOpts(S, p, k, kongDraw) {
+    const o = { win: null, low: null, akong: [], addkong: [] }, info = winInfo(S, p, k, true, flags(S, p, true, kongDraw, false));
+    if (info) { if (info.low) o.low = info; else o.win = info; }
+    if (S.live() > 0) { const c = counts(S.h[p]); for (let t = 0; t < 34; t++) { if (c[t] === 4) o.akong.push(t); else if (c[t] === 1 && S.melds[p].some(m => m.t === 'pon' && m.k === t)) o.addkong.push(t); } }
+    return o;
+  }
+  /* ---------- actions by the player whose turn it is ---------- */
+  function act(S, p, a) {
+    if (S.phase !== 'act' || S.cur !== p) return false;
+    if (a.t === 'win') { if (!S.opts.win) return false; return finishWin(S, p, S.drawn, p, true, flags(S, p, true, S.kongDraw, false)); }
+    if (a.t === 'discard') {
+      const i = S.h[p].indexOf(a.k); if (i < 0) return false; S.h[p].splice(i, 1); S.disc[p].push({ k: a.k, taken: false }); S.nDisc++; S.last = { k: a.k, p }; S.drawn = -1; S.opts = null;
+      S.ev.push({ t: 'discard', p, k: a.k }); return claimStart(S, p, a.k);
+    }
+    if (a.t === 'akong') { if (!S.opts.akong.includes(a.k)) return false; for (let i = 0; i < 4; i++) S.h[p].splice(S.h[p].indexOf(a.k), 1); S.melds[p].push({ t: 'akong', k: a.k, tiles: [a.k, a.k, a.k, a.k], from: -1 }); S.noClaim = false; S.ev.push({ t: 'claim', kind: 'akong', p, k: a.k, from: -1 }); S.drawn = -1; turnDraw(S, p, true); return true; }
+    if (a.t === 'addkong') {
+      if (!S.opts.addkong.includes(a.k)) return false; S.h[p].splice(S.h[p].indexOf(a.k), 1); S.drawn = -1; S.opts = null; S.noClaim = false;
+      const opts = [null, null, null, null]; let any = false;
+      for (let q = 0; q < 4; q++) { if (q === p) continue; const info = winInfo(S, q, a.k, false, flags(S, q, false, false, true)); if (info && !info.low) { opts[q] = info; any = true; } }
+      S.ev.push({ t: 'claim', kind: 'addkong', p, k: a.k, from: -1 });
+      if (any) { S.rob = { p, k: a.k, opts }; S.phase = 'rob'; S.ev.push({ t: 'rob', p, k: a.k }); return true; }
+      return completeAddKong(S, p, a.k);
+    }
+    return false;
+  }
+  function completeAddKong(S, p, k) { const m = S.melds[p].find(m => m.t === 'pon' && m.k === k); m.t = 'kong'; m.tiles = [k, k, k, k]; S.rob = null; turnDraw(S, p, true); return true; }
+  function resolveRob(S, dec) { // dec[q] = true if q wants to win
+    const r = S.rob; for (let i = 1; i < 4; i++) { const q = (r.p + i) % 4; if (dec[q] && r.opts[q]) { S.melds[r.p].find(m => m.t === 'pon' && m.k === r.k); return finishWin(S, q, r.k, r.p, false, flags(S, q, false, false, true)); } }
+    return completeAddKong(S, r.p, r.k);
+  }
+  /* ---------- claims on a discard ---------- */
+  function claimOptsFor(S, q, k, from) {
+    const c = counts(S.h[q]), o = {}, info = winInfo(S, q, k, false, flags(S, q, false, false, false));
+    if (info) { if (info.low) o.low = info; else o.win = info; }
+    if (S.live() > 0) {
+      if (c[k] >= 3) o.kong = true; if (c[k] >= 2) o.pon = true;
+      if (q === (from + 1) % 4 && k < 27) { const r = k % 9, ch = []; if (r >= 2 && c[k - 2] && c[k - 1]) ch.push([k - 2, k - 1]); if (r >= 1 && r <= 7 && c[k - 1] && c[k + 1]) ch.push([k - 1, k + 1]); if (r <= 6 && c[k + 1] && c[k + 2]) ch.push([k + 1, k + 2]); if (ch.length) o.chi = ch; }
+    }
+    return (o.win || o.kong || o.pon || o.chi || o.low) ? o : null;
+  }
+  function claimStart(S, from, k) {
+    const opts = [null, null, null, null]; let any = false;
+    for (let q = 0; q < 4; q++) { if (q === from) continue; opts[q] = claimOptsFor(S, q, k, from); if (opts[q] && (opts[q].win || opts[q].kong || opts[q].pon || opts[q].chi)) any = true; }
+    if (!any) { S.claim = null; S.phase = 'wait'; return nextTurn(S, from); }
+    S.claim = { k, from, opts }; S.phase = 'claim'; return true;
+  }
+  function nextTurn(S, from) { S.claim = null; turnDraw(S, (from + 1) % 4); return true; }
+  function resolveClaims(S, dec) { // dec[q] = null | {t:'win'|'kong'|'pon'|'chi', use:[a,b]}
+    const { k, from, opts } = S.claim, pick = t => { for (let i = 1; i < 4; i++) { const q = (from + i) % 4; if (dec[q] && dec[q].t === t && opts[q] && (t === 'win' ? opts[q].win : opts[q][t])) return q; } return -1; };
+    let q = pick('win'); if (q >= 0) return finishWin(S, q, k, from, false, flags(S, q, false, false, false));
+    let kind = 'kong'; q = pick('kong'); if (q < 0) { kind = 'pon'; q = pick('pon'); } if (q < 0) { kind = 'chi'; q = pick('chi'); }
+    if (q < 0) return nextTurn(S, from);
+    const h = S.h[q]; S.disc[from][S.disc[from].length - 1].taken = true; S.noClaim = false; S.claim = null;
+    const rm = t => h.splice(h.indexOf(t), 1);
+    if (kind === 'chi') { let use = dec[q].use; if (!use || !opts[q].chi.some(u => u[0] === use[0] && u[1] === use[1])) use = opts[q].chi[0]; rm(use[0]); rm(use[1]); const tl = [use[0], use[1], k].sort((a, b) => a - b); S.melds[q].push({ t: 'chi', k: tl[0], tiles: tl, from, got: k }); }
+    else if (kind === 'pon') { rm(k); rm(k); S.melds[q].push({ t: 'pon', k, tiles: [k, k, k], from, got: k }); }
+    else { rm(k); rm(k); rm(k); S.melds[q].push({ t: 'kong', k, tiles: [k, k, k, k], from, got: k }); }
+    S.ev.push({ t: 'claim', kind, p: q, k, from }); S.cur = q;
+    if (kind === 'kong') turnDraw(S, q, true); else { S.drawn = -1; S.kongDraw = false; S.opts = { win: null, low: null, akong: [], addkong: [] }; S.phase = 'act'; }
+    return true;
+  }
+  /* ---------- the end of a hand ---------- */
+  function finishWin(S, w, k, from, self, fl) {
+    const info = winInfo(S, w, k, self, fl); if (!info || info.low) return false;
+    const pay = [0, 0, 0, 0], payers = [], dealerTai = 1 + 2 * S.streak, dI = [];
+    const payer = (q, amount) => { pay[q] -= amount; pay[w] += amount; payers.push({ q, amount }); };
+    if (S.rules === 'hk') { const amt = M.hkPay(info.v); if (self) for (let q = 0; q < 4; q++) { if (q !== w) payer(q, amt / 2); } else payer(from, amt); }
+    else { const amtFor = q => { const bonus = (w === S.dealer || q === S.dealer) ? dealerTai : 0; return M.TWBASE + M.TWTAI * (info.v + bonus); }; if (self) for (let q = 0; q < 4; q++) { if (q !== w) payer(q, amtFor(q)); } else payer(from, amtFor(from)); if (w === S.dealer || from === S.dealer || self) dI.push(['莊家 Dealer', 1]); if (S.streak > 0) dI.push(['連莊 Streak ×' + S.streak, 2 * S.streak]); }
+    for (let q = 0; q < 4; q++) S.score[q] += pay[q]; S.wins[w]++;
+    S.result = { type: 'win', w, from, self, k, info, pay, payers, dealerItems: dI, hand: S.h[w].slice(), melds: S.melds[w].map(m => Object.assign({}, m)), flowers: S.fl[w].slice() };
+    S.ev.push({ t: 'win', w, from, self, k, rob: !!fl.rob }); return endHand(S, w === S.dealer);
+  }
+  function exhaust(S) { S.result = { type: 'draw', pay: [0, 0, 0, 0] }; S.ev.push({ t: 'drawgame' }); S.drawn = -1; S.opts = null; return endHand(S, true); }
+  function endHand(S, dealerStays) {
+    S.phase = 'over'; S.claim = null; S.rob = null; S.dealerStays = dealerStays;
+    if (dealerStays) S.streak++; else { S.streak = 0; S.dealer = (S.dealer + 1) % 4; if (S.dealer === 0) S.rnd++; }
+    if (S.rnd >= S.rounds || S.handNo >= S.rounds * 12) S.finished = true; return true;
+  }
+  function nextHand(S) { if (S.phase !== 'over' || S.finished) return false; startHand(S); return true; }
+
+  /* ---------- computer players ---------- */
+  function visible(S, p) { const v = new Array(34).fill(0); for (const k of S.h[p]) if (k < 34) v[k]++; for (let q = 0; q < 4; q++) { for (const d of S.disc[q]) if (!d.taken) v[d.k]++; for (const m of S.melds[q]) for (const t of m.tiles) v[t]++; } return v; }
+  function validWaits(S, p, cnt, vis) { // tiles that would win with enough faan, and how many are still unseen
+    const out = []; let n = 0; const seat = S.seatOf(p);
+    for (let k = 0; k < 34; k++) { if (cnt[k] >= 4) continue; cnt[k]++; let ok = false; if (M.hasWin(cnt, S.N - S.melds[p].length, S.rules === 'hk' && !S.melds[p].length)) { for (const self of [false, true]) { const r = score({ rules: S.rules, N: S.N, cnt, melds: S.melds[p], flowers: S.fl[p], win: k, self, seat, rnd: S.rnd % 4, kongDraw: false, last: false, rob: false, heaven: false, earth: false }); if (r && (r.limit || r.v >= S.min)) ok = true; } } cnt[k]--; if (ok) { out.push(k); n += Math.max(0, 4 - vis[k]); } }
+    return { list: out, n };
+  }
+  const tileW = k => k >= 27 ? .7 : (k % 9 === 0 || k % 9 === 8) ? .8 : (k % 9 === 1 || k % 9 === 7) ? .95 : 1.2;
+  function risk(S, p, k) {
+    let r = 0; for (let o = 0; o < 4; o++) { if (o === p) continue; if (S.disc[o].some(d => d.k === k)) continue; const m = S.melds[o].length; let t = .35 + (m >= 2 ? .9 : 0) + (m >= 3 ? .8 : 0); if (m >= 2 && k < 27) { const su = S.melds[o].filter(x => x.k < 27 && Math.floor(x.k / 9) === Math.floor(k / 9)).length; if (su >= 2) t += 1; } r += t * tileW(k); }
+    return r;
+  }
+  function bestDiscard(S, p, pe) {
+    pe = pe || { care: .4, flush: .4 }; const h = S.h[p], c = counts(h), m = S.melds[p].length, N = S.N, orph = S.rules === 'hk' && m === 0, vis = visible(S, p), seat = S.seatOf(p);
+    const cands = [...new Set(h)], res = []; let minS = 99;
+    for (const k of cands) { c[k]--; const s = shanten(c, m, N, orph); c[k]++; res.push({ k, s }); if (s < minS) minS = s; }
+    const suitN = [0, 0, 0]; for (const k of h) if (k < 27) suitN[Math.floor(k / 9)]++; const dom = suitN.indexOf(Math.max(...suitN)), domN = suitN[dom], hon = h.filter(k => k >= 27).length;
+    let best = null, bv = 1e9;
+    for (const r of res) {
+      const k = r.k; let v = r.s * 100; if (r.s > minS + 1) v += 500;
+      if (r.s <= minS) { c[k]--; if (r.s <= 0) { const w = validWaits(S, p, c, vis); if (!w.list.length) v += S.rules === 'hk' && S.min > 0 ? 55 : 0; else v -= w.n * 4; }
+        let u = 0; for (let t = 0; t < 34; t++) { if (vis[t] >= 4) continue; if (t < 27) { const rr = t % 9, near = c[t] || (rr > 0 && c[t - 1]) || (rr < 8 && c[t + 1]) || (rr > 1 && c[t - 2]) || (rr < 7 && c[t + 2]); if (!near) continue; } else if (!c[t]) continue; c[t]++; if (shanten(c, m, N, orph) < r.s) u += 4 - vis[t]; c[t]--; }
+        c[k]++; v -= u * 1.6; }
+      const val = (k >= 31 || k === WIND + seat || k === WIND + (S.rnd % 4)); if (val && c[k] >= 2) v += 30; else if (val && c[k] === 1) v += 3; else if (k >= 27 && c[k] === 1) v -= 2;
+      if (k < 27 && domN >= 6 + (hon > 1 ? 0 : 1) && Math.floor(k / 9) !== dom) v -= 9 * pe.flush;
+      if (k < 27 && Math.floor(k / 9) === dom && domN + hon >= 9) v += 5 * pe.flush;
+      v += risk(S, p, k) * pe.care * 3.2 + S.rand() * 2.5; if (v < bv) { bv = v; best = k; }
+    }
+    return best;
+  }
+  function aiAct(S, p) {
+    const o = S.opts, pe = S.pers[p] || PERS[2];
+    if (o.win) return { t: 'win' };
+    if (o.akong.length) for (const k of o.akong) { if (k >= 27 || S.rand() < pe.kong) return { t: 'akong', k }; }
+    if (o.addkong.length && S.rand() < pe.kong) return { t: 'addkong', k: o.addkong[0] };
+    return { t: 'discard', k: bestDiscard(S, p, pe) };
+  }
+  function aiClaim(S, q) {
+    const opt = S.claim.opts[q]; if (!opt) return null; if (opt.win) return { t: 'win' };
+    const pe = S.pers[q] || PERS[2], k = S.claim.k, c = counts(S.h[q]), m = S.melds[q].length, N = S.N, orph = S.rules === 'hk' && m === 0, seat = S.seatOf(q);
+    const valueTile = k >= 31 || k === WIND + seat || k === WIND + (S.rnd % 4), sNow = shanten(c, m, N, orph);
+    if (opt.kong && (valueTile || S.rand() < pe.kong * .3) && S.live() > 8) return { t: 'kong' };
+    if (opt.pon) { c[k] -= 2; const s2 = shanten(c, m + 1, N, false); c[k] += 2; const good = s2 < sNow || (valueTile && s2 <= sNow); if (good && S.rand() < pe.claim * (valueTile ? 1.1 : .75)) return { t: 'pon' }; }
+    if (opt.chi) { let bu = null, bs = 99; for (const u of opt.chi) { c[u[0]]--; c[u[1]]--; const s2 = shanten(c, m + 1, N, false); c[u[0]]++; c[u[1]]++; if (s2 < bs) { bs = s2; bu = u; } } const flushy = c.slice(0, 27).some((_, i) => false); if (bs < sNow && S.rand() < pe.claim * .55 * (S.rules === 'tw' ? 1 : .6)) return { t: 'chi', use: bu }; }
+    return null;
+  }
+  function aiDecide(S) { // for every computer seat (1-3): what do they do now?
+    if (S.phase === 'claim') return [0, 1, 2, 3].map(q => q === 0 ? null : aiClaim(S, q));
+    if (S.phase === 'rob') return [0, 1, 2, 3].map(q => q !== 0 && S.rob.opts[q] ? true : false);
+    return null;
+  }
+  /* one step of a game played by computers only (for tests): all four seats are computers */
+  function autoStep(S) {
+    if (S.phase === 'act') { const a = aiAct(S, S.cur); return act(S, S.cur, a); }
+    if (S.phase === 'claim') { const d = [0, 1, 2, 3].map(q => aiClaim(S, q)); return resolveClaims(S, d); }
+    if (S.phase === 'rob') { return resolveRob(S, [0, 1, 2, 3].map(q => !!S.rob.opts[q])); }
+    return false;
+  }
+  return { PERS, newGame, startHand, nextHand, act, actOpts, resolveClaims, resolveRob, bestDiscard, aiAct, aiClaim, aiDecide, autoStep, validWaits, visible, claimOptsFor, flags };
+})();
+if (typeof module !== 'undefined') module.exports = MS;
+
+/* Mahjong, part 3: pictures. Tiles (cached), tile backs, the cute animal faces with six moods, speech bubbles and comic bursts. Only drawing, no rules. */
+const MA = (function () {
+  const FONT = '"Noto Sans CJK TC","Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC","Noto Sans CJK SC",sans-serif';
+  const NUM = '一二三四五六七八九', cache = {};
+  const rr = (g, x, y, w, h, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); };
+  const PINP = [null, [[.5, .5]], [[.5, .27], [.5, .73]], [[.25, .2], [.5, .5], [.75, .8]], [[.27, .27], [.73, .27], [.27, .73], [.73, .73]], [[.27, .27], [.73, .27], [.5, .5], [.27, .73], [.73, .73]],
+    [[.3, .2], [.7, .2], [.3, .5], [.7, .5], [.3, .8], [.7, .8]], [[.25, .15], [.5, .28], [.75, .41], [.3, .66], [.7, .66], [.3, .88], [.7, .88]], [[.3, .13], [.7, .13], [.3, .38], [.7, .38], [.3, .62], [.7, .62], [.3, .87], [.7, .87]],
+    [[.2, .2], [.5, .2], [.8, .2], [.2, .5], [.5, .5], [.8, .5], [.2, .8], [.5, .8], [.8, .8]]];
+  const SOUP = [null, null, [[.5, .27], [.5, .73]], [[.5, .27], [.3, .73], [.7, .73]], [[.3, .27], [.7, .27], [.3, .73], [.7, .73]], [[.3, .27], [.7, .27], [.5, .5], [.3, .73], [.7, .73]],
+    [[.25, .27], [.5, .27], [.75, .27], [.25, .73], [.5, .73], [.75, .73]], [[.5, .15], [.25, .5], [.5, .5], [.75, .5], [.25, .85], [.5, .85], [.75, .85]], [[.3, .15], [.7, .15], [.3, .38], [.7, .38], [.3, .62], [.7, .62], [.3, .85], [.7, .85]],
+    [[.22, .2], [.5, .2], [.78, .2], [.22, .5], [.5, .5], [.78, .5], [.22, .8], [.5, .8], [.78, .8]]];
+  function glyph(g, k, x, y, w, h) { // paint the picture on the face rectangle (x, y, w, h)
+    g.textAlign = 'center'; g.textBaseline = 'middle'; const cx = x + w / 2;
+    if (k < 9) { g.fillStyle = '#1a1a1a'; g.font = '700 ' + (w * .62) + 'px ' + FONT; g.fillText(NUM[k], cx, y + h * .3); g.fillStyle = '#c0281c'; g.font = '700 ' + (w * .52) + 'px ' + FONT; g.fillText('萬', cx, y + h * .73); }
+    else if (k < 18) { const n = k - 8, P = PINP[n]; P.forEach((p, i) => { const r = Math.min(w, h) * (n === 1 ? .34 : n <= 3 ? .17 : n <= 6 ? .16 : .125), px = x + p[0] * w, py = y + p[1] * h;
+      const col = n === 1 ? '#c0281c' : (n === 5 && i === 2) || (n === 9 && i % 3 === 1) || (n === 7 && i < 3) ? '#c0281c' : i % 2 ? '#1f5fb0' : '#1a7a3c';
+      g.fillStyle = col; g.beginPath(); g.arc(px, py, r, 0, 7); g.fill(); g.fillStyle = '#f5f0e0'; g.beginPath(); g.arc(px, py, r * .62, 0, 7); g.fill(); g.fillStyle = col; g.beginPath(); g.arc(px, py, r * .34, 0, 7); g.fill(); if (n === 1) { g.strokeStyle = col; g.lineWidth = r * .1; g.beginPath(); g.arc(px, py, r * .82, 0, 7); g.stroke(); } }); }
+    else if (k < 27) { const n = k - 17; if (n === 1) { const px = cx, py = y + h * .55; g.fillStyle = '#1a7a3c'; g.beginPath(); g.ellipse(px, py, w * .26, h * .26, 0, 0, 7); g.fill(); g.beginPath(); g.arc(px + w * .12, py - h * .27, w * .13, 0, 7); g.fill(); g.fillStyle = '#c0281c'; g.beginPath(); g.moveTo(px + w * .2, py - h * .3); g.lineTo(px + w * .36, py - h * .24); g.lineTo(px + w * .2, py - h * .2); g.fill(); g.fillStyle = '#1f5fb0'; g.beginPath(); g.moveTo(px - w * .2, py + h * .15); g.lineTo(px - w * .42, py + h * .36); g.lineTo(px - w * .1, py + h * .3); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(px + w * .15, py - h * .29, w * .03, 0, 7); g.fill(); return; }
+      const P = SOUP[n], sh = h * (n <= 3 ? .32 : n <= 6 ? .3 : .22), sw = w * .15;
+      P.forEach((p, i) => { const red = (n === 5 && i === 2) || (n === 7 && i === 0) || (n === 9 && i % 3 === 1), px = x + p[0] * w - sw / 2, py = y + p[1] * h - sh / 2; g.fillStyle = red ? '#c0281c' : '#1a7a3c'; rr(g, px, py, sw, sh, sw * .45); g.fill(); g.fillStyle = red ? '#7a1710' : '#0e4a24'; g.fillRect(px, py + sh / 2 - 1, sw, 2); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(px + sw * .22, py + 2, sw * .18, sh - 4); }); }
+    else if (k < 31) { g.fillStyle = '#1a1a1a'; g.font = '700 ' + (w * .86) + 'px ' + FONT; g.fillText('東南西北'[k - 27], cx, y + h * .52); }
+    else if (k === 31) { g.fillStyle = '#c0281c'; g.font = '700 ' + (w * .92) + 'px ' + FONT; g.fillText('中', cx, y + h * .52); }
+    else if (k === 32) { g.fillStyle = '#1a7a3c'; g.font = '700 ' + (w * .88) + 'px ' + FONT; g.fillText('發', cx, y + h * .52); }
+    else if (k === 33) { g.strokeStyle = '#1f5fb0'; g.lineWidth = w * .09; rr(g, x + w * .14, y + h * .14, w * .72, h * .72, w * .08); g.stroke(); g.lineWidth = w * .035; rr(g, x + w * .24, y + h * .24, w * .52, h * .52, w * .05); g.stroke(); }
+    else { const i = k - 34, cols = ['#d94f7a', '#8a4fd0', '#d9a21a', '#2f9a4a', '#3fa0d8', '#e0463c', '#d9761a', '#6a7480']; g.fillStyle = cols[i]; g.beginPath(); g.arc(cx, y + h * .46, w * .42, 0, 7); g.fill(); g.fillStyle = '#fff'; g.font = '700 ' + (w * .6) + 'px ' + FONT; g.fillText('梅蘭菊竹春夏秋冬'[i], cx, y + h * .48); g.fillStyle = '#333'; g.font = '700 ' + (w * .3) + 'px ' + FONT; g.fillText(String(i % 4 + 1), x + w * .16, y + h * .9); }
+  }
+  /* a finished tile picture at width w (height w*1.35), cached; sc = how sharp (device pixels per logical pixel) */
+  function tileImg(k, w, o) {
+    o = o || {}; const sc = 2, key = k + '_' + w + '_' + (o.back ? 'b' : o.dim ? 'd' : 'f'); if (cache[key]) return cache[key];
+    const h = Math.round(w * 1.35), th = Math.max(2, Math.round(w * .09)), c = document.createElement('canvas'); c.width = Math.ceil(w * sc); c.height = Math.ceil((h + th) * sc); const g = c.getContext('2d'); g.scale(sc, sc);
+    g.fillStyle = o.back ? '#0e5a3a' : '#2a8a5a'; rr(g, 0, th, w, h, w * .13); g.fill();
+    const gr = g.createLinearGradient(0, 0, 0, h); if (o.back) { gr.addColorStop(0, '#1d9a62'); gr.addColorStop(1, '#13774a'); } else { gr.addColorStop(0, '#fffdf4'); gr.addColorStop(1, o.dim ? '#c9c3ae' : '#ece6d0'); }
+    g.fillStyle = gr; rr(g, 0, 0, w, h, w * .13); g.fill(); g.strokeStyle = 'rgba(0,0,0,.28)'; g.lineWidth = 1; rr(g, .5, .5, w - 1, h - 1, w * .13); g.stroke();
+    if (o.back) { g.strokeStyle = 'rgba(255,255,255,.28)'; g.lineWidth = Math.max(1, w * .05); rr(g, w * .2, h * .18, w * .6, h * .64, w * .08); g.stroke(); g.fillStyle = 'rgba(255,255,255,.2)'; g.beginPath(); g.arc(w / 2, h / 2, w * .13, 0, 7); g.fill(); }
+    else { glyph(g, k, w * .1, h * .08, w * .8, h * .84); if (o.dim) { g.fillStyle = 'rgba(120,110,90,.18)'; rr(g, 0, 0, w, h, w * .13); g.fill(); } }
+    return (cache[key] = c);
+  }
+  function tile(g, k, x, y, w, o) { const im = tileImg(k, w, o), th = Math.max(2, Math.round(w * .09)); g.drawImage(im, x, y, im.width / 2, im.height / 2); return Math.round(w * 1.35) + th; }
+
+  /* ---------- the animal faces ---------- */
+  const CH = {
+    bunny: { name: 'Bun', zh: '小兔', type: 'bunny', fur: '#fff6f0', dark: '#ffc6d4', ear: '#ffb0c4', shirt: '#4ec28a', acc: 'cap', bg: '#7fc6ff', nose: '#ff8aa6' },
+    mimi: { name: 'Mimi', zh: '咪咪', type: 'cat', fur: '#ffe6cf', dark: '#f0b896', ear: '#ff9db1', shirt: '#ff7aa8', acc: 'bow', bg: '#ffb6c9', nose: '#ff7a96' },
+    boba: { name: 'Boba', zh: '波波', type: 'panda', fur: '#ffffff', dark: '#2a2a32', ear: '#2a2a32', shirt: '#4ab0e8', acc: 'band', bg: '#bde8a0', nose: '#2a2a32' },
+    fox: { name: 'Granny Fox', zh: '狐婆', type: 'fox', fur: '#f59a3c', dark: '#fff3e0', ear: '#3a2418', shirt: '#9a6ad0', acc: 'glasses', bg: '#ffd9a0', nose: '#2a2a32' },
+    shiba: { name: 'Taro', zh: '太郎', type: 'dog', fur: '#e9a45b', dark: '#fff1dc', ear: '#c77a38', shirt: '#e8604c', acc: 'bandana', bg: '#ffe08a', nose: '#2a2a32' },
+    bear: { name: 'Honey', zh: '蜜糖', type: 'bear', fur: '#b9835a', dark: '#ecd2b0', ear: '#8a5a38', shirt: '#f2b632', acc: 'flower', bg: '#f6d6a8', nose: '#2a2a32' },
+    frog: { name: 'Ribbit', zh: '蛙蛙', type: 'frog', fur: '#86d46e', dark: '#d8f5c8', ear: '#86d46e', shirt: '#2f9ec8', acc: 'crown', bg: '#bfeaff', nose: '#3a8a3a', eyeY: -.62, eyeX: .46, mw: 1.7 },
+    penguin: { name: 'Pip', zh: '企鵝', type: 'penguin', fur: '#33425e', dark: '#ffffff', ear: '#33425e', shirt: '#ffffff', acc: 'bowtie', bg: '#cfe8ff', nose: '#ff9a2a', my: .14 },
+    chick: { name: 'Chirpy', zh: '小雞', type: 'chick', fur: '#ffe066', dark: '#fff4b0', ear: '#ffe066', shirt: '#ffb347', acc: 'shell', bg: '#d8f0b0', nose: '#ff8a1a', my: .12 },
+    pig: { name: 'Oink', zh: '豬豬', type: 'pig', fur: '#ffb3c6', dark: '#ff8fab', ear: '#ff8fab', shirt: '#ffffff', acc: 'chef', bg: '#ffe3c2', nose: '#ff8fab', my: .2 }
+  };
+  CH.you = CH.bunny; const ORDER = ['bunny', 'mimi', 'boba', 'fox', 'shiba', 'bear', 'frog', 'penguin', 'chick', 'pig'];
+  function face(g, id, cx, cy, r, ex, t) {
+    ex = ex || 'idle'; t = t || 0; const C = CH[id]; if (!C) return; const ty = C.type, bob = ex === 'idle' ? Math.sin(t * 2.4) * r * .03 : 0, sh = (ex === 'shock' || ex === 'angry') ? Math.sin(t * 40) * r * .045 : 0, x = cx + sh, y = cy + bob;
+    g.save(); g.lineJoin = 'round'; g.lineCap = 'round'; const ink = '#2a1f1c', my = r * (C.my || 0), eyY = y + r * (C.eyeY == null ? -.08 : C.eyeY), exs = r * (C.eyeX || .4), mw = C.mw || 1;
+    // shoulders
+    g.fillStyle = C.shirt; g.beginPath(); g.ellipse(x, y + r * 1.12, r * .95, r * .55, 0, Math.PI, 0); g.fill(); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(x - r * .12, y + r * .95, r * .24, r * .2);
+    if (ty === 'penguin') { g.fillStyle = C.fur; g.beginPath(); g.ellipse(x, y + r * 1.12, r * .95, r * .55, 0, Math.PI, 0); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x, y + r * 1.2, r * .5, r * .42, 0, Math.PI, 0); g.fill(); }
+    if (ty === 'fox') { g.fillStyle = '#7e4cb8'; g.beginPath(); g.ellipse(x, y + r * 1.0, r * .62, r * .2, 0, 0, 7); g.fill(); }
+    if (C.acc === 'bandana') { g.fillStyle = '#e0302a'; g.beginPath(); g.moveTo(x - r * .6, y + r * .86); g.lineTo(x + r * .6, y + r * .86); g.lineTo(x, y + r * 1.4); g.closePath(); g.fill(); g.fillStyle = '#fff'; for (const d of [[-.25, .98], [.2, 1.0], [0, 1.2]]) { g.beginPath(); g.arc(x + d[0] * r, y + d[1] * r, r * .035, 0, 7); g.fill(); } }
+    // ears
+    g.strokeStyle = '#4a3326'; g.lineWidth = Math.max(1, r * .045);
+    const tri = (sx, tall, inner, wide) => { const ex1 = x + sx * r * .62, ey = y - r * .72, w1 = r * (wide || .5); g.fillStyle = C.fur; g.beginPath(); g.moveTo(ex1 - sx * w1 * .9, ey + r * .45); g.lineTo(ex1 + sx * w1 * .15, ey - r * tall * .55); g.lineTo(ex1 + sx * w1 * .75, ey + r * .55); g.closePath(); g.fill(); g.stroke(); g.fillStyle = inner; g.beginPath(); g.moveTo(ex1 - sx * w1 * .35, ey + r * .42); g.lineTo(ex1 + sx * w1 * .12, ey - r * tall * .3); g.lineTo(ex1 + sx * w1 * .5, ey + r * .45); g.closePath(); g.fill(); };
+    for (const s of [-1, 1]) {
+      if (ty === 'cat') tri(s, .85, C.ear); else if (ty === 'fox') tri(s, 1.15, '#3a2418'); else if (ty === 'dog') tri(s, .8, C.ear, .46); else if (ty === 'pig') { const ex1 = x + s * r * .66, ey = y - r * .62; g.fillStyle = C.ear; g.beginPath(); g.moveTo(ex1 - s * r * .3, ey + r * .3); g.lineTo(ex1 + s * r * .1, ey - r * .42); g.lineTo(ex1 + s * r * .4, ey + r * .32); g.closePath(); g.fill(); g.stroke(); }
+      else if (ty === 'panda' || ty === 'bear') { const ex1 = x + s * r * .74, ey = y - r * .58; g.fillStyle = C.ear; g.beginPath(); g.arc(ex1, ey, r * .33, 0, 7); g.fill(); if (ty === 'bear') { g.stroke(); g.fillStyle = C.dark; g.beginPath(); g.arc(ex1, ey + r * .02, r * .17, 0, 7); g.fill(); } }
+      else if (ty === 'bunny') { const ex1 = x + s * r * .55, ey = y - r * .97; g.fillStyle = C.fur; g.beginPath(); g.ellipse(ex1, ey, r * .22, r * .62, s * .18, 0, 7); g.fill(); g.stroke(); g.fillStyle = C.ear; g.beginPath(); g.ellipse(ex1, ey + r * .05, r * .11, r * .44, s * .18, 0, 7); g.fill(); }
+    }
+    // head
+    g.fillStyle = C.fur; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.stroke();
+    if (ty === 'fox') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x - r * .5, y + r * .38, r * .55, r * .42, .3, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + r * .5, y + r * .38, r * .55, r * .42, -.3, 0, 7); g.fill(); g.beginPath(); g.ellipse(x, y + r * .55, r * .4, r * .32, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y - r * 1.02, r * .26, 0, 7); g.fill(); g.stroke(); }
+    if (ty === 'panda') { g.fillStyle = '#2a2a32'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * r * .4, y - r * .02, r * .24, r * .3, s * .45, 0, 7); g.fill(); } }
+    if (ty === 'bunny') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .5, r * .3, r * .22, 0, 0, 7); g.fill(); }
+    if (ty === 'dog') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .42, r * .62, r * .5, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(x - r * .5, y + r * .12, r * .26, r * .3, .3, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + r * .5, y + r * .12, r * .26, r * .3, -.3, 0, 7); g.fill(); g.beginPath(); g.arc(x, y - r * .6, r * .12, 0, 7); g.fill(); }
+    if (ty === 'bear') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .42, r * .46, r * .38, 0, 0, 7); g.fill(); }
+    if (ty === 'penguin') { g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x - r * .34, y + r * .08, r * .46, r * .56, .15, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + r * .34, y + r * .08, r * .46, r * .56, -.15, 0, 7); g.fill(); g.beginPath(); g.ellipse(x, y + r * .5, r * .5, r * .36, 0, 0, 7); g.fill(); }
+    if (ty === 'frog') { for (const s of [-1, 1]) { g.fillStyle = C.fur; g.beginPath(); g.arc(x + s * r * .46, y - r * .72, r * .34, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x + s * r * .46, y - r * .72, r * .24, 0, 7); g.fill(); } g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .5, r * .62, r * .36, 0, 0, 7); g.fill(); }
+    if (ty === 'chick') { g.fillStyle = C.fur; g.strokeStyle = '#4a3326'; for (const d of [-.16, 0, .16]) { g.beginPath(); g.ellipse(x + d * r * 1.1, y - r * 1.02, r * .07, r * .2, d * 1.4, 0, 7); g.fill(); g.stroke(); } g.fillStyle = C.dark; g.beginPath(); g.ellipse(x - r * .85, y + r * .35, r * .22, r * .3, .5, 0, 7); g.fill(); g.beginPath(); g.ellipse(x + r * .85, y + r * .35, r * .22, r * .3, -.5, 0, 7); g.fill(); }
+    if (ty === 'pig') { g.fillStyle = C.dark; g.beginPath(); g.ellipse(x, y + r * .3, r * .36, r * .27, 0, 0, 7); g.fill(); g.strokeStyle = '#d96a8c'; g.lineWidth = Math.max(1, r * .04); g.stroke(); g.fillStyle = '#b8455f'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * r * .13, y + r * .3, r * .05, r * .08, 0, 0, 7); g.fill(); } }
+    // accessories on the head
+    if (C.acc === 'bow') { g.fillStyle = '#ff4f86'; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(x + r * .72, y - r * .62); g.lineTo(x + r * (.72 + s * .36), y - r * .86); g.lineTo(x + r * (.72 + s * .36), y - r * .4); g.closePath(); g.fill(); } g.beginPath(); g.arc(x + r * .72, y - r * .62, r * .1, 0, 7); g.fill(); }
+    if (C.acc === 'band') { g.fillStyle = '#e8453c'; rr(g, x - r * .85, y - r * .62, r * 1.7, r * .2, r * .08); g.fill(); g.fillStyle = '#fff'; g.font = '700 ' + (r * .2) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('糊', x, y - r * .52); }
+    if (C.acc === 'cap') { g.fillStyle = '#2f9a6a'; g.beginPath(); g.arc(x, y - r * .66, r * .52, Math.PI, 0); g.fill(); g.fillRect(x - r * .52, y - r * .68, r * 1.5, r * .12); g.fillStyle = '#ffd24a'; g.beginPath(); g.arc(x, y - r * .78, r * .09, 0, 7); g.fill(); }
+    if (C.acc === 'flower') { const fx = x + r * .62, fy = y - r * .8; g.fillStyle = '#ff7fb0'; for (let i = 0; i < 5; i++) { const a = i * Math.PI * 2 / 5; g.beginPath(); g.arc(fx + Math.cos(a) * r * .13, fy + Math.sin(a) * r * .13, r * .1, 0, 7); g.fill(); } g.fillStyle = '#ffd84a'; g.beginPath(); g.arc(fx, fy, r * .08, 0, 7); g.fill(); }
+    if (C.acc === 'crown') { g.fillStyle = '#ffd24a'; g.strokeStyle = '#a8761a'; g.lineWidth = Math.max(1, r * .04); g.beginPath(); g.moveTo(x - r * .32, y - r * 1.0); g.lineTo(x - r * .34, y - r * 1.34); g.lineTo(x - r * .14, y - r * 1.15); g.lineTo(x, y - r * 1.4); g.lineTo(x + r * .14, y - r * 1.15); g.lineTo(x + r * .34, y - r * 1.34); g.lineTo(x + r * .32, y - r * 1.0); g.closePath(); g.fill(); g.stroke(); }
+    if (C.acc === 'shell') { g.fillStyle = '#fffdf5'; g.strokeStyle = '#4a3326'; g.lineWidth = Math.max(1, r * .045); g.beginPath(); g.moveTo(x - r * .7, y - r * .5); for (let i = 0; i <= 6; i++) g.lineTo(x - r * .7 + i * r * .2333, y - (i % 2 ? r * .98 : r * .72)); g.lineTo(x + r * .7, y - r * .5); g.closePath(); g.fill(); g.stroke(); }
+    if (C.acc === 'chef') { g.fillStyle = '#fff'; g.strokeStyle = '#8a7a70'; g.lineWidth = Math.max(1, r * .045); for (const d of [[-.34, 1.0, .3], [0, 1.15, .34], [.34, 1.0, .3]]) { g.beginPath(); g.arc(x + d[0] * r, y - d[1] * r, d[2] * r, 0, 7); g.fill(); g.stroke(); } rr(g, x - r * .5, y - r * .86, r * 1.0, r * .32, r * .06); g.fill(); g.stroke(); }
+    // face by mood
+    const nose = () => { if (ty === 'pig') return; if (ty === 'penguin' || ty === 'chick') { g.fillStyle = C.nose; g.strokeStyle = '#b8601a'; g.lineWidth = Math.max(1, r * .035); g.beginPath(); g.moveTo(x - r * .17, y + r * .17); g.lineTo(x + r * .17, y + r * .17); g.lineTo(x, y + r * .36); g.closePath(); g.fill(); g.stroke(); return; } if (ty === 'frog') { g.fillStyle = '#2f7a2f'; for (const s of [-1, 1]) { g.beginPath(); g.arc(x + s * r * .1, y + r * .16, r * .03, 0, 7); g.fill(); } return; } g.fillStyle = C.nose; g.beginPath(); g.ellipse(x, y + r * .22, r * .09, r * .065, 0, 0, 7); g.fill(); };
+    const eyeDot = (sx, rad) => { g.fillStyle = ink; g.beginPath(); g.ellipse(x + sx * exs, eyY, rad, rad * 1.3, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x + sx * exs - rad * .3, eyY - rad * .45, rad * .35, 0, 7); g.fill(); };
+    const arc = (sx, upc) => { g.strokeStyle = ink; g.beginPath(); g.arc(x + sx * exs, eyY + (upc ? r * .08 : 0), r * .14, upc ? Math.PI * 1.08 : Math.PI * .08, upc ? Math.PI * 1.92 : Math.PI * .92); g.stroke(); };
+    const blush = a => { g.fillStyle = 'rgba(255,90,120,' + a + ')'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * r * .66, y + r * .3 + my * .5, r * .16, r * .1, 0, 0, 7); g.fill(); } };
+    g.strokeStyle = ink; g.fillStyle = ink; g.lineWidth = Math.max(1.2, r * .07);
+    if (ex === 'idle') { eyeDot(-1, r * .09); eyeDot(1, r * .09); blush(.25); nose(); g.strokeStyle = ink; g.beginPath(); g.arc(x, y + r * .3 + my, r * .15 * mw, .15 * Math.PI, .85 * Math.PI); g.stroke(); }
+    else if (ex === 'happy') { arc(-1, true); arc(1, true); blush(.5); nose(); g.fillStyle = '#9a2a3a'; g.beginPath(); g.arc(x, y + r * .3 + my, r * .22 * mw, 0, Math.PI); g.closePath(); g.fill(); g.fillStyle = '#ff8a9a'; g.beginPath(); g.ellipse(x, y + r * .46 + my, r * .11 * mw, r * .06, 0, 0, 7); g.fill(); }
+    else if (ex === 'shock') { for (const s of [-1, 1]) { g.fillStyle = '#fff'; g.beginPath(); g.arc(x + s * exs, eyY, r * .2, 0, 7); g.fill(); g.strokeStyle = ink; g.lineWidth = Math.max(1, r * .045); g.stroke(); g.fillStyle = ink; g.beginPath(); g.arc(x + s * exs + Math.sin(t * 30) * r * .02, eyY, r * .06, 0, 7); g.fill(); g.lineWidth = Math.max(1.2, r * .06); g.beginPath(); g.moveTo(x + s * exs - r * .16, eyY - r * .3); g.lineTo(x + s * exs + r * .16, eyY - r * .34); g.stroke(); }
+      nose(); g.fillStyle = '#7a1a2a'; g.beginPath(); g.ellipse(x, y + r * .5 + my, r * .13 * mw, r * .19, 0, 0, 7); g.fill(); g.fillStyle = '#6ec6ff'; g.beginPath(); g.moveTo(x + r * .95, y - r * .5); g.quadraticCurveTo(x + r * 1.12, y - r * .2, x + r * .95, y - r * .1); g.quadraticCurveTo(x + r * .78, y - r * .2, x + r * .95, y - r * .5); g.fill(); }
+    else if (ex === 'angry') { for (const s of [-1, 1]) { eyeDot(s, r * .08); g.strokeStyle = ink; g.lineWidth = Math.max(1.5, r * .08); g.beginPath(); g.moveTo(x + s * exs + s * r * .2, eyY - r * .26); g.lineTo(x + s * exs - s * r * .2, eyY - r * .12); g.stroke(); }
+      nose(); g.strokeStyle = ink; g.lineWidth = Math.max(1.2, r * .07); g.beginPath(); g.arc(x, y + r * .56 + my, r * .16 * mw, 1.15 * Math.PI, 1.85 * Math.PI); g.stroke(); blush(.45);
+      g.strokeStyle = '#e8302a'; g.lineWidth = Math.max(1.5, r * .07); const vx = x - r * .55, vy = y - r * .6; g.beginPath(); g.moveTo(vx - r * .12, vy); g.lineTo(vx + r * .12, vy); g.moveTo(vx, vy - r * .12); g.lineTo(vx, vy + r * .12); g.stroke(); }
+    else if (ex === 'cry') { for (const s of [-1, 1]) { g.strokeStyle = ink; g.lineWidth = Math.max(1.5, r * .07); g.beginPath(); g.moveTo(x + s * exs - s * r * .14, eyY - r * .1); g.lineTo(x + s * exs + s * r * .1, eyY); g.lineTo(x + s * exs - s * r * .14, eyY + r * .1); g.stroke();
+      const fl = (t * 3) % 1; g.fillStyle = 'rgba(110,198,255,.85)'; g.beginPath(); g.moveTo(x + s * exs, eyY + r * .08); g.quadraticCurveTo(x + s * (exs + r * .26), eyY + r * .5 + fl * r * .2, x + s * (exs + r * .12), eyY + r * .98); g.lineTo(x + s * (exs - r * .1), eyY + r * .98); g.quadraticCurveTo(x + s * (exs - r * .02), eyY + r * .5, x + s * exs, eyY + r * .08); g.fill(); }
+      nose(); g.strokeStyle = ink; g.lineWidth = Math.max(1.2, r * .07); g.beginPath(); g.moveTo(x - r * .18 * mw, y + r * .52 + my); g.quadraticCurveTo(x - r * .09 * mw, y + r * .42 + my, x, y + r * .52 + my); g.quadraticCurveTo(x + r * .09 * mw, y + r * .62 + my, x + r * .18 * mw, y + r * .52 + my); g.stroke(); blush(.35); }
+    else if (ex === 'smug') { for (const s of [-1, 1]) { g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x + s * exs, eyY + r * .02, r * .14, r * .1, 0, 0, 7); g.fill(); g.fillStyle = ink; g.beginPath(); g.arc(x + s * exs + r * .03, eyY + r * .03, r * .06, 0, 7); g.fill(); g.strokeStyle = ink; g.lineWidth = Math.max(1.5, r * .07); g.beginPath(); g.moveTo(x + s * exs - r * .17, eyY - r * .06); g.lineTo(x + s * exs + r * .17, eyY - r * .06); g.stroke(); }
+      nose(); g.strokeStyle = ink; g.lineWidth = Math.max(1.2, r * .07); g.beginPath(); g.moveTo(x - r * .2 * mw, y + r * .42 + my); g.quadraticCurveTo(x, y + r * .55 + my, x + r * .24 * mw, y + r * .34 + my); g.stroke(); blush(.3);
+      g.fillStyle = '#ffd84a'; const sx = x + r * .85, sy = y - r * .5, q = r * .2 * (1 + Math.sin(t * 6) * .2); g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rad = i % 2 ? q * .35 : q; g.lineTo(sx + Math.cos(a) * rad, sy + Math.sin(a) * rad); } g.closePath(); g.fill(); }
+    else { eyeDot(-1, r * .09); arc(1, true); blush(.5); nose(); g.strokeStyle = ink; g.beginPath(); g.arc(x, y + r * .3 + my, r * .17 * mw, .1 * Math.PI, .9 * Math.PI); g.stroke(); }
+    if (C.acc === 'glasses') { g.strokeStyle = '#6a4a20'; g.lineWidth = Math.max(1.3, r * .06); for (const s of [-1, 1]) { g.beginPath(); g.arc(x + s * exs, eyY, r * .27, 0, 7); g.stroke(); } g.beginPath(); g.moveTo(x - r * .13, eyY); g.lineTo(x + r * .13, eyY); g.stroke(); g.fillStyle = 'rgba(255,255,255,.28)'; for (const s of [-1, 1]) { g.beginPath(); g.arc(x + s * exs, eyY, r * .26, 0, 7); g.fill(); } }
+    if (C.acc === 'bowtie') { g.fillStyle = '#e0302a'; g.strokeStyle = '#7a1a14'; g.lineWidth = Math.max(1, r * .035); g.beginPath(); g.moveTo(x, y + r * .98); g.lineTo(x - r * .3, y + r * .84); g.lineTo(x - r * .3, y + r * 1.12); g.closePath(); g.moveTo(x, y + r * .98); g.lineTo(x + r * .3, y + r * .84); g.lineTo(x + r * .3, y + r * 1.12); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.arc(x, y + r * .98, r * .07, 0, 7); g.fill(); }
+    g.restore();
+  }
+  /* ---------- bubbles and bursts ---------- */
+  function wrap(g, text, maxW) { const out = []; let line = ''; for (const ch of text.split(/(\s+)/)) { const t = line + ch; if (g.measureText(t).width > maxW && line) { out.push(line.trim()); line = ch.trimStart(); } else line = t; } if (line.trim()) out.push(line.trim()); return out; }
+  function bubble(g, text, x, y, maxW, o) { // box centred on x, top at y; returns its height. o: {tail:{x,y}, scale, fs, color}
+    o = o || {}; const fs = o.fs || 13, sc = o.scale == null ? 1 : o.scale; if (sc <= 0) return 0; g.save(); g.font = '700 ' + fs + 'px ' + FONT; const lines = wrap(g, text, maxW - 14), w = Math.min(maxW, Math.max(...lines.map(l => g.measureText(l).width)) + 16), h = lines.length * (fs + 3) + 10;
+    g.translate(x, y + h / 2); g.scale(sc, sc); g.translate(-x, -(y + h / 2)); g.fillStyle = o.fill || '#fffdf2'; g.strokeStyle = '#3a2c28'; g.lineWidth = 2.2; g.lineJoin = 'round';
+    rr(g, x - w / 2, y, w, h, 10); g.fill(); g.stroke();
+    if (o.tail) { const tx = Math.max(x - w / 2 + 14, Math.min(x + w / 2 - 14, o.tail.x)), ty = o.tail.y, dir = ty < y ? -1 : 1, by = dir < 0 ? y : y + h; g.beginPath(); g.moveTo(tx - 7, by); g.lineTo(o.tail.x, ty); g.lineTo(tx + 7, by); g.closePath(); g.fillStyle = o.fill || '#fffdf2'; g.fill(); g.stroke(); g.fillRect(tx - 6, by - (dir < 0 ? 0 : 2), 12, 2); g.lineWidth = 0; }
+    g.fillStyle = o.color || '#2a1f1c'; g.textAlign = 'center'; g.textBaseline = 'middle'; lines.forEach((l, i) => g.fillText(l, x, y + 5 + (fs + 3) * i + (fs + 3) / 2)); g.restore(); return h;
+  }
+  function burst(g, text, x, y, R, o) { // comic starburst with a big shout in it
+    o = o || {}; const sc = o.scale == null ? 1 : o.scale, rot = o.rot || 0, n = 16; if (sc <= 0) return; g.save(); g.translate(x, y); g.rotate(rot); g.scale(sc, sc); g.lineJoin = 'round';
+    g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i * Math.PI / n, rad = i % 2 ? R * .74 : R; g.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); } g.closePath(); g.fillStyle = o.fill || '#ffd84a'; g.strokeStyle = '#3a2c28'; g.lineWidth = 4; g.fill(); g.stroke();
+    g.beginPath(); for (let i = 0; i < n * 2; i++) { const a = i * Math.PI / n, rad = (i % 2 ? R * .74 : R) * .82; g.lineTo(Math.cos(a) * rad, Math.sin(a) * rad); } g.closePath(); g.fillStyle = o.fill2 || '#ff5a3c'; g.fill();
+    g.rotate(-rot * 1.3); g.font = '900 ' + (o.fs || R * .62) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 6; g.strokeStyle = '#3a2c28'; g.strokeText(text, 0, 2); g.fillStyle = '#fff'; g.fillText(text, 0, 2); g.restore();
+  }
+  return { FONT, CH, ORDER, tile, tileImg, face, bubble, burst, rr, wrap };
+})();
+
+/* Mahjong, part 4: what the three animal friends say. Each reaction is [line, mood]. {chi} and {hu} change with the rule set
+   (Hong Kong says 上 and 糊, Taiwan says 吃 and 胡). */
+const MT = (function () {
+  const L = {
+    mimi: {
+      pon: [['碰!! Nyaa~ that one is MINE!', 'happy'], ['碰碰碰! Eeee, I did it!', 'happy'], ['碰! *tail wiggle*', 'smug']],
+      chi: [['{chi}! Pardon me, nya~', 'happy'], ['{chi}! Just borrowing it…', 'smug'], ['{chi}! Sorry sorry sorry!', 'happy']],
+      kong: [['槓!!! Nyaaaaa! FOUR of them!!', 'shock'], ['槓! My whiskers are tingling!', 'happy']],
+      win: [['{hu}啦!! Nya?! Did I really win?!', 'happy'], ['{hu}!! Pur-fect!', 'happy']],
+      zimo: [['自摸!! Nyaaa, I drew it myself!', 'happy']],
+      rob: [['搶槓!! Gotcha, nya!', 'smug']],
+      youClaim: [['Eeek! You took my tile?!', 'shock'], ['Nyaa?! Not THAT one!', 'shock'], ['Hiss… okay, fine.', 'angry']],
+      oppClaim: [['Ooh, scary…', 'shock'], ['Hmm?! Nya!', 'shock']],
+      lose: [['Nyaaa… there goes my snack money 😿', 'cry'], ['I knew it… I just KNEW it!', 'cry']],
+      loseBig: [['WAAAH!!! NOT THAT HAND!!', 'cry']],
+      youWin: [['No way, nya!!', 'shock'], ['Wow, so fast!', 'shock']],
+      flower: [['A flower! So pretty~', 'happy'], ['Ooh, sparkly 🌸', 'happy']],
+      draw: [['Phew… a draw. Nobody cries today~', 'idle']],
+      start: [['Let\'s play nicely, nya~', 'happy']]
+    },
+    boba: {
+      pon: [['碰!! Panda power!', 'smug'], ['BOOM! 碰!', 'happy'], ['碰! Too slow, friends!', 'smug']],
+      chi: [['{chi}! Smooth like bubble tea!', 'smug'], ['{chi}! Easy peasy!', 'happy']],
+      kong: [['槓!!! BAMBOO BOOM!!', 'happy'], ['槓槓槓!! Feel the thunder!', 'smug']],
+      win: [['{hu}!!! Bow to the Panda!', 'happy'], ['{hu}啦! Pay up, pay up!', 'smug']],
+      zimo: [['自摸!!! Did you see that?! DID YOU?!', 'happy']],
+      rob: [['搶槓!! Nice kong. I\'ll take it!', 'smug']],
+      youClaim: [['Hey! That was MY tile!', 'angry'], ['Rude! So rude!', 'angry'], ['Oho, stealing my spotlight?', 'smug']],
+      oppClaim: [['Show-off!', 'angry'], ['Pfft, amateur.', 'smug']],
+      lose: [['It\'s a trap… I let you win!', 'cry'], ['Waaah! Even bubble tea can\'t fix this!', 'cry']],
+      loseBig: [['NOOOOO!!! My beautiful tile!!', 'cry']],
+      youWin: [['WHAT?! Impossible!!', 'shock'], ['Beginner\'s luck!', 'angry']],
+      flower: [['Flower power! 🌼', 'happy'], ['Ooh, a freebie!', 'happy']],
+      draw: [['A draw?! Boooring!', 'angry']],
+      start: [['I\'m gonna win everything!', 'smug']]
+    },
+    fox: {
+      pon: [['Hohoho~ 碰, dearie.', 'smug'], ['碰. Thank you, sweetie.', 'smug']],
+      chi: [['{chi}. Don\'t mind if I do.', 'smug'], ['{chi}, dear. All part of the plan.', 'smug']],
+      kong: [['槓. Just as planned… hehehe.', 'smug'], ['槓!! Granny\'s got FOUR!', 'happy']],
+      win: [['{hu}. Granny\'s lucky day! Pay up, dears.', 'happy'], ['Hehehe… {hu}啦.', 'smug']],
+      zimo: [['自摸! My knees are old, my luck is not!', 'happy']],
+      rob: [['搶槓. Thank you for the tile, dear.', 'smug']],
+      youClaim: [['Hmm. Clever child.', 'smug'], ['Oh! You naughty one!', 'angry'], ['In my day we asked first!', 'angry']],
+      oppClaim: [['Hmph, young people.', 'smug']],
+      lose: [['In my day I never lost… *sigh*', 'cry'], ['My poor knees AND my wallet!', 'cry']],
+      loseBig: [['Aiyaaa!!! My pension!!', 'cry']],
+      youWin: [['Ooh! You got me, dear!', 'shock'], ['Well well well!', 'shock']],
+      flower: [['A pretty flower, just like me!', 'happy']],
+      draw: [['Nobody wins? Time for tea.', 'idle']],
+      start: [['Hohoho, who wants to lose first?', 'smug']]
+    }
+  };
+  /* the other seven animals are written with a small helper: [line, mood] pairs per reaction */
+  const mk = o => ({
+    pon: [[o.pon[0], 'happy'], [o.pon[1], 'smug']], chi: [[o.chi[0], 'smug'], [o.chi[1], 'happy']], kong: [[o.kong[0], 'shock'], [o.kong[1], 'happy']],
+    win: [[o.win[0], 'happy'], [o.win[1], 'smug']], zimo: [[o.zimo, 'happy']], rob: [[o.rob, 'smug']],
+    youClaim: [[o.yc[0], 'shock'], [o.yc[1], 'angry'], [o.yc[2], 'smug']], oppClaim: [[o.oc[0], 'shock'], [o.oc[1], 'smug']],
+    lose: [[o.lose[0], 'cry'], [o.lose[1], 'cry']], loseBig: [[o.big, 'cry']], youWin: [[o.yw[0], 'shock'], [o.yw[1], 'shock']],
+    flower: [[o.fl[0], 'happy'], [o.fl[1], 'happy']], draw: [[o.draw, 'idle']], start: [[o.start, 'happy']]
+  });
+  L.bunny = mk({ pon: ['碰! Hop hop hooray!', '碰! *thump thump*'], chi: ['{chi}! Just a little hop, please!', '{chi}! Thank you, thank you!'], kong: ['槓!!! Four carrots in a row!!', '槓! My ears are standing up!'], win: ['{hu}啦!! I hopped to victory!', '{hu}! Boing boing boing!'], zimo: '自摸!! I found it myself, hop!', rob: '搶槓!! Sneaky bunny strikes!', yc: ['Eek! My tile!', 'Hmph! *foot thump*', 'Hehe, clever one.'], oc: ['Ooh, scary…', 'Hm, nice hop.'], lose: ['Sniff… my carrots…', 'Nooo, I wanted that one!'], big: 'WAAAH!!! My ears are drooping!!', yw: ['Wow! So fast!', 'You hopped past me!'], fl: ['A flower! So pretty~', 'Ooh, petals!'], draw: 'A draw. Let us eat carrots~', start: 'Let us have fun, hop hop!' });
+  L.shiba = mk({ pon: ['碰! Woof woof!', '碰!! Mine, mine, mine!'], chi: ['{chi}! Fetch!', '{chi}! Good boy to me!'], kong: ['槓!!! WOOF WOOF WOOF WOOF!!', '槓! Tail going wild!'], win: ['{hu}!! Who is a good boy? ME!', '{hu}啦! Treats for everyone, you pay!'], zimo: '自摸!!! I fetched it MYSELF!', rob: '搶槓!! Snatched it, woof!', yc: ['Grrr! Give it back!', 'Woof?! That was MINE!', 'Hmm, fine, you may have it.'], oc: ['Ooh, big bark!', 'Hmph, show-off.'], lose: ['Whimper… no treats today…', 'Awoooo… I lost.'], big: 'AWOOOOOO!!! NOT MY HAND!!', yw: ['Woof?! How?!', 'You are too good!'], fl: ['A flower! I will bury it!', 'Pretty! Sniff sniff.'], draw: 'A draw? Let us go for a walk.', start: 'Woof! Ready to play!' });
+  L.bear = mk({ pon: ['碰! Hum hum hum~', '碰! Sweet as honey!'], chi: ['{chi}! Just a tiny taste.', '{chi}~ yum!'], kong: ['槓!!! A whole honey pot!!', '槓! Growl of joy!'], win: ['{hu}!! Bear hug for everyone, pay up!', '{hu}啦! Sticky sweet win!'], zimo: '自摸!!! Honey from my own hive!', rob: '搶槓!! Bear grab!', yc: ['Grrr! My honey tile!', 'Hey! No sharing!', 'Mmm, okay, I will let it go.'], oc: ['Ooh, big paws!', 'Hmph.'], lose: ['Sniff… my honey is gone…', 'Grumble grumble…'], big: 'GROOOWL!!! TOO MUCH!!', yw: ['What?! No way!', 'Wow, sneaky!'], fl: ['A flower! Bees will love it!', 'Ooh, pretty~'], draw: 'A draw. Time for a nap.', start: 'Let us play slow and sweet.' });
+  L.frog = mk({ pon: ['碰! Ribbit!', '碰!! Splash!'], chi: ['{chi}! Hop onto the lily pad!', '{chi}~ ribbit ribbit.'], kong: ['槓!!! RIBBIT RIBBIT RIBBIT RIBBIT!!', '槓! Big splash!'], win: ['{hu}!! The Frog King wins! Ribbit!', '{hu}啦! Pay the toll, peasants!'], zimo: '自摸!!! Tongue snatched it myself!', rob: '搶槓!! Tongue flick!', yc: ['Ribbit?! My fly!', 'Croak! Rude!', 'Hmm, take it, I will catch another.'], oc: ['Ooh, a splash!', 'Pfft.'], lose: ['Croak… my crown…', 'Ribbit… so sad…'], big: 'CROOOAK!!! MY KINGDOM!!', yw: ['Ribbit?! Impossible!', 'Jumped right over me!'], fl: ['A flower for my pond!', 'Ooh, lily!'], draw: 'A draw. Ribbit, nap time.', start: 'Ribbit! The king is ready.' });
+  L.penguin = mk({ pon: ['碰! Waddle waddle!', '碰! Flap flap!'], chi: ['{chi}! Sliding in, whee!', '{chi}~ nice and cool.'], kong: ['槓!!! FOUR LITTLE FISH!!', '槓! Flippers up!'], win: ['{hu}!! Cool! Pay in fish, please!', '{hu}啦! Slide to victory!'], zimo: '自摸!!! I caught it myself!', rob: '搶槓!! Slippery swipe!', yc: ['Squawk! My tile!', 'Hey! Not cool!', 'Hmm, fair enough.'], oc: ['Ooh, brr!', 'Hmph, show-off.'], lose: ['Squeak… my fish…', 'Sniff… so cold…'], big: 'SQUAAAWK!!! MELTING!!', yw: ['Squawk?! No way!', 'You slid past me!'], fl: ['A flower in the snow!', 'Pretty!'], draw: 'A draw. Let us slide on the ice.', start: 'Cool, let us play!' });
+  L.chick = mk({ pon: ['碰! Peep peep!', '碰!! Cheep!'], chi: ['{chi}! Peep, pardon me!', '{chi}~ tiny peck.'], kong: ['槓!!! PEEP PEEP PEEP PEEP!!', '槓! My feathers fluffed up!'], win: ['{hu}!! I hatched a win!', '{hu}啦! Peep peep, pay up!'], zimo: '自摸!!! I pecked it MYSELF!', rob: '搶槓!! Peck peck!', yc: ['Peep?! My tile!', 'Cheep! Rude!', 'Hmm, okay, peep.'], oc: ['Ooh, big peck!', 'Peep, hmph.'], lose: ['Peep… my seeds…', 'Sniff… peep…'], big: 'PEEEEP!!! CRACKED!!', yw: ['Peep?! How?!', 'So quick!'], fl: ['A flower! Peep!', 'Ooh, petals!'], draw: 'A draw. Time to nest.', start: 'Peep! Let us play!' });
+  L.pig = mk({ pon: ['碰! Oink oink!', '碰!! Snort!'], chi: ['{chi}! Oink, pardon me!', '{chi}~ yummy.'], kong: ['槓!!! OINK OINK OINK OINK!!', '槓! Trotters in the air!'], win: ['{hu}!! Oinkcredible! Pay up!', '{hu}啦! Dinner is on you!'], zimo: '自摸!!! I drew it MYSELF, oink!', rob: '搶槓!! Snort, mine!', yc: ['Oink?! My tile!', 'Snort! So rude!', 'Hmm, take it, I am full anyway.'], oc: ['Ooh, wow!', 'Pfft, snort.'], lose: ['Oink… no dinner for me…', 'Sniff… snort…'], big: 'OIIIINK!!! MY WALLET!!', yw: ['Oink?! Impossible!', 'Wow, you are quick!'], fl: ['A flower to sniff!', 'Pretty, oink!'], draw: 'A draw. Snack time.', start: 'Oink! Let us eat… I mean play!' });
+  const fill = (s, rules) => s.replace(/\{chi\}/g, rules === 'tw' ? '吃' : '上').replace(/\{hu\}/g, rules === 'tw' ? '胡' : '糊');
+  function react(kind, who, rules, rand) { const a = (L[who] || L.mimi)[kind] || (L[who] || L.mimi).lose; const r = a[Math.floor((rand || Math.random)() * a.length)]; return { line: fill(r[0], rules), face: r[1] }; }
+  function shout(kind, rules) { return { pon: '碰', chi: rules === 'tw' ? '吃' : '上', kong: '槓', akong: '槓', addkong: '加槓', win: rules === 'tw' ? '胡' : '糊', zimo: '自摸', rob: '搶槓' }[kind] || kind; }
+  return { react, shout };
+})();
+
+/* Mahjong. mjcore.js has the tiles, winning shapes and scoring; mjsim.js the game flow and computer players; mjart.js the pictures; mjtalk.js what the animals say.
+   This file draws the table, takes your taps and plays the reactions (bubbles, shouts, tears). */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.mahjong.v1', { dark: true, sound: true, rules: 'hk', min: 3, rounds: 1, speed: 'normal', me: 'bunny', opp: ['mimi', 'boba', 'fox'], rec: { g: 0, w: 0, h: 0, best: 0, bestN: '' } }), st = S0.st;
+if (!st.rec || typeof st.rec.g !== 'number') st.rec = { g: 0, w: 0, h: 0, best: 0, bestN: '' };
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovRes', 'ovEnd', 'ovDice']);
+settings([
+  { id: 'speed', label: 'Computer speed', type: 'select', options: [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']], def: 'normal' },
+  { id: 'min', label: 'Hong Kong: fewest faan to win', type: 'select', options: [['3', '3 faan (standard)'], ['2', '2 faan'], ['1', '1 faan (easy)']], def: '3', show: s => s.rules === 'hk' },
+  { id: 'dice', label: 'Roll dice at the start of a game', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), id => { st.min = +st.min; S0.save(); if (id === 'min') newGame(); });
+st.min = +st.min || 3;
+const ORDER = MA.ORDER; const okAv = () => Array.isArray(st.opp) && st.opp.length === 3 && [st.me, ...st.opp].every(a => ORDER.includes(a)) && new Set([st.me, ...st.opp]).size === 4;
+if (!okAv()) { st.me = 'bunny'; st.opp = ['mimi', 'boba', 'fox']; }
+
+const W = 480, H = 652, cv = $('cv'), C = KIT.canvas(cv, W, H, 2), g = C.ctx, MJx = MJ, FONT = MA.FONT;
+const CHARID = [st.me, ...st.opp], bgOf = p => MA.CH[CHARID[p]].bg, DELAY = { slow: 1250, normal: 760, fast: 280 };
+const CARD = { 2: { x: 6, y: 4, w: 150, h: 64 }, 3: { x: 2, y: 78, w: 64, h: 104 }, 1: { x: 414, y: 78, w: 64, h: 104 } };
+const PAN = { 2: { x: 112, y: 78, cols: 12, sx: 21, sy: 27, tw: 19 }, 0: { x: 112, y: 318, cols: 12, sx: 21, sy: 27, tw: 19 }, 3: { x: 70, y: 166, cols: 6, sx: 19, sy: 27, tw: 17 }, 1: { x: 296, y: 166, cols: 6, sx: 19, sy: 27, tw: 17 } };
+const WINDN = ['東', '南', '西', '北'], WINDC = ['#d83a2e', '#2f7ad8', '#2a9a52', '#555'];
+let S, token = 0, timer = 0, TS = 1, hold = 0, selK = -1, selDrawn = false, handRects = [], logL = [], bub = [null, null, null, null], mood = [null, null, null, null], bursts = [], parts = [], shakeAmp = 0, lastT = 0, humDec = null, pendingRes = 0, hintTxt = '', now = 0, scoreShow = [0, 0, 0, 0];
+const T = () => performance.now() / 1000, hk = () => st.rules === 'hk';
+const say = t => { $('msg').textContent = t; };
+const schedule = (ms, f) => { clearTimeout(timer); const t = token; timer = setTimeout(() => { if (t === token) f(); }, ms * TS); };
+const tn = MJ.tn, CHI = () => hk() ? '上' : '吃', HU = () => hk() ? '糊' : '胡', UNIT = () => hk() ? 'faan' : 'tai';
+const nm = p => p === 0 ? 'You' : MA.CH[CHARID[p]].name;
+const log = t => { logL.push(t); if (logL.length > 60) logL.shift(); const el = $('log'); el.innerHTML = logL.slice(-30).map(x => '<div>' + x + '</div>').join(''); el.scrollTop = el.scrollHeight; };
+const rr = MA.rr, ease = x => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+
+/* ---------- background ---------- */
+const BG = KIT.cache(W * 2, H * 2, (c, w, h) => { c.fillStyle = '#4a2416'; c.fillRect(0, 0, w, h); const gr = c.createRadialGradient(w / 2, h * .4, 40, w / 2, h * .4, w * .9); gr.addColorStop(0, '#1f7a4c'); gr.addColorStop(1, '#0d3d27'); c.fillStyle = gr; c.fillRect(6, 6, w - 12, h - 12); c.strokeStyle = 'rgba(255,255,255,.035)'; c.lineWidth = 2; for (let i = -h; i < w; i += 22) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i + h, h); c.stroke(); } c.strokeStyle = 'rgba(255,255,255,.1)'; c.lineWidth = 3; c.strokeRect(120, 150, w - 240, 480); });
+
+/* ---------- flow ---------- */
+function opts() { return { rules: st.rules, min: st.min, rounds: st.rounds }; }
+function newGame(noDice) {
+  token++; clearTimeout(timer); O.hideAll(); logL = []; bub = [null, null, null, null]; mood = [null, null, null, null]; bursts = []; parts = []; hold = 0; selK = -1; humDec = null; hintTxt = ''; pendingRes = 0; diceRun = 0;
+  toTable(); bars(); if (st.dice !== false && !noDice) { showDice(); return; } begin(0);
+}
+function begin(d) {
+  O.hide('ovDice'); S = MS.newGame({ ...opts(), dealer: d }); scoreShow = [0, 0, 0, 0]; log('<b>New game: ' + (hk() ? 'Hong Kong' : 'Taiwan') + ' rules.</b> ' + nm(d) + (d === 0 ? ' deal' : ' deals') + ' first.'); handleEvents(); hud(); rec(); drive();
+  setTimeout(() => { if (S && S.handNo === 1) { const p = 1 + Math.floor(Math.random() * 3), r = MT.react('start', CHARID[p], st.rules); speak(p, r.line, r.face, 2.6); } }, 700);
+}
+/* ---------- dice: total counts round the table from you (1), your right (2), across (3), your left (4), then you again ---------- */
+let diceRun = 0, diceVals = [0, 0], diceDone = false;
+function drawDie(x, cx, cy, sz, v, rot) {
+  x.save(); x.translate(cx, cy); x.rotate(rot); x.fillStyle = 'rgba(0,0,0,.25)'; MA.rr(x, -sz / 2 + 3, -sz / 2 + 5, sz, sz, sz * .2); x.fill(); x.fillStyle = '#fffdf6'; x.strokeStyle = '#8a7a70'; x.lineWidth = 2; MA.rr(x, -sz / 2, -sz / 2, sz, sz, sz * .2); x.fill(); x.stroke();
+  const P = { 1: [[0, 0]], 2: [[-1, -1], [1, 1]], 3: [[-1, -1], [0, 0], [1, 1]], 4: [[-1, -1], [1, -1], [-1, 1], [1, 1]], 5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]], 6: [[-1, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [1, 1]] }[v]; const u = sz * .26;
+  for (const q of P) { x.fillStyle = v === 1 || v === 4 ? '#d83a2e' : '#2a1f1c'; x.beginPath(); x.arc(q[0] * u, q[1] * u, sz * (v === 1 ? .13 : .075), 0, 7); x.fill(); } x.restore();
+}
+function showDice() {
+  diceDone = false; diceVals = [0, 0]; const c = $('diceCv'); c.width = 600; c.height = 280; $('diceH').textContent = 'Roll the dice! 🎲'; $('diceP').innerHTML = 'The dice decide who sits <b>東 East</b> and deals first. The total counts round the table: <b>1 = you</b>, 2 = your right, 3 = across, 4 = your left, then you again.';
+  $('diceBtn').textContent = '🎲 Roll'; $('diceBtn').dataset.act = 'roll'; paintDice(0, 0); O.show('ovDice');
+}
+function paintDice(t, settle) {
+  const c = $('diceCv'), x = c.getContext('2d'); x.setTransform(2, 0, 0, 2, 0, 0); x.clearRect(0, 0, 300, 140); x.fillStyle = 'rgba(0,0,0,.2)'; MA.rr(x, 0, 0, 300, 140, 14); x.fill();
+  for (let i = 0; i < 2; i++) { const a = settle ? 1 : Math.max(0, 1 - t / 1.3), bounce = settle ? 0 : Math.abs(Math.sin(t * 9 + i)) * 38 * a, rot = settle ? (i ? .12 : -.1) : t * 11 * a * (i ? 1 : -1) + (i ? .2 : -.2), px = settle ? 95 + i * 110 : 95 + i * 110 + Math.sin(t * 6 + i * 2) * 26 * a; drawDie(x, px, 78 - bounce, 66, settle || diceVals[i] ? diceVals[i] : 1 + Math.floor(t * 14 + i * 3) % 6, rot); }
+}
+function rollDice() {
+  if (diceRun) return; diceRun = 1; $('diceBtn').disabled = true; const t0 = T(), tk = token; diceVals = [1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)]; const real = diceVals.slice(); diceVals = [0, 0];
+  let lastClack = 0; (function step() { if (tk !== token) return; const t = T() - t0; if (t < 1.4) { if (t - lastClack > .13) { lastClack = t; A.beep(300 + Math.random() * 500, .04, 'square', .07); } paintDice(t, 0); requestAnimationFrame(step); return; }
+    diceVals = real; paintDice(0, 1); const tot = real[0] + real[1], d = (tot - 1) % 4; A.beep(660, .12, 'triangle', .1); A.beep(880, .15, 'triangle', .1, .1); diceRun = 0; diceDone = d + 1;
+    $('diceH').textContent = 'You rolled ' + real[0] + ' + ' + real[1] + ' = ' + tot; $('diceP').innerHTML = '<b>' + (d === 0 ? 'You are' : nm(d) + ' is') + ' East (東) and deals first.</b> ' + (d === 0 ? 'Your hand starts the game.' : 'Watch ' + nm(d) + ' go first.');
+    $('diceBtn').disabled = false; $('diceBtn').textContent = 'Start game ▶'; $('diceBtn').dataset.act = 'dstart'; })();
+}
+function toTable() { try { $('hintLine').scrollIntoView({ block: 'end', behavior: 'smooth' }); } catch (e) { } }
+function nextHand() { O.hide('ovRes'); toTable(); if (S.finished) return endGame(); MS.nextHand(S); bub = [null, null, null, null]; selK = -1; humDec = null; hintTxt = ''; handleEvents(); log('<b>Hand ' + S.handNo + '</b>: ' + WINDN[S.rnd % 4] + ' round, dealer ' + nm(S.dealer) + (S.streak ? ' (streak ' + S.streak + ')' : '') + '.'); hud(); drive(); }
+function speak(p, text, face, secs) { if (p === 0) return; const n = T(); bub[p] = { text, t0: n, until: n + (secs || 2.4) * (TS < 1 ? 1 : 1), face }; mood[p] = { face, until: n + (secs || 2.4) }; }
+function shout(p, word, kind) { bursts.push({ p, word, t0: T(), dur: 1.5, kind }); }
+function spark(x, y, n, big) { for (let i = 0; i < n; i++) parts.push({ x, y, vx: (Math.random() - .5) * (big ? 360 : 200), vy: -Math.random() * (big ? 360 : 200) - 40, c: ['#ffd84a', '#ff5a3c', '#5ad0ff', '#ff8ac8', '#8aff6a'][i % 5], life: 1 + Math.random() * .8, s: 3 + Math.random() * 4 }); }
+
+function handleEvents() {
+  const ev = S.ev.splice(0);
+  for (const e of ev) {
+    if (e.t === 'deal') { A.noise(.25, .12); }
+    else if (e.t === 'draw') { if (e.p === 0) A.beep(520, .04, 'triangle', .06); }
+    else if (e.t === 'discard') { A.noise(.05, .22); A.beep(300, .05, 'square', .05); lastT = T(); log(nm(e.p) + ' discards <b>' + tn(e.k) + '</b>'); }
+    else if (e.t === 'flower') { if (!e.deal) { A.beep(1040, .12, 'sine', .08); A.beep(1400, .12, 'sine', .06, .08); log(nm(e.p) + ' gets flower ' + tn(e.k) + ' 🌸'); if (e.p !== 0 && Math.random() < .5) { const r = MT.react('flower', CHARID[e.p], st.rules); speak(e.p, r.line, r.face, 2); } hold += 350; } }
+    else if (e.t === 'claim') {
+      const word = MT.shout(e.kind, st.rules), big = e.kind === 'kong' || e.kind === 'akong' || e.kind === 'addkong'; shout(e.p, word, e.kind);
+      if (big) { shakeAmp = 9; A.slide(200, 60, .3, 'sawtooth', .16); A.beep(520, .16, 'square', .1, .1); } else { A.beep(660, .09, 'square', .12); A.beep(880, .12, 'square', .12, .08); }
+      spark(240, 250, big ? 26 : 14, big); log('<b>' + nm(e.p) + ': ' + word + '</b> ' + tn(e.k) + (e.from >= 0 ? ' (from ' + nm(e.from) + ')' : ''));
+      const kind = e.kind === 'akong' || e.kind === 'addkong' ? 'kong' : e.kind;
+      if (e.p !== 0) { const r = MT.react(kind, CHARID[e.p], st.rules); speak(e.p, r.line, r.face, 2.5); }
+      // everyone else reacts
+      const others = [1, 2, 3].filter(q => q !== e.p); let shown = 0;
+      if (e.p === 0) { for (const q of others) { if (shown >= 2) break; const hit = q === e.from; if (hit || Math.random() < .55) { const r = MT.react('youClaim', CHARID[q], st.rules); speak(q, r.line, r.face, 2.5); shown++; } } }
+      else { for (const q of others) { if (Math.random() < (big ? .8 : .35) && shown < 2) { const r = MT.react('oppClaim', CHARID[q], st.rules); speak(q, r.line, r.face, 2.2); shown++; } } }
+      hold += big ? 1700 : 1250;
+    }
+    else if (e.t === 'rob') { shout(e.p, MT.shout('rob', st.rules), 'rob'); shakeAmp = 8; hold += 800; }
+    else if (e.t === 'win') {
+      const R = S.result, word = MT.shout(e.self ? 'zimo' : 'win', st.rules); shout(e.w, word, 'win'); shakeAmp = 14; spark(240, 250, 70, true); spark(120, 200, 20, true); spark(360, 200, 20, true);
+      A.beep(523, .14, 'square', .14); A.beep(659, .14, 'square', .14, .12); A.beep(784, .14, 'square', .14, .24); A.beep(1047, .3, 'square', .14, .36);
+      log('<b>' + nm(e.w) + ' wins! ' + word + '</b> ' + (R.info ? R.info.v + ' ' + UNIT() : ''));
+      const big = R.info && (R.info.limit || (hk() ? R.info.v >= 7 : R.info.v >= 8));
+      if (e.w !== 0) { const r = MT.react(e.self ? 'zimo' : 'win', CHARID[e.w], st.rules); speak(e.w, r.line, r.face, 4); }
+      for (let q = 1; q <= 3; q++) { if (q === e.w) continue; let kind = 'youWin'; if (!e.self && q === e.from) kind = big ? 'loseBig' : 'lose'; else if (e.self || e.w === 0) kind = e.w === 0 ? (q === e.from ? (big ? 'loseBig' : 'lose') : 'youWin') : 'lose'; if (e.self && e.w !== 0) kind = big ? 'loseBig' : 'lose'; const r = MT.react(kind, CHARID[q], st.rules); speak(q, r.line, r.face, 4); if (kind === 'lose' || kind === 'loseBig') A.slide(500, 120, .5, 'triangle', .08); }
+      if (e.w === 0) { st.rec.h++; const v = R.info.v; if (v > st.rec.best && !R.info.limit) { st.rec.best = v; st.rec.bestN = (hk() ? 'HK' : 'TW'); } if (R.info.limit && st.rec.best < 99) { st.rec.best = Math.max(st.rec.best, hk() ? 10 : 16); } S0.save(); rec(); }
+      pendingRes = 2300; hold += 300;
+    }
+    else if (e.t === 'drawgame') { for (let q = 1; q <= 3; q++) if (Math.random() < .7) { const r = MT.react('draw', CHARID[q], st.rules); speak(q, r.line, r.face, 3); } log('<b>Draw game</b> — the wall ran out.'); A.slide(400, 150, .6, 'triangle', .1); pendingRes = 1800; }
+  }
+}
+
+function drive() {
+  hud(); renderActs();
+  if (S.phase === 'over') { const d = pendingRes + hold; pendingRes = 0; hold = 0; schedule(Math.max(900, d), () => showResult()); say(S.result.type === 'win' ? nm(S.result.w) + ' ' + (S.result.w === 0 ? 'win' : 'wins') + '!' : 'Draw game'); return; }
+  if (S.phase === 'act') {
+    if (S.cur === 0) { promptAct(); return; }
+    say(nm(S.cur) + ' is thinking…'); const h = hold; hold = 0;
+    schedule(DELAY[st.speed] + h, () => { const a = MS.aiAct(S, S.cur); MS.act(S, S.cur, a); handleEvents(); drive(); }); return;
+  }
+  if (S.phase === 'claim') {
+    if (!humDec || humDec.c !== S.claim) humDec = { c: S.claim, d: MS.aiDecide(S) };
+    const mine = S.claim.opts[0], can = mine && (mine.win || mine.kong || mine.pon || mine.chi);
+    if (can) { say('You can claim ' + tn(S.claim.k) + '!'); renderActs(); return; }
+    if (mine && mine.low && !mine.win) { say('That ' + tn(S.claim.k) + ' completes your hand, but only ' + mine.low.v + ' ' + UNIT() + ' (need ' + S.min + '), so you cannot ' + HU() + '.'); log('You could not ' + HU() + ': only ' + mine.low.v + ' ' + UNIT() + '.'); }
+    const h = hold; hold = 0; schedule(Math.min(500, 200 + h), () => { MS.resolveClaims(S, humDec.d); humDec = null; handleEvents(); drive(); }); return;
+  }
+  if (S.phase === 'rob') {
+    if (!humDec || humDec.c !== S.rob) humDec = { c: S.rob, d: MS.aiDecide(S) };
+    if (S.rob.opts[0]) { say('Rob the kong! You can win on ' + tn(S.rob.k) + '.'); renderActs(); return; }
+    schedule(500, () => { MS.resolveRob(S, humDec.d); humDec = null; handleEvents(); drive(); });
+  }
+}
+function promptAct() {
+  const o = S.opts; hintTxt = '';
+  if (o.win) say('You can win! Tap ' + (S.drawn >= 0 ? '自摸' : HU()) + ' ✔'); else if (o.low) say('Complete hand, but only ' + o.low.v + ' ' + UNIT() + ' (need ' + S.min + '). Keep playing!');
+  else say(S.drawn >= 0 ? 'Your turn: tap a tile, then tap it again (or press Discard).' : 'Choose a tile to discard.');
+  renderActs();
+}
+function humanDiscard(k) {
+  if (!(S.phase === 'act' && S.cur === 0)) return; selK = -1; if (!MS.act(S, 0, { t: 'discard', k })) return; hintTxt = ''; handleEvents(); drive();
+}
+function humanClaim(d) {
+  if (S.phase === 'claim') { const dec = humDec.d.slice(); dec[0] = d; humDec = null; MS.resolveClaims(S, dec); handleEvents(); selK = -1; drive(); }
+  else if (S.phase === 'rob') { const dec = humDec.d.slice(); dec[0] = !!d; humDec = null; MS.resolveRob(S, dec); handleEvents(); drive(); }
+}
+function waitsText(k) {
+  const c = MJ.counts(S.h[0]); c[k]--; const vis = MS.visible(S, 0); vis[k]--; const sh = MJ.shanten(c, S.melds[0].length, S.N, hk() && !S.melds[0].length); if (sh > 0) return '';
+  const w = MS.validWaits(S, 0, c, vis); return w.list.length ? 'Discard ' + tn(k) + ' → waiting for ' + w.list.map(tn).join(' ') + ' (' + w.n + ' left)' : (sh === 0 ? 'Discard ' + tn(k) + ' → ready, but not enough ' + UNIT() + ' yet' : '');
+}
+
+/* ---------- buttons under the table ---------- */
+function renderActs() {
+  const box = $('cmid'); let h = '', t = '';
+  if (S.phase === 'act' && S.cur === 0) {
+    const o = S.opts; if (o.win) h += '<button class="btn primary pulse" data-act="win" type="button">' + (S.drawn >= 0 ? '自摸 Win!' : HU() + ' Win!') + '</button>';
+    for (const k of o.akong) h += '<button class="btn" data-act="akong" data-k="' + k + '" type="button">槓 ' + tn(k) + '</button>';
+    for (const k of o.addkong) h += '<button class="btn" data-act="addkong" data-k="' + k + '" type="button">加槓 ' + tn(k) + '</button>';
+    if (selK >= 0) h += '<button class="btn primary" data-act="discard" type="button">Discard ' + tn(selK) + '</button>';
+    if (h) t = o.win ? 'You can win!' : 'Your move';
+  } else if (S.phase === 'claim' && S.claim.opts[0]) {
+    const m = S.claim.opts[0], k = S.claim.k; t = nm(S.claim.from) + ' discarded ' + tn(k) + '. Claim it?'; if (m.win) h += '<button class="btn primary pulse" data-act="cwin" type="button">' + HU() + ' Win!</button>';
+    if (m.kong) h += '<button class="btn primary" data-act="ckong" type="button">槓 Kong</button>'; if (m.pon) h += '<button class="btn primary" data-act="cpon" type="button">碰 Pung</button>';
+    if (m.chi) for (const u of m.chi) h += '<button class="btn primary" data-act="cchi" data-u="' + u.join(',') + '" type="button">' + CHI() + ' ' + [u[0], u[1], k].sort((a, b) => a - b).map(t => t % 9 + 1).join('-') + tn(k).slice(-1) + '</button>';
+    h += '<button class="btn" data-act="cpass" type="button">Pass</button>';
+    if (m.low && !m.win) h += '<div class="cnote">Cannot ' + HU() + ': only ' + m.low.v + ' ' + UNIT() + '.</div>';
+  } else if (S.phase === 'rob' && S.rob.opts[0]) { t = 'Someone is adding a kong with ' + tn(S.rob.k); h += '<button class="btn primary pulse" data-act="rwin" type="button">' + HU() + ' Win (rob the kong)!</button><button class="btn" data-act="rpass" type="button">Pass</button>'; }
+  box.innerHTML = h ? '<div class="ctitle">' + t + '</div>' + h : ''; box.classList.toggle('on', !!h);
+  $('acts').innerHTML = S.phase === 'act' && S.cur === 0 ? '<button class="btn sm" data-act="hint" type="button">💡 Hint</button>' : ''; $('hintLine').textContent = hintTxt;
+}
+ui.actions(document, {
+  win: () => { if (MS.act(S, 0, { t: 'win' })) { handleEvents(); drive(); } },
+  akong: b => { if (MS.act(S, 0, { t: 'akong', k: +b.dataset.k })) { handleEvents(); selK = -1; drive(); } },
+  addkong: b => { if (MS.act(S, 0, { t: 'addkong', k: +b.dataset.k })) { handleEvents(); selK = -1; drive(); } },
+  discard: () => { if (selK >= 0) humanDiscard(selK); },
+  hint: () => { if (S.phase === 'act' && S.cur === 0) { const k = MS.bestDiscard(S, 0, { care: .5, flush: .4 }); selK = k; selDrawn = S.drawn === k; hintTxt = 'Suggestion: discard ' + tn(k) + '. ' + waitsText(k); renderActs(); } },
+  cwin: () => humanClaim({ t: 'win' }), ckong: () => humanClaim({ t: 'kong' }), cpon: () => humanClaim({ t: 'pon' }), cchi: b => humanClaim({ t: 'chi', use: b.dataset.u.split(',').map(Number) }), cpass: () => humanClaim(null),
+  rwin: () => humanClaim(true), rpass: () => humanClaim(false),
+  roll: () => rollDice(), dstart: () => { if (diceDone) begin(diceDone - 1); },
+  next: () => nextHand(), restart: () => newGame(), closeov: () => O.hideAll(),
+  avme: b => { const id = b.dataset.id, old = st.me, opp = st.opp.slice(), j = opp.indexOf(id); if (j >= 0) opp[j] = old; setAv(id, opp); A.beep(660, .05, 'sine', .07); },
+  avopp: b => { const i = +b.dataset.i, used = new Set([st.me, ...st.opp]); let n = ORDER.indexOf(st.opp[i]); do { n = (n + 1) % ORDER.length; } while (used.has(ORDER[n])); const opp = st.opp.slice(); opp[i] = ORDER[n]; setAv(st.me, opp); A.beep(660, .05, 'sine', .07); },
+  avshuf: () => { const pool = ORDER.filter(id => id !== st.me).sort(() => Math.random() - .5); setAv(st.me, pool.slice(0, 3)); A.beep(520, .05, 'sine', .07); },
+  rules: b => { if (st.rules !== b.dataset.v) { st.rules = b.dataset.v; S0.save(); newGame(); } },
+  rounds: b => { if (st.rounds !== +b.dataset.v) { st.rounds = +b.dataset.v; S0.save(); newGame(); } }
+});
+
+/* ---------- tile tracker: all 34 kinds + 8 flowers, with how many you have not seen ---------- */
+const TK = $('tk'), TC = KIT.canvas(TK, 480, 214, 2), tg = TC.ctx; let tkSig = '';
+function drawTracker(force) {
+  if (!S) return; const vis = MS.visible(S, 0), seenF = new Set(); for (let p = 0; p < 4; p++) for (const k of S.fl[p]) seenF.add(k);
+  const unseen = vis.reduce((a, v) => a + (4 - Math.min(4, v)), 0), sig = vis.join('') + [...seenF].join(',') + S.handNo + CHARID.join(''); if (sig === tkSig && !force) return; tkSig = sig;
+  tg.clearRect(0, 0, 480, 214); tg.fillStyle = 'rgba(0,0,0,.25)'; rr(tg, 0, 0, 480, 214, 12); tg.fill();
+  tg.fillStyle = '#fff'; tg.font = '700 12px ' + FONT; tg.textAlign = 'left'; tg.textBaseline = 'middle'; tg.fillText('Tiles you cannot see yet', 10, 12);
+  tg.textAlign = 'right'; tg.fillStyle = '#ffd84a'; tg.fillText(unseen + ' hidden (wall + hands)', 470, 12);
+  const cw = 52, tw = 24, rowY = [24, 66, 108, 150];
+  const cell = (k, col, row, n, mine) => { const x = 8 + col * cw, y = rowY[row]; tg.globalAlpha = n > 0 ? 1 : .32; MA.tile(tg, k, x, y, tw); tg.globalAlpha = 1; tg.textAlign = 'left'; tg.font = '800 16px ' + FONT; tg.fillStyle = n === 0 ? 'rgba(255,255,255,.4)' : n === 4 ? '#9dff9d' : '#fff'; tg.fillText('×' + n, x + tw + 3, y + 14); if (mine > 0) { tg.font = '700 9px ' + FONT; tg.fillStyle = '#ffd84a'; tg.fillText('you ' + mine, x + tw + 3, y + 28); } };
+  const mine = new Array(34).fill(0); for (const k of S.h[0]) if (k < 34) mine[k]++; for (const m of S.melds[0]) for (const t of m.tiles) mine[t]++;
+  for (let k = 0; k < 34; k++) { const row = k < 27 ? Math.floor(k / 9) : 3, col = k < 27 ? k % 9 : k - 27; cell(k, col, row, 4 - Math.min(4, vis[k]), mine[k]); }
+  tg.textAlign = 'left'; tg.font = '700 11px ' + FONT; tg.fillStyle = 'rgba(255,255,255,.75)'; tg.fillText('Flowers', 10, 196);
+  for (let i = 0; i < 8; i++) { const k = 34 + i, x = 70 + i * 50, got = seenF.has(k); tg.globalAlpha = got ? .3 : 1; MA.tile(tg, k, x, 186 - 4, 15); tg.globalAlpha = 1; if (got) { tg.fillStyle = '#9dff9d'; tg.font = '800 12px ' + FONT; tg.fillText('✓', x + 17, 200); } }
+}
+
+/* ---------- avatar picker ---------- */
+const THUMB = {}; function thumb(id) { if (THUMB[id]) return THUMB[id]; const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d'); x.fillStyle = MA.CH[id].bg; x.beginPath(); x.arc(48, 48, 46, 0, 7); x.fill(); x.save(); x.beginPath(); x.arc(48, 48, 46, 0, 7); x.clip(); MA.face(x, id, 48, 56, 36, 'happy', 0); x.restore(); return (THUMB[id] = c.toDataURL()); }
+const av = id => '<img src="' + thumb(id) + '" alt="' + MA.CH[id].name + '" width="40" height="40">';
+function avatars() {
+  $('avMe').innerHTML = ORDER.map(id => '<button class="avb' + (st.me === id ? ' on' : '') + '" data-act="avme" data-id="' + id + '" type="button" title="' + MA.CH[id].name + '">' + av(id) + '</button>').join('');
+  $('avOpp').innerHTML = [0, 1, 2].map(i => '<button class="avb on" data-act="avopp" data-i="' + i + '" type="button" title="Tap to change">' + av(st.opp[i]) + '<small>' + MA.CH[st.opp[i]].name + '</small></button>').join('') + '<button class="btn sm" data-act="avshuf" type="button">🎲 Shuffle</button>';
+}
+function setAv(me, opp) { st.me = me; st.opp = opp; for (let i = 0; i < 4; i++) CHARID[i] = i ? opp[i - 1] : me; S0.save(); avatars(); drawTracker(true); }
+
+/* ---------- results ---------- */
+function drawResultHand(R) {
+  const c = $('resCv'), x = c.getContext('2d'), w = 460; c.width = w * 2; c.height = 150 * 2; x.scale(2, 2); x.clearRect(0, 0, w, 150); x.fillStyle = 'rgba(0,0,0,.2)'; MA.rr(x, 0, 0, w, 150, 10); x.fill();
+  let cx = 8, cy = 8; const tw = 24, st_ = 25;
+  for (const m of R.melds) { const tl = m.t === 'akong' ? [m.k, -1, -1, m.k] : m.tiles; for (const k of tl) { MA.tile(x, k < 0 ? 0 : k, cx, cy, tw, k < 0 ? { back: true } : undefined); cx += st_; } cx += 7; }
+  cx = 8; cy = 50; const hand = R.hand.slice(), wk = R.k; if (R.self) { /* the last tile is the winning one */ } const wi = hand.lastIndexOf(wk); if (R.self && wi >= 0) hand.splice(wi, 1);
+  for (const k of hand) { MA.tile(x, k, cx, cy, tw); cx += st_; if (cx > w - 30) { cx = 8; cy += 40; } } cx += 8;
+  if (R.self) { if (cx > w - 30) { cx = 8; cy += 40; } MA.tile(x, wk, cx, cy, tw); x.strokeStyle = '#ffd84a'; x.lineWidth = 2; x.strokeRect(cx - 1, cy - 1, tw + 2, tw * 1.35 + 2); }
+  else { cx = Math.min(cx, w - 30); MA.tile(x, wk, cx, cy, tw); x.strokeStyle = '#ffd84a'; x.lineWidth = 2; x.strokeRect(cx - 1, cy - 1, tw + 2, tw * 1.35 + 2); }
+  let fx = 8; for (const k of R.flowers) { MA.tile(x, k, fx, 112, 20); fx += 22; }
+  x.fillStyle = '#fff'; x.font = '700 11px ' + FONT; x.textAlign = 'right'; x.fillText(R.flowers.length ? 'flowers' : '', w - 8, 140);
+}
+function showResult() {
+  const R = S.result; if (!R) return; let head, body = '';
+  if (R.type === 'draw') { head = 'Draw game'; body = '<p>Nobody won. The dealer stays and the next hand follows.</p>'; $('resCv').style.display = 'none'; }
+  else {
+    $('resCv').style.display = ''; drawResultHand(R); const you = R.w === 0; head = (you ? 'You win! ' : nm(R.w) + ' wins! ') + (R.self ? '自摸' : HU()) + ' — ' + (R.info.limit ? 'LIMIT ' : '') + R.info.v + ' ' + UNIT();
+    body = '<ul class="yaku">' + R.info.items.map(i => '<li><span>' + i[0] + '</span><b>' + (i[1] ? '+' + i[1] : '') + '</b></li>').join('') + (R.dealerItems || []).map(i => '<li><span>' + i[0] + '</span><b>+' + i[1] + '</b></li>').join('') + '</ul>';
+    body += '<div class="pays">' + R.payers.map(p => '<div>' + nm(p.q) + ' pays ' + nm(R.w) + ' <b>' + p.amount + '</b></div>').join('') + '</div>';
+  }
+  $('resH').textContent = head; $('resP').innerHTML = body + '<div class="rec">Scores: ' + [0, 1, 2, 3].map(p => nm(p) + ' ' + (S.score[p] > 0 ? '+' : '') + S.score[p]).join(' · ') + '</div>'; $('resBtn').textContent = S.finished ? 'Final result' : 'Next hand ▶'; O.show('ovRes'); hud();
+}
+function endGame() {
+  const order = [0, 1, 2, 3].sort((a, b) => S.score[b] - S.score[a]), you = order.indexOf(0); st.rec.g++; if (you === 0) st.rec.w++; S0.save(); rec();
+  $('endH').textContent = you === 0 ? 'You win the game! 🏆' : 'You finished ' + ['1st', '2nd', '3rd', '4th'][you];
+  $('endP').innerHTML = order.map((p, i) => '<div class="pays"><b>' + ['🥇', '🥈', '🥉', '4th'][i] + '</b> ' + nm(p) + ': ' + (S.score[p] > 0 ? '+' : '') + S.score[p] + '</div>').join('');
+  const c = $('endCv'), x = c.getContext('2d'); c.width = 920; c.height = 270; x.scale(2, 2); x.clearRect(0, 0, 460, 135);
+  order.forEach((p, i) => { const ex = ['happy', 'smug', 'shock', 'cry'][i]; MA.face(x, CHARID[p], 58 + i * 115, 70, 34, ex, 0); x.fillStyle = '#fff'; x.font = '700 12px ' + FONT; x.textAlign = 'center'; x.fillText(nm(p), 58 + i * 115, 124); });
+  O.show('ovEnd'); A.beep(523, .15, 'square', .14); A.beep(784, .3, 'square', .14, .15);
+}
+
+/* ---------- screen ---------- */
+function hud() {
+  const R = S.result; $('s1').textContent = WINDN[S.rnd % 4] + ' ' + Math.min(S.handNo, 99); $('s2').textContent = (S.score[0] > 0 ? '+' : '') + S.score[0]; $('s3').textContent = Math.max(0, S.live());
+  $('s4').textContent = nm(S.dealer) + (S.streak ? ' ×' + (S.streak + 1) : '');
+}
+function rec() { $('recLine').textContent = 'Games won ' + st.rec.w + '/' + st.rec.g + ' · hands won ' + st.rec.h + (st.rec.best ? ' · best hand ' + st.rec.best + ' ' + (st.rec.bestN === 'TW' ? 'tai' : 'faan') : ''); }
+function bars() {
+  $('ruleBar').innerHTML = [['hk', '🇭🇰 Hong Kong (13 tiles)'], ['tw', '🇹🇼 Taiwan (16 tiles)']].map(r => '<button class="btn sm' + (st.rules === r[0] ? ' on' : '') + '" data-act="rules" data-v="' + r[0] + '" type="button">' + r[1] + '</button>').join('');
+  $('lenBar').innerHTML = [[1, 'Short: one round'], [2, 'Long: two rounds']].map(r => '<button class="btn sm' + (st.rounds === r[0] ? ' on' : '') + '" data-act="rounds" data-v="' + r[0] + '" type="button">' + r[1] + '</button>').join('');
+  $('rulesHk').style.display = hk() ? '' : 'none'; $('rulesTw').style.display = hk() ? 'none' : '';
+}
+function drawMeldRow(ms, x, y, w, align) {
+  let cx = x; for (const m of ms) { const tl = m.t === 'akong' ? [m.k, -1, -1, m.k] : m.tiles; for (const k of tl) { MA.tile(g, k < 0 ? 0 : k, cx, y, w, k < 0 ? { back: true } : undefined); cx += w + 1; } cx += 4; } return cx - x;
+}
+function backTile(x, y, w, side) { if (side === 'v') MA.tile(g, 0, x, y, w, { back: true }); else { g.save(); g.translate(x + Math.round(w * 1.35) + 2, y); g.rotate(Math.PI / 2); MA.tile(g, 0, 0, 0, w, { back: true }); g.restore(); } }
+function drawCard(p) {
+  const r = CARD[p], id = CHARID[p], me = S.cur === p && S.phase !== 'over', top = p === 2, mo = mood[p] && now < mood[p].until ? mood[p].face : (S.phase === 'over' && S.result && S.result.type === 'win' ? (S.result.w === p ? 'happy' : (S.result.pay[p] < 0 ? 'cry' : 'shock')) : 'idle');
+  g.fillStyle = me ? 'rgba(255,230,120,.22)' : 'rgba(0,0,0,.22)'; rr(g, r.x, r.y, r.w, r.h, 12); g.fill(); g.strokeStyle = me ? '#ffd84a' : 'rgba(255,255,255,.14)'; g.lineWidth = me ? 2.5 : 1; g.stroke();
+  const R = top ? 24 : 21, px = top ? r.x + 32 : r.x + r.w / 2, py = top ? r.y + 32 : r.y + 28; g.save(); g.beginPath(); g.arc(px, py, R, 0, 7); g.clip(); g.fillStyle = bgOf(p); g.fillRect(px - R - 2, py - R - 2, R * 2 + 4, R * 2 + 4); MA.face(g, id, px, py + 3, R * .76, mo, now); g.restore();
+  g.strokeStyle = me ? '#ffd84a' : '#fff'; g.lineWidth = 2.5; g.beginPath(); g.arc(px, py, R, 0, 7); g.stroke();
+  const sw = S.seatOf(p), bx = px - R + 2, by = py - R + 2; g.fillStyle = WINDC[sw]; g.beginPath(); g.arc(bx, by, 9, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = '#fff'; g.font = '700 11px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(WINDN[sw], bx, by + 1);
+  const sc = S.score[p], scs = (sc > 0 ? '+' : '') + sc, scc = sc > 0 ? '#9dff9d' : sc < 0 ? '#ff9d9d' : '#fff', hc = S.h[p].length, ms = S.melds[p];
+  if (top) {
+    g.textAlign = 'left'; g.fillStyle = '#fff'; g.font = '700 13px ' + FONT; g.fillText(MA.CH[id].name + (S.dealer === p ? ' · 莊' : ''), r.x + 62, r.y + 14); g.font = '800 16px ' + FONT; g.fillStyle = scc; g.fillText(scs, r.x + 62, r.y + 34); g.font = '600 11px ' + FONT; g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText('花×' + S.fl[p].length + ' · ' + hc, r.x + 62, r.y + 54);
+    const tw = Math.min(21, Math.floor(318 / Math.max(1, hc)) - 1); for (let i = 0; i < hc; i++) backTile(160 + i * (tw + 1), 6, tw, 'v');
+    if (ms.length) { const n = ms.length, w = Math.max(10, Math.min(15, Math.floor(300 / (3.4 * n + 1)))); drawMeldRow(ms, 160, 42, w); }
+  } else {
+    g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = '700 11px ' + FONT; g.fillText(MA.CH[id].name + (S.dealer === p ? ' 莊' : ''), px, r.y + 61); g.font = '800 15px ' + FONT; g.fillStyle = scc; g.fillText(scs, px, r.y + 77); g.font = '600 10px ' + FONT; g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText('花×' + S.fl[p].length + ' · ' + hc, px, r.y + 92);
+    const left = p === 3, bw = Math.min(12, Math.floor(216 / Math.max(1, hc)) - 1), sx = left ? 4 : 460 - 0; for (let i = 0; i < hc; i++) backTile(left ? 4 : 474 - Math.round(bw * 1.35) - 2, 188 + i * (bw + 1), bw, 'h');
+    let yy = 188; for (const m of ms) { const tl = m.t === 'akong' ? [m.k, -1, -1, m.k] : m.tiles, w = tl.length > 3 ? 9 : 12; let xx = left ? 28 : 414; for (const k of tl) { MA.tile(g, k < 0 ? 0 : k, xx, yy, w, k < 0 ? { back: true } : undefined); xx += w + 1; } yy += Math.round(w * 1.35) + 4; }
+  }
+}
+function drawRiver(p) {
+  const r = PAN[p]; g.fillStyle = 'rgba(0,0,0,.12)'; rr(g, r.x - 4, r.y - 4, r.cols * r.sx + 6, (p === 0 || p === 2 ? 3 : 5) * r.sy + 6, 8); g.fill();
+  const list = S.disc[p].filter(d => !d.taken); let lastI = -1; if (S.last && S.last.p === p) lastI = list.length - 1;
+  list.forEach((d, i) => { const row = Math.floor(i / r.cols), col = i % r.cols, x = r.x + col * r.sx, y = r.y + row * r.sy; let yy = y;
+    if (i === lastI && S.phase !== 'over') { const a = Math.min(1, (now - lastT) / .3); yy = y - (1 - a) * 22; }
+    MA.tile(g, d.k, x, yy, r.tw); if (i === lastI && S.phase !== 'over') { g.strokeStyle = '#ffd84a'; g.lineWidth = 2; g.strokeRect(x - 1, yy - 1, r.tw + 2, r.tw * 1.35 + 2); } });
+}
+function layoutHand() {
+  const h = S.h[0].slice(); let dk = -1; if (S.phase === 'act' && S.cur === 0 && S.drawn >= 0) { dk = S.drawn; h.splice(h.indexOf(dk), 1); }
+  const n = h.length, extra = dk >= 0 ? 1 : 0, single = n + extra <= 9, row1 = single ? 0 : Math.ceil(n / 2), tw = 48, step = 50, rects = [];
+  const rowW = c => c * step + (extra && (single || true) ? 0 : 0);
+  const r2 = n - row1; const w2 = (r2 + extra) * step + (extra ? 10 : 0), w1 = row1 * step;
+  h.forEach((k, i) => { const row = i < row1 ? 0 : 1, col = row ? i - row1 : i, x0 = row ? (W - w2) / 2 : (W - w1) / 2; rects.push({ k, x: x0 + col * step, y: row ? 572 : 500, w: tw, h: 65, drawn: false }); });
+  if (extra) rects.push({ k: dk, x: (W - w2) / 2 + r2 * step + 10, y: 572, w: tw, h: 65, drawn: true });
+  return rects;
+}
+function drawMe() {
+  const y0 = 432; g.fillStyle = S.cur === 0 && S.phase !== 'over' ? 'rgba(255,230,120,.2)' : 'rgba(0,0,0,.2)'; rr(g, 2, y0, W - 4, 66, 10); g.fill(); if (S.cur === 0 && S.phase !== 'over') { g.strokeStyle = '#ffd84a'; g.lineWidth = 2; g.stroke(); }
+  const mo = mood[0] && now < mood[0].until ? mood[0].face : (S.phase === 'over' && S.result && S.result.type === 'win' ? (S.result.w === 0 ? 'happy' : (S.result.pay[0] < 0 ? 'cry' : 'shock')) : 'idle');
+  g.save(); g.beginPath(); g.arc(26, y0 + 28, 22, 0, 7); g.clip(); g.fillStyle = bgOf(0); g.fillRect(2, y0 + 4, 48, 48); MA.face(g, CHARID[0], 26, y0 + 32, 17, mo, now); g.restore(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(26, y0 + 28, 22, 0, 7); g.stroke();
+  const sw = S.seatOf(0); g.fillStyle = WINDC[sw]; g.beginPath(); g.arc(54, y0 + 12, 9, 0, 7); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = '#fff'; g.font = '700 11px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(WINDN[sw], 54, y0 + 13);
+  g.textAlign = 'left'; g.font = '700 13px ' + FONT; g.fillText('You' + (S.dealer === 0 ? ' · 莊' : ''), 68, y0 + 12); const sc = S.score[0]; g.font = '800 17px ' + FONT; g.fillStyle = sc > 0 ? '#9dff9d' : sc < 0 ? '#ff9d9d' : '#fff'; g.fillText((sc > 0 ? '+' : '') + sc, 68, y0 + 32);
+  let fx = W - 12 - S.fl[0].length * 15; S.fl[0].forEach(k => { MA.tile(g, k, fx, y0 + 3, 13); fx += 15; });
+  if (S.melds[0].length) { const n = S.melds[0].length, w = Math.max(15, Math.min(22, Math.floor((W - 140) / (3.2 * n + 1)))); drawMeldRow(S.melds[0], 112, y0 + 28, w); }
+  handRects = layoutHand();
+  for (const r of handRects) { const sel = r.k === selK && (!selDrawn ? !r.drawn || !handRects.some(q => q !== r && q.k === r.k && !q.drawn) : r.drawn); const yy = r.y - (sel ? 12 : 0); MA.tile(g, r.k, r.x, yy, r.w); if (sel) { g.strokeStyle = '#ffd84a'; g.lineWidth = 3; rr(g, r.x - 1, yy - 1, r.w + 2, r.h - 2, 7); g.stroke(); } else if (r.drawn) { g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1.5; rr(g, r.x - 1, yy - 1, r.w + 2, r.h - 2, 7); g.stroke(); } }
+  if (S.phase === 'act' && S.cur === 0 && S.opts.win) { g.fillStyle = '#ffd84a'; g.font = '800 14px ' + FONT; g.textAlign = 'center'; g.fillText('✨ You can win! ✨', W / 2, 492); }
+}
+function drawBubbles() {
+  for (let p = 1; p <= 3; p++) { const b = bub[p]; if (!b || now > b.until) continue; const a = Math.min(1, (now - b.t0) / .2), fade = Math.min(1, (b.until - now) / .3), c = CARD[p], top = p === 2; g.save(); g.globalAlpha = fade;
+    const ax = top ? c.x + 32 : c.x + c.w / 2, cx = top ? 160 : (p === 3 ? 118 : 362), by = c.y + c.h + 3;
+    MA.bubble(g, b.text, cx, by, 214, { tail: { x: ax, y: by - 12 }, scale: ease(a), fs: 13 }); g.restore(); }
+}
+function drawBursts() {
+  bursts = bursts.filter(b => now - b.t0 < b.dur); if (!bursts.length) return; g.fillStyle = 'rgba(0,0,0,' + (.28 * Math.min(1, ...bursts.map(b => Math.min(1, (now - b.t0) / .12, (b.dur - (now - b.t0)) / .3)))) + ')'; g.fillRect(0, 0, W, H);
+  for (const b of bursts) { const t = now - b.t0, a = Math.min(1, t / .26), fade = Math.min(1, (b.dur - t) / .3), big = b.kind === 'win' || b.kind === 'kong' || b.kind === 'akong' || b.kind === 'addkong' || b.kind === 'rob'; g.save(); g.globalAlpha = Math.max(0, fade);
+    const fx = { 0: 410, 1: 410, 2: 70, 3: 70 }[b.p], cx = 240 + (fx < 240 ? 36 : -36), cy = 250 + Math.sin(t * 9) * 3;
+    MA.burst(g, b.word, cx, cy, big ? 96 : 78, { scale: ease(a) * (1 + Math.sin(t * 14) * .02), rot: Math.sin(t * 8) * .06 + (fx < 240 ? -.08 : .08), fill: b.kind === 'win' ? '#ffd84a' : big ? '#ff9a3a' : '#ffe27a', fill2: b.kind === 'win' ? '#ff4a3a' : big ? '#e8402a' : '#ff6a4a', fs: b.word.length > 2 ? 52 : 70 });
+    const mo = b.kind === 'win' ? 'happy' : (b.kind === 'rob' ? 'smug' : (big ? 'shock' : 'happy')); g.translate(fx, cy + 4); g.scale(ease(a), ease(a)); g.translate(-fx, -(cy + 4)); g.fillStyle = 'rgba(255,255,255,.9)'; g.beginPath(); g.arc(fx, cy + 4, 48, 0, 7); g.fill(); g.save(); g.beginPath(); g.arc(fx, cy + 4, 46, 0, 7); g.clip(); g.fillStyle = bgOf(b.p); g.fillRect(fx - 48, cy - 44, 96, 96); MA.face(g, CHARID[b.p], fx, cy + 12, 38, mo, now); g.restore(); g.restore(); }
+}
+function drawParts(dt) { parts = parts.filter(p => p.life > 0); for (const p of parts) { p.life -= dt; p.vy += 500 * dt; p.x += p.vx * dt; p.y += p.vy * dt; g.globalAlpha = Math.max(0, Math.min(1, p.life)); g.fillStyle = p.c; g.fillRect(p.x, p.y, p.s, p.s); } g.globalAlpha = 1; }
+function drawInfo() {
+  const x = 196, y = 188, w = 88, h = 88; g.fillStyle = 'rgba(0,0,0,.4)'; rr(g, x, y, w, h, 12); g.fill(); g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1.5; g.stroke();
+  if (S.phase !== 'over') { g.fillStyle = '#ffd84a'; const c = S.cur; if (c === 2) g.fillRect(x + 10, y - 2, w - 20, 5); else if (c === 0) g.fillRect(x + 10, y + h - 3, w - 20, 5); else if (c === 3) g.fillRect(x - 2, y + 10, 5, h - 20); else g.fillRect(x + w - 3, y + 10, 5, h - 20); }
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.font = '700 10px ' + FONT; g.fillText(hk() ? '香港' : '台灣', x + w / 2, y + 12); g.fillStyle = WINDC[S.rnd % 4] === '#555' ? '#ddd' : '#ffd84a'; g.font = '800 26px ' + FONT; g.fillText(WINDN[S.rnd % 4], x + w / 2, y + 38); g.fillStyle = '#fff'; g.font = '700 11px ' + FONT; g.fillText('hand ' + S.handNo, x + w / 2, y + 58); g.fillStyle = 'rgba(255,255,255,.85)'; g.fillText('wall ' + Math.max(0, S.live()), x + w / 2, y + 72); if (hk()) { g.font = '600 9px ' + FONT; g.fillText('need ' + S.min + ' faan', x + w / 2, y + 83); }
+}
+let lastF = 0;
+function draw() {
+  now = T(); const dt = Math.min(.05, now - (lastF || now)); lastF = now; if (!S) return;
+  g.save(); if (shakeAmp > .2) { g.translate((Math.random() - .5) * shakeAmp, (Math.random() - .5) * shakeAmp); shakeAmp *= .9; }
+  g.drawImage(BG, 0, 0, W, H); for (const p of [3, 2, 1]) drawCard(p); drawInfo(); for (const p of [3, 1, 2, 0]) drawRiver(p); drawMe(); drawBubbles(); drawBursts(); drawParts(dt); g.restore(); drawTracker();
+}
+cv.addEventListener('pointerdown', e => {
+  if (!S || !(S.phase === 'act' && S.cur === 0)) return; const q = C.pos(e); for (let i = handRects.length - 1; i >= 0; i--) { const r = handRects[i]; if (q.x >= r.x - 2 && q.x <= r.x + r.w + 2 && q.y >= r.y - 14 && q.y <= r.y + r.h) {
+    const same = selK === r.k && (selDrawn === r.drawn || handRects.filter(t => t.k === r.k).length > 1); if (same && selK === r.k) { humanDiscard(r.k); return; } selK = r.k; selDrawn = r.drawn; A.beep(420, .03, 'square', .05); hintTxt = (document.getElementById('hintOn') && document.getElementById('hintOn').checked) ? waitsText(r.k) : waitsText(r.k); renderActs(); return; } }
+  selK = -1; renderActs();
+});
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+avatars(); newGame();
+KIT.hook({
+  get S() { return S; }, get st() { return st; }, get hold() { return hold; }, get rects() { return handRects; }, get hum() { return humDec; }, ts: x => { TS = x; }, newGame, begin, nextHand, drive, handleEvents, showResult,
+  get bursts() { return bursts.length; }, get ovRes() { return O.open('ovRes'); }, get ovEnd() { return O.open('ovEnd'); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

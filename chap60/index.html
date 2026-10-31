@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 60 · Runes</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f2a52">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Runes">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:640px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+#s1,#s3{letter-spacing:1px;font-size:14px}
+.tmsg{min-height:1.6em;font-weight:700;font-size:15px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:520px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:12px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;background:#2a1b4f}
+
+
+
+
+
+.spellinfo{min-height:2.6em;text-align:center;font-size:13px;color:var(--muted);max-width:520px;margin:0 auto}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.btn.big{font-size:18px;padding:.7rem 1.6rem}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+.learn{display:flex;flex-direction:column;gap:8px;align-items:center;max-width:92%;text-align:center}
+.learn canvas{width:min(150px,38vw);height:min(150px,38vw);border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.4)}.learn p{margin:0;font-size:12.5px;line-height:1.38}
+.dots{display:flex;gap:6px}.dots i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3)}.dots i.on{background:var(--accent)}
+#ovLearn{gap:6px}#ovLearn h3{margin:0;font-size:clamp(20px,5.2vw,28px)}
+.dice{display:flex;gap:10px;justify-content:center;align-items:stretch;min-height:104px;max-width:520px;margin:0 auto;flex-wrap:wrap}
+.die{display:flex;flex-direction:column;align-items:center;gap:0;padding:4px 10px;border-radius:14px;border:2px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;cursor:pointer;min-width:112px}
+.die .face{font-size:52px;line-height:1.05}.die b{font-size:14px}.die small{font-size:11px;color:var(--muted)}
+.die.on{background:var(--accent);color:#000;border-color:transparent}.die.on small{color:#222}
+.die:disabled{opacity:.55;cursor:default}.die.roll .face{animation:tumble .35s linear infinite}
+@keyframes tumble{to{transform:rotate(360deg)}}
+.bigroll{font-size:22px;padding:.9rem 2rem}
+.facelist{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13.5px;margin:6px 0}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Runes</h2>
+  <p>Chapter 60 · A new dice-and-magic board game I invented: roll two dice, pick one, and its number casts a spell borrowed from chess, shogi, Othello, xiangqi, Senet or Ur. Capture the enemy Mage or hold the Throne</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap acwrap">
+  <div class="thead">
+    <div class="tstat"><small>LIGHT ♟</small><b id="s1">5</b></div>
+    <div class="tstat"><small>TO MOVE</small><b id="s2">Light</b></div>
+    <div class="tstat"><small>DARK ♟</small><b id="s3">5</b></div>
+    <div class="tstat"><small>TURN</small><b id="s4">1</b></div>
+  </div>
+  <div class="tmsg" id="msg">Your move</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv accv" aria-label="Runes board"></canvas>
+    <div class="ov" id="ovLearn"><h3>Runes in 4 steps</h3>
+      <div class="learn"><canvas id="mini" width="220" height="220"></canvas><p id="miniP"></p><div class="dots" id="miniDots"></div></div>
+      <div class="tbar"><button class="btn" data-act="lback" id="lBack" type="button">◀ Back</button><button class="btn primary big" data-act="lnext" id="lNext" type="button">Next ▶</button></div></div>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win!</h3><p id="endP"></p><div class="tbar"><button class="btn primary big" data-act="newgame" type="button">Play again</button><button class="btn" data-act="undo" type="button">Take back last move</button></div></div>
+  </div>
+  <div class="dice" id="dice"></div>
+  <div class="spellinfo" id="spellInfo">Roll the dice.</div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" id="bUndo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" id="bHint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="cancel" id="bCancel" type="button">✖ Cancel</button>
+    <button class="btn sm" data-act="newgame" type="button">🔄 New game</button>
+    <button class="btn sm" data-act="learn" type="button">❓ How to play</button>
+  </div>
+  <div class="tbar"><span class="kl">Play:</span><span id="vsBar"></span></div>
+  <div class="tbar" id="sideRow"><span class="kl">You are:</span><span id="sideBar"></span></div>
+  <div class="tbar" id="lvRow"><span class="kl">Computer:</span><span id="lvBar"></span></div>
+  <div class="tbar"><span class="kl">Board:</span><span id="sizeBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to play Runes</h2>
+    <p>Runes is a new board game, invented for this chapter. Two wizard schools fight on a board, and <b>dice decide what magic you get</b>.</p>
+    <h3>Your turn</h3>
+    <ul>
+      <li><b>Roll two dice.</b> Then <b>pick one die</b> and spend it on one action. (Roll <b>doubles</b> and you get <b>both</b> dice: two actions.)</li>
+      <li><b>Step (any die):</b> move one piece 1 square in any direction, even diagonally, onto an empty square or onto an enemy to capture it. You may not step straight back to the square you just left.</li>
+      <li><b>Or cast the spell for the die's number:</b></li>
+    </ul>
+    <div class="facelist">
+      <b>⚀ 1 🛡 Ward</b><span>from the safe squares of <b>Ur</b>: one of your pieces cannot be captured or charmed until you act again.</span>
+      <b>⚁ 2 🔀 Swap</b><span>from <b>Senet</b>: swap the places of two of your pieces.</span>
+      <b>⚂ 3 🐴 Leap</b><span>from <b>chess</b>: move one of your pieces like a knight (it can capture).</span>
+      <b>⚃ 4 ✨ Summon</b><span>from <b>shogi</b>: put a lost Apprentice on an empty square next to your Mage.</span>
+      <b>⚄ 5 💜 Charm</b><span>from <b>Othello</b>: turn an enemy Apprentice next to your Mage into yours.</span>
+      <b>⚅ 6 ⚡ Bolt</b><span>from <b>xiangqi's cannon</b>: destroy the first enemy Apprentice in a straight line from your Mage, up to 3 squares away.</span>
+    </div>
+    <h3>Pieces and winning</h3>
+    <ul>
+      <li>Each side has one <b>Mage</b> (tall hat) and some <b>Apprentices</b> (small hats).</li>
+      <li><b>Only a Mage can capture a Mage</b> (by a step or a Leap). Apprentices cannot, but they block the way.</li>
+      <li><b>Win</b> by capturing the enemy Mage, <b>or</b> by ending your turn with your Mage on the <b>★ Throne</b> (the centre of the enemy back row) and still being there when your next turn starts. The enemy gets one turn to chase it off or capture it.</li>
+      <li>After 60 turns each side, the player with more Apprentices wins (equal is a draw).</li>
+    </ul>
+    <h3>Tips</h3>
+    <ul>
+      <li>Two dice mean a choice: a 6 is strong, but a 2 may be exactly the Swap you need. Look at both before you pick.</li>
+      <li>Ward is best as your <b>last</b> action of the turn (any later action of yours ends it), so use it on a Mage on the Throne.</li>
+      <li>Keep your Mage a knight's move and a step away from the enemy Mage, or be ready to chase theirs.</li>
+      <li>💡 Hint suggests a move. ↩ Undo takes back your last action and the computer's reply (the dice stay the same, no re-rolls).</li>
+    </ul>
+    <h3>Where the ideas come from</h3>
+    <ul>
+      <li><b>Backgammon, Ur, Senet, Ludo:</b> rolling dice and choosing what to do with them. <b>Dice choose, you decide.</b></li>
+      <li><b>Chess, shogi, Othello, xiangqi:</b> one spell each (Leap, Summon, Charm, Bolt). <b>Senet and Ur:</b> Swap and Ward.</li>
+      <li><b>Jungle chess and xiangqi:</b> the goal square and winning by taking the leader. <b>Flock (chapter 59):</b> no stepping back and a turn limit so games end.</li>
+    </ul>
+    <p>It is a new game, so the computer's levels come from trying them against each other (a deeper search beats a shallower one clearly, but dice still make upsets).</p>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎲 Runes is my own invention, the second game I made for this book (after Flock), mixing the dice of backgammon, Ur and Senet with spells from chess, shogi, Othello and xiangqi. The rules, the computer player, the pictures and the sounds are all my own. It is a new game, so nobody has studied it: the computer levels were tuned by playing them against each other, not by experts. Not included: online play, saved games.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Runes rules. No drawing here. Two schools of wizards (1 = Light, 2 = Dark) on an n x n board.
+   Pieces: Apprentice and Mage. Every piece steps 1 square in any of 8 directions, onto an empty square or onto an enemy (capture).
+   Each turn you ROLL TWO DICE and pick ONE die (doubles: you use both). The die is your action. You may spend it to
+     STEP one piece (any die works), or to cast the SPELL that matches the die's face:
+       1 ward   (Ur safe square)    one of your pieces cannot be captured or charmed until you act again
+       2 swap   (Senet)             swap two of your pieces
+       3 leap   (chess knight)      move a piece like a knight
+       4 summon (shogi drop)        put a lost Apprentice next to your Mage
+       5 charm  (Othello flip)      turn an enemy Apprentice next to your Mage into yours
+       6 bolt   (xiangqi cannon)    destroy the first enemy Apprentice in a straight line from your Mage (3 squares)
+   Win: capture the enemy Mage, or finish your turn with your Mage on the enemy Throne (centre of their back row) and still be there when your next turn begins. */
+const RN = (() => {
+const DEF = { n: 7, apps: 5, maxTurn: 60, noBack: true, pick: true, firstOne: false, mageOnly: true };
+const T = { step: 0, ward: 1, swap: 2, leap: 3, summon: 4, charm: 5, bolt: 6 }, TN = ['step', 'ward', 'swap', 'leap', 'summon', 'charm', 'bolt'];
+const D8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]], KN = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
+const side = v => v === 0 ? 0 : v <= 2 ? 1 : 2, isMage = v => v === 2 || v === 4, app = s => s === 1 ? 1 : 3, mage = s => s === 1 ? 2 : 4;
+const enc = (d, t, a, b) => (d << 21) | (t << 14) | (a << 7) | b, die = m => m >> 21, ty = m => (m >> 14) & 7, fa = m => (m >> 7) & 127, tb = m => m & 127;
+function newGame(cfg) {
+  const c = Object.assign({}, DEF, cfg || {}), n = c.n, b = new Int8Array(n * n), mid = n >> 1;
+  b[mid] = 4; b[(n - 1) * n + mid] = 2; const off = (n - c.apps) >> 1;
+  for (let i = 0; i < c.apps; i++) { b[n + off + i] = 3; b[(n - 2) * n + off + i] = 1; }
+  return { c, n, b, turn: 1, turnNo: 0, dice: [], dbl: false, lost: [0, 0, 0], ward: [0, -1, -1], over: false, winner: 0, why: '', last: null, lo: [null, null, null], throne: [0, mid, (n - 1) * n + mid] };
+}
+const goal = (S, s) => S.throne[s];
+const clone = S => ({ c: S.c, n: S.n, b: S.b.slice(), turn: S.turn, turnNo: S.turnNo, dice: S.dice.slice(), dbl: S.dbl, lost: S.lost.slice(), ward: S.ward.slice(), over: S.over, winner: S.winner, why: S.why, last: S.last, lo: S.lo.slice(), throne: S.throne });
+const on = (S, x, y) => x >= 0 && y >= 0 && x < S.n && y < S.n;
+function mageAt(S, s) { const v = mage(s); for (let i = 0; i < S.n * S.n; i++) if (S.b[i] === v) return i; return -1; }
+/* roll: sets the dice for the side to move; returns an undo record. d1, d2 are 1..6 */
+function roll(S, d1, d2) {
+  const u = { dice: S.dice, dbl: S.dbl }; const first = S.c.firstOne && S.turnNo === 0;
+  S.dbl = d1 === d2; S.dice = first ? [d1] : S.c.pick ? [d1, d2] : d1 === d2 ? [d1, d1, d1] : [d1, d2]; if (!S.c.pick) S.dbl = true; return u;
+}
+const unroll = (S, u) => { S.dice = u.dice; S.dbl = u.dbl; };
+function moves(S) {
+  const n = S.n, b = S.b, s = S.turn, out = [], foe = 3 - s, wf = S.ward[foe], lo = S.lo[s]; if (S.over || !S.dice.length) return out;
+  const can = (to, from) => b[to] === 0 || (side(b[to]) === foe && to !== wf && (!S.c.mageOnly || !isMage(b[to]) || isMage(b[from])));
+  const seen = []; let mi = -2; const M = () => mi === -2 ? (mi = mageAt(S, s)) : mi;
+  for (const d of S.dice) { if (seen.includes(d)) continue; seen.push(d);
+    for (let i = 0; i < n * n; i++) { if (side(b[i]) !== s) continue; const x = i % n, y = (i / n) | 0;
+      for (const [dx, dy] of D8) { const nx = x + dx, ny = y + dy; if (!on(S, nx, ny)) continue; const t = ny * n + nx; if (!can(t, i)) continue; if (S.c.noBack && lo && lo.t === i && lo.f === t && b[t] === 0) continue; out.push(enc(d, 0, i, t)); } }
+    if (d === 1) { for (let i = 0; i < n * n; i++) if (side(b[i]) === s && S.ward[s] !== i) out.push(enc(d, 1, i, i)); }
+    else if (d === 2) { const mine = []; for (let i = 0; i < n * n; i++) if (side(b[i]) === s) mine.push(i); for (let p = 0; p < mine.length; p++) for (let q = p + 1; q < mine.length; q++) out.push(enc(d, 2, mine[p], mine[q])); }
+    else if (d === 3) { for (let i = 0; i < n * n; i++) { if (side(b[i]) !== s) continue; const x = i % n, y = (i / n) | 0; for (const [dx, dy] of KN) { const nx = x + dx, ny = y + dy; if (on(S, nx, ny) && can(ny * n + nx, i)) out.push(enc(d, 3, i, ny * n + nx)); } } }
+    else if (d === 4) { const m = M(); if (S.lost[s] > 0 && m >= 0) { const x = m % n, y = (m / n) | 0; for (const [dx, dy] of D8) { const nx = x + dx, ny = y + dy; if (on(S, nx, ny) && b[ny * n + nx] === 0) out.push(enc(d, 4, m, ny * n + nx)); } } }
+    else if (d === 5) { const m = M(); if (m >= 0) { const x = m % n, y = (m / n) | 0; for (const [dx, dy] of D8) { const nx = x + dx, ny = y + dy; if (!on(S, nx, ny)) continue; const t = ny * n + nx; if (b[t] === app(foe) && t !== wf) out.push(enc(d, 5, m, t)); } } }
+    else if (d === 6) { const m = M(); if (m >= 0) { const x = m % n, y = (m / n) | 0; for (const [dx, dy] of D8) for (let k = 1; k <= 3; k++) { const nx = x + dx * k, ny = y + dy * k; if (!on(S, nx, ny)) break; const t = ny * n + nx; if (b[t] === 0) continue; if (b[t] === app(foe) && t !== wf) out.push(enc(d, 6, m, t)); break; } } }
+  }
+  return out;
+}
+function make(S, m) {
+  const s = S.turn, foe = 3 - s, t = ty(m), a = fa(m), bb = tb(m), n = S.n, b = S.b, d = die(m);
+  const u = { m, s, chg: [], lost: S.lost.slice(), ward: S.ward.slice(), dice: S.dice, turnNo: S.turnNo, last: S.last, lo: S.lo[s], over: S.over, winner: S.winner, why: S.why };
+  const set = (i, v) => { u.chg.push(i, b[i]); b[i] = v; };
+  let mageDead = false; S.ward[s] = -1;
+  const nd = S.dice.slice(); nd.splice(nd.indexOf(d), 1); S.dice = S.c.pick && !S.dbl ? [] : nd;
+  const takeAt = i => { const v = b[i]; if (v) { if (isMage(v)) mageDead = true; else S.lost[side(v)]++; } };
+  if (t === T.step || t === T.leap) { takeAt(bb); const v = b[a]; set(bb, v); set(a, 0); }
+  else if (t === T.swap) { const va = b[a], vb = b[bb]; set(a, vb); set(bb, va); }
+  else if (t === T.ward) { S.ward[s] = a; }
+  else if (t === T.summon) { set(bb, app(s)); S.lost[s]--; }
+  else if (t === T.charm) { set(bb, app(s)); }
+  else if (t === T.bolt) { takeAt(bb); set(bb, 0); }
+  S.last = { t, a, b: bb, s, d }; S.lo[s] = t === T.step ? { f: a, t: bb } : null;
+  if (mageDead) { S.over = true; S.winner = s; S.why = 'mage'; }
+  if (!S.over) { if (!S.dice.length || !moves(S).length) { S.dice = []; S.turn = foe; S.turnNo++; const mi = mageAt(S, foe); if (mi >= 0 && mi === goal(S, foe)) { S.over = true; S.winner = foe; S.why = 'throne'; } } }
+  if (!S.over && S.turnNo >= S.c.maxTurn) { S.over = true; let a1 = 0, a2 = 0; for (let i = 0; i < n * n; i++) { if (b[i] === 1) a1++; else if (b[i] === 3) a2++; } S.winner = a1 === a2 ? 0 : a1 > a2 ? 1 : 2; S.why = 'limit'; }
+  return u;
+}
+function unmake(S, u) {
+  for (let k = u.chg.length - 2; k >= 0; k -= 2) S.b[u.chg[k]] = u.chg[k + 1];
+  S.lost = u.lost; S.ward = u.ward; S.dice = u.dice; S.turnNo = u.turnNo; S.last = u.last; S.lo[u.s] = u.lo; S.turn = u.s; S.over = u.over; S.winner = u.winner; S.why = u.why;
+}
+function evaluate(S) {
+  const s = S.turn; if (S.over) return S.winner === 0 ? 0 : S.winner === s ? 100000 : -100000;
+  const n = S.n, b = S.b; let sc = 0;
+  for (let i = 0; i < n * n; i++) { const v = b[i]; if (!v) continue; const o = side(v), sg = o === s ? 1 : -1, x = i % n, y = (i / n) | 0;
+    if (isMage(v)) { const g = goal(S, o), gx = g % n, gy = (g / n) | 0, dd = Math.max(Math.abs(x - gx), Math.abs(y - gy)); sc += sg * (60 - dd * 9 + (dd === 0 ? 120 : 0)); }
+    else sc += sg * (100 + (o === 1 ? (n - 1 - y) : y) * 3); }
+  sc += (S.lost[3 - s] - S.lost[s]) * 20;
+  if (S.ward[s] >= 0) sc += 10; if (S.ward[3 - s] >= 0) sc -= 10;
+  return sc;
+}
+const rd = () => 1 + Math.floor(Math.random() * 6);
+function search(S, depth, ms, noise, K) {
+  K = K || 3; const t0 = Date.now(); let nodes = 0, stop = false;
+  const gain = m => { const t = ty(m), v = S.b[tb(m)]; let g = 0; if (v && side(v) === 3 - S.turn) g += isMage(v) ? 100000 : 100; if (t === T.charm) g += 120; if (t === T.summon) g += 30; return g + Math.random(); };
+  const order = list => { const sc = list.map(m => [m, gain(m)]); sc.sort((x, y) => y[1] - x[1]); return sc.map(x => x[0]); };
+  function ab(d, a, b) {
+    nodes++; if ((nodes & 255) === 0 && ms && Date.now() - t0 > ms) stop = true; if (stop) return 0;
+    if (S.over || d <= 0) return evaluate(S);
+    if (!S.dice.length) { let tot = 0; for (let k = 0; k < K; k++) { const u = roll(S, rd(), rd()); const v = ab(d, -1e9, 1e9); unroll(S, u); if (stop) return 0; tot += v; } return tot / K; }
+    const me = S.turn, list = order(moves(S)); if (!list.length) return evaluate(S); let v = -1e9;
+    for (const m of list) { const u = make(S, m); const s = S.turn === me ? ab(d - 1, a, b) : -ab(d - 1, -b, -a); unmake(S, u); if (stop) return 0; if (s > v) v = s; if (v > a) a = v; if (a >= b) break; }
+    return v;
+  }
+  let result = null; const me = S.turn;
+  for (let d = 1; d <= depth; d++) {
+    const list = order(moves(S)); if (!list.length) return null; let bm = null, bs = -1e9, a = -1e9;
+    for (const m of list) { const u = make(S, m); const same = S.turn === me; const s = (same ? ab(d - 1, a, 1e9) : -ab(d - 1, -1e9, -a)) + (noise ? (Math.random() - .5) * noise : 0); unmake(S, u); if (stop) break; if (s > bs) { bs = s; bm = m; } if (s > a) a = s; }
+    if (stop) break; result = { move: bm, score: bs, depth: d }; if (Math.abs(bs) > 90000) break;
+  }
+  if (!result) { const l = moves(S); result = { move: l[Math.floor(Math.random() * l.length)], score: 0, depth: 0 }; }
+  result.nodes = nodes; return result;
+}
+return { newGame, clone, moves, make, unmake, roll, unroll, evaluate, search, enc, die, ty, fa, tb, T, TN, DEF, side, isMage, goal, mageAt, app, mage, rd };
+})();
+if (typeof module !== 'undefined') module.exports = RN;
+
+/* Runes screen: draws the board and wizards, rolls the dice, takes taps, runs the computer player (runesim.js does all the rules), plays sounds. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.runes.v1', { dark: true, sound: true, size: 7, vs: 'ai', human: 1, level: 'normal', learned: false, w: 0, l: 0, d: 0, anim: true }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovLearn', 'ovEnd']);
+settings([{ id: 'anim', label: 'Animations', type: 'check', def: true }, { id: 'sound', label: 'Sound', type: 'check', def: true }], st, $('panel'), () => S0.save());
+const cv = $('cv'), C = KIT.canvas(cv, 600, 600, 2), ctx = C.ctx, W = 600;
+const LEVELS = { easy: { d: 1, ms: 200, noise: 140, K: 2, name: 'Easy' }, normal: { d: 2, ms: 700, noise: 10, K: 2, name: 'Normal' }, hard: { d: 3, ms: 1400, noise: 2, K: 3, name: 'Hard' }, master: { d: 5, ms: 3000, noise: 0, K: 3, name: 'Master' } };
+const CFG = { 5: { n: 5, apps: 3 }, 7: { n: 7, apps: 5 } };
+const SP = ['', ['🛡', 'Ward', 'Ur safe square'], ['🔀', 'Swap', 'Senet'], ['🐴', 'Leap', 'Chess knight'], ['✨', 'Summon', 'Shogi drop'], ['💜', 'Charm', 'Othello flip'], ['⚡', 'Bolt', 'Xiangqi cannon']];
+const FACE = ['', '\u2680', '\u2681', '\u2682', '\u2683', '\u2684', '\u2685'];
+const HELP = [
+  '', 'Ward: tap one of your pieces. It cannot be captured or charmed until you act again.', 'Swap: tap one of your pieces, then another of yours to trade places.',
+  'Leap: tap one of your pieces, then a square a chess-knight move away (it can capture).', 'Summon: tap an empty square next to your Mage to bring back a lost Apprentice.',
+  'Charm: tap an enemy Apprentice next to your Mage to make it yours.', 'Bolt: tap the first enemy Apprentice in a straight line from your Mage (up to 3 squares) to destroy it.'];
+const LIGHT = 1, DARK = 2, NAME = ['', 'Light', 'Dark'];
+let S = null, stack = [], sel = -1, ds = null, mode = null, targets = [], hint = null, busy = false, anims = [], thinking = false, rolling = false, token = 0, note = '', rollTimer = 0, shown = [1, 1];
+const isAI = side => st.vs === 'ai' && side !== st.human;
+const curSpell = () => mode === 'spell' && ds ? RN.TN[ds] : null;
+/* ---------- drawing ---------- */
+const cell = () => (W - 40) / S.n, org = 20;
+const cxy = (n, w, pad) => { const cs = (w - 2 * pad) / n; return [i => pad + (i % n + .5) * cs, i => pad + (((i / n) | 0) + .5) * cs, cs]; };
+function drawWiz(c, x, y, r, v, alpha, scale) {
+  const sd = RN.side(v), mg = RN.isMage(v), L = sd === LIGHT;
+  c.save(); c.globalAlpha = alpha == null ? 1 : alpha; c.translate(x, y); if (scale != null) c.scale(scale, scale);
+  c.beginPath(); c.ellipse(2, r * .75, r * .8, r * .25, 0, 0, 6.283); c.fillStyle = 'rgba(0,0,0,.35)'; c.fill();
+  const g = c.createLinearGradient(-r, -r, r, r); if (L) { g.addColorStop(0, '#fff6d6'); g.addColorStop(1, '#d9b85a'); } else { g.addColorStop(0, '#6d4fb0'); g.addColorStop(1, '#2b1a55'); }
+  const edge = L ? '#7a5d12' : '#0c0620', ink = L ? '#7a5d12' : '#e8dcff';
+  // robe
+  c.beginPath(); c.moveTo(-r * .62, r * .72); c.quadraticCurveTo(-r * .7, -r * .1, 0, -r * .15); c.quadraticCurveTo(r * .7, -r * .1, r * .62, r * .72); c.closePath(); c.fillStyle = g; c.fill(); c.lineWidth = 2; c.strokeStyle = edge; c.stroke();
+  // face
+  c.beginPath(); c.arc(0, -r * .12, r * .26, 0, 6.283); c.fillStyle = L ? '#ffe9cf' : '#d8c9ee'; c.fill(); c.stroke();
+  // hat
+  const hh = mg ? 1.5 : 1.0, bw = r * (mg ? .5 : .42);
+  c.beginPath(); c.moveTo(-bw, -r * .26); c.lineTo(mg ? r * .08 : 0, -r * (.26 + hh)); c.lineTo(bw, -r * .26); c.closePath(); c.fillStyle = g; c.fill(); c.stroke();
+  c.beginPath(); c.ellipse(0, -r * .26, bw * 1.25, r * .09, 0, 0, 6.283); c.fillStyle = g; c.fill(); c.stroke();
+  if (mg) { c.fillStyle = '#f5b800'; c.fillRect(-bw * .72, -r * .6, bw * 1.44, r * .13); c.fillStyle = '#ffd24a'; c.font = 'bold ' + Math.round(r * .42) + 'px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('★', r * .02, -r * 1.0); }
+  c.restore();
+}
+const star = (c, x, y, r, col) => { c.fillStyle = col; c.font = 'bold ' + Math.round(r) + 'px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('★', x, y); };
+/* spec = {n, b, throne, ward:[..], marks:{sel, dots, hitAt, last, hint, srcs, hit}, arrows} */
+function drawBoard(c, spec, w, o) {
+  o = o || {}; const n = spec.n, pad = w * (o.pad == null ? .035 : o.pad), [X, Y, cs] = cxy(n, w, pad), b = spec.b, m = spec.marks || {};
+  const bg = c.createLinearGradient(0, 0, w, w); bg.addColorStop(0, '#3a2a6b'); bg.addColorStop(1, '#241648'); c.fillStyle = bg; c.beginPath(); c.roundRect ? c.roundRect(0, 0, w, w, w * .03) : c.rect(0, 0, w, w); c.fill();
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { c.fillStyle = (x + y) & 1 ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.12)'; c.fillRect(pad + x * cs, pad + y * cs, cs, cs); }
+  c.strokeStyle = 'rgba(190,160,255,.45)'; c.lineWidth = Math.max(1, w * .004); c.strokeRect(pad, pad, n * cs, n * cs);
+  if (spec.throne) { for (const [i, col] of [[spec.throne[1], 'rgba(255,214,90,.9)'], [spec.throne[2], 'rgba(190,170,255,.9)']]) { c.fillStyle = col === 'rgba(255,214,90,.9)' ? 'rgba(255,214,90,.16)' : 'rgba(170,150,255,.18)'; c.fillRect(pad + (i % n) * cs, pad + ((i / n) | 0) * cs, cs, cs); star(c, X(i), Y(i), cs * .55, col.replace('.9', '.55')); } }
+  if (m.last) { c.fillStyle = 'rgba(255,220,90,.22)'; for (const i of [m.last.a, m.last.b]) if (i != null) c.fillRect(pad + (i % n) * cs, pad + ((i / n) | 0) * cs, cs, cs); }
+  for (const i of m.srcs || []) { c.strokeStyle = 'rgba(251,191,36,.55)'; c.lineWidth = w * .006; c.beginPath(); c.arc(X(i), Y(i), cs * .44, 0, 6.283); c.stroke(); }
+  if (m.sel != null && m.sel >= 0) { c.strokeStyle = '#fbbf24'; c.lineWidth = w * .009; c.beginPath(); c.arc(X(m.sel), Y(m.sel), cs * .47, 0, 6.283); c.stroke(); }
+  for (const t of m.dots || []) { const hit = m.hitAt && m.hitAt[t.to]; c.fillStyle = hit ? 'rgba(248,80,80,.8)' : 'rgba(80,220,140,.7)'; c.beginPath(); c.arc(X(t.to), Y(t.to), cs * (hit ? .2 : .14), 0, 6.283); c.fill(); if (hit) { c.strokeStyle = 'rgba(248,80,80,.95)'; c.lineWidth = w * .006; c.beginPath(); c.arc(X(t.to), Y(t.to), cs * .32, 0, 6.283); c.stroke(); } }
+  if (m.hint) { const p = .5 + .5 * Math.sin(performance.now() / 160); c.strokeStyle = 'rgba(56,189,248,' + (.5 + p * .5) + ')'; c.lineWidth = w * .01; for (const i of [m.hint.a, m.hint.b]) { c.beginPath(); c.arc(X(i), Y(i), cs * (.46 + p * .04), 0, 6.283); c.stroke(); } }
+  for (let i = 0; i < n * n; i++) { if (!b[i] || (o.skip && o.skip.has(i))) continue; drawWiz(c, X(i), Y(i) + cs * .12, cs * .4, b[i]);
+    if (spec.ward && (spec.ward[1] === i || spec.ward[2] === i)) { c.strokeStyle = 'rgba(100,200,255,.95)'; c.lineWidth = w * .008; c.beginPath(); c.arc(X(i), Y(i), cs * .46, 0, 6.283); c.stroke(); c.fillStyle = 'rgba(100,200,255,.2)'; c.fill(); } }
+  for (const a of spec.arrows || []) { c.strokeStyle = '#38bdf8'; c.fillStyle = '#38bdf8'; c.lineWidth = w * .016; c.lineCap = 'round'; const x0 = X(a.f), y0 = Y(a.f), x1 = X(a.t), y1 = Y(a.t), ang = Math.atan2(y1 - y0, x1 - x0), sh = cs * .35; c.beginPath(); c.moveTo(x0 + Math.cos(ang) * sh, y0 + Math.sin(ang) * sh); c.lineTo(x1 - Math.cos(ang) * sh * .6, y1 - Math.sin(ang) * sh * .6); c.stroke(); c.beginPath(); c.moveTo(x1, y1); c.lineTo(x1 - Math.cos(ang - .5) * cs * .3, y1 - Math.sin(ang - .5) * cs * .3); c.lineTo(x1 - Math.cos(ang + .5) * cs * .3, y1 - Math.sin(ang + .5) * cs * .3); c.fill(); }
+}
+function frame(now) {
+  ctx.clearRect(0, 0, W, W); if (!S) return;
+  const n = S.n, [X, Y, cs] = cxy(n, W, org), skip = new Set(), mov = [], dying = [], fx = [];
+  for (const a of anims) { const t = Math.max(0, Math.min(1, (now - a.t0) / a.dur)); a.p = t; if (a.kind === 'move') { skip.add(a.to); mov.push(a); } else if (a.kind === 'die') dying.push(a); else fx.push(a); }
+  const hm = {}; if ((sel >= 0 || curSpell()) && targets.length) for (const t of targets) if (S.b[t.to] && RN.side(S.b[t.to]) !== S.turn) hm[t.to] = 1;
+  const marks = { sel, dots: targets, hitAt: hm, last: S.last, hint, srcs: curSpell() && sel < 0 ? srcList() : null };
+  drawBoard(ctx, { n, b: S.b, throne: S.throne, ward: S.ward, marks }, W, { skip, pad: org / W });
+  for (const a of dying) { const p = a.p; drawWiz(ctx, X(a.at), Y(a.at) + cs * .12, cs * .4, a.v, 1 - p, 1 + p * .25); if (p > 0) { ctx.strokeStyle = 'rgba(255,230,160,' + (1 - p) + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(X(a.at), Y(a.at), cs * (.3 + p * .5), 0, 6.283); ctx.stroke(); } }
+  for (const a of mov) { const e = a.p * a.p * (3 - 2 * a.p), x = X(a.from) + (X(a.to) - X(a.from)) * e, y = Y(a.from) + (Y(a.to) - Y(a.from)) * e; drawWiz(ctx, x, y + cs * .12 - Math.sin(a.p * Math.PI) * (a.hop || 5), cs * .4, a.v); }
+  for (const a of fx) { const p = a.p; ctx.save(); ctx.globalAlpha = 1 - p;
+    if (a.fx === 'bolt') { ctx.strokeStyle = '#fde047'; ctx.lineWidth = 5; ctx.shadowColor = '#facc15'; ctx.shadowBlur = 14; ctx.beginPath(); ctx.moveTo(X(a.from), Y(a.from)); const k = 6; for (let j = 1; j < k; j++) { const u = j / k; ctx.lineTo(X(a.from) + (X(a.to) - X(a.from)) * u + (Math.random() - .5) * 14, Y(a.from) + (Y(a.to) - Y(a.from)) * u + (Math.random() - .5) * 14); } ctx.lineTo(X(a.to), Y(a.to)); ctx.stroke(); }
+    else { ctx.strokeStyle = a.col; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(X(a.at), Y(a.at), cs * (.2 + p * .6), 0, 6.283); ctx.stroke(); }
+    ctx.restore(); }
+  const before = anims.length; anims = anims.filter(a => now - a.t0 < a.dur); if (before && !anims.length) afterAnim();
+}
+KIT.loop(null, () => frame(performance.now())).start();
+/* ---------- dice, spells and targets ---------- */
+const legal = () => (S && !S.over ? RN.moves(S) : []);
+const spellMoves = f => legal().filter(m => RN.ty(m) === f && RN.die(m) === f);
+const stepDie = () => { if (mode === 'step' && ds) return ds; const vals = [...new Set(S.dice)]; const free = vals.filter(v => !spellMoves(v).length); return free.length ? Math.min(...free) : Math.min(...vals); };
+function srcList() {
+  const f = ds; if (!f || mode !== 'spell') return null; const L = spellMoves(f), set = new Set();
+  if (f === 3 || f === 1) for (const m of L) set.add(RN.fa(m)); else if (f === 2) for (const m of L) { set.add(RN.fa(m)); set.add(RN.tb(m)); } else for (const m of L) set.add(RN.tb(m));
+  return [...set];
+}
+function clearSel() { sel = -1; targets = []; hint = null; }
+function pickDie(v) {
+  if (!S || busy || S.over || rolling || isAI(S.turn) || !S.dice.length || !S.dice.includes(v)) return; clearSel();
+  if (ds !== v) { ds = v; mode = spellMoves(v).length ? 'spell' : 'step'; } else if (mode === 'spell') mode = 'step'; else { ds = null; mode = null; }
+  if (mode === 'spell' && v >= 4) for (const m of spellMoves(v)) targets.push({ to: RN.tb(m), m });
+  A.beep(mode ? 820 : 500, .04, 'sine', .06); hud();
+}
+function selectStep(i) {
+  sel = i; targets = []; hint = null; if (i >= 0) { const d = stepDie(); for (const m of legal()) if (RN.ty(m) === 0 && RN.fa(m) === i && RN.die(m) === d) targets.push({ to: RN.tb(m), m }); A.beep(700, .03, 'square', .05); }
+}
+function selectSpellSrc(i) {
+  sel = i; targets = []; hint = null; if (i < 0) return; const f = ds;
+  for (const m of spellMoves(f)) { if (f === 3 && RN.fa(m) === i) targets.push({ to: RN.tb(m), m }); else if (f === 2) { if (RN.fa(m) === i) targets.push({ to: RN.tb(m), m }); else if (RN.tb(m) === i) targets.push({ to: RN.fa(m), m }); } }
+  A.beep(700, .03, 'square', .05);
+}
+/* ---------- game flow ---------- */
+function newGame() {
+  token++; clearInterval(rollTimer); S = RN.newGame(CFG[st.size]); stack = []; ds = null; mode = null; clearSel(); anims = []; busy = false; thinking = false; rolling = false; note = ''; O.hide('ovEnd'); setBars(); status(); hud(); startTurn();
+}
+function snapshot() { stack.push(RN.clone(S)); if (stack.length > 300) stack.shift(); }
+function startTurn() {
+  if (!S || S.over || S.dice.length) return; ds = null; mode = null; clearSel();
+  if (isAI(S.turn)) setTimeout(() => { if (!S.over && !S.dice.length && isAI(S.turn)) rollNow(); }, st.anim ? 450 : 20); else { status(); hud(); }
+}
+function rollNow() {
+  if (!S || S.over || S.dice.length || rolling || busy) return; const tk = token, a = RN.rd(), b = RN.rd(); rolling = true; hud(); status();
+  const fin = () => { if (tk !== token) return; clearInterval(rollTimer); rolling = false; RN.roll(S, a, b); note = NAME[S.turn] + ' rolled ' + (S.dice.length === 2 && S.dice[0] === S.dice[1] ? S.dice[0] + ' and ' + S.dice[0] + ' (doubles: two actions)' : S.dice.join(' and ')) + '.';
+    if (!RN.moves(S).length) { note += ' No move: turn passes.'; S.dice = []; S.turn = 3 - S.turn; S.turnNo++; hud(); status(); startTurn(); return; }
+    A.beep(600, .05, 'triangle', .08); hud(); status(); if (isAI(S.turn)) aiAct(); };
+  if (!st.anim) { fin(); return; }
+  A.noise(.25, .15); let n = 0; rollTimer = setInterval(() => { shown = [RN.rd(), RN.rd()]; hud(); if (++n >= 9) fin(); }, 80);
+}
+function playMove(m) {
+  snapshot(); const side = S.turn, t = RN.ty(m), a = RN.fa(m), b = RN.tb(m), d = RN.die(m), pre = S.b.slice(); RN.make(S, m); hint = null; clearSel(); ds = null; mode = null;
+  note = NAME[side] + ' used the ' + d + ': ' + (t ? SP[t][1] : 'Step') + '.';
+  const T0 = performance.now(), vic = pre[b] && RN.side(pre[b]) !== side && (t === 0 || t === 3 || t === 6) ? pre[b] : 0;
+  if (st.anim) {
+    if (t === 0 || t === 3) { anims.push({ kind: 'move', from: a, to: b, v: pre[a], t0: T0, dur: t === 3 ? 300 : 180, hop: t === 3 ? 16 : 5 }); if (vic) anims.push({ kind: 'die', at: b, v: vic, t0: T0 + (t === 3 ? 300 : 180), dur: 320 }); }
+    else if (t === 2) anims.push({ kind: 'move', from: a, to: b, v: pre[a], t0: T0, dur: 300 }, { kind: 'move', from: b, to: a, v: pre[b], t0: T0, dur: 300 });
+    else if (t === 1) anims.push({ kind: 'fx', fx: 'ring', at: a, col: 'rgb(100,200,255)', t0: T0, dur: 500 });
+    else if (t === 4) anims.push({ kind: 'fx', fx: 'ring', at: b, col: 'rgb(200,160,255)', t0: T0, dur: 500 });
+    else if (t === 5) anims.push({ kind: 'fx', fx: 'ring', at: b, col: 'rgb(255,120,220)', t0: T0, dur: 600 });
+    else if (t === 6) { anims.push({ kind: 'fx', fx: 'bolt', from: a, to: b, t0: T0, dur: 280 }); if (vic) anims.push({ kind: 'die', at: b, v: vic, t0: T0 + 150, dur: 320 }); }
+    busy = true;
+  }
+  if (t === 0) A.beep(side === LIGHT ? 520 : 400, .06, 'triangle', .1); else if (t === 3) A.slide(300, 700, .15, 'triangle', .1); else if (t === 2) { A.beep(500, .06, 'sine', .1); A.beep(650, .06, 'sine', .1, .08); } else if (t === 1) A.beep(900, .18, 'sine', .08); else if (t === 4) { A.beep(500, .08, 'sine', .1); A.beep(750, .12, 'sine', .1, .08); } else if (t === 5) A.slide(900, 300, .3, 'sine', .1); else if (t === 6) { A.noise(.14, .25); A.slide(1200, 200, .2, 'sawtooth', .08); }
+  if (vic) { A.noise(.1, .2); A.beep(220, .12, 'square', .08, .08); }
+  hud(); status(); if (S.over) { finish(); return; } if (!st.anim) afterAnim();
+}
+function afterAnim() {
+  busy = false; hud(); status(); if (S.over) return;
+  if (S.dice.length) { if (isAI(S.turn)) setTimeout(aiAct, 250); } else startTurn();
+}
+function aiAct() {
+  if (S.over || thinking || !S.dice.length) return; thinking = true; const tk = token; status(); const L = LEVELS[st.level];
+  setTimeout(() => { if (tk !== token) { thinking = false; return; } const r = RN.search(RN.clone(S), L.d, L.ms, L.noise, L.K); thinking = false; if (tk !== token || S.over) return; if (!r || r.move == null) return; playMove(r.move); }, 450);
+}
+function finish() {
+  const w = S.winner; let h, p; const why = S.why === 'mage' ? NAME[w] + ' captured the enemy Mage.' : S.why === 'throne' ? NAME[w] + "'s Mage held the Throne for a whole turn." : S.winner ? NAME[w] + ' has more Apprentices after 60 turns.' : 'Equal Apprentices after 60 turns.';
+  if (w === 0) { h = 'Draw'; p = why; st.d++; A.beep(400, .2, 'sine', .1); }
+  else if (st.vs === 'ai') { const me = w === st.human; h = me ? '🎉 You win!' : 'The computer wins'; st[me ? 'w' : 'l']++; p = why; me ? (A.beep(660, .12, 'triangle', .1), A.beep(880, .12, 'triangle', .1, .12), A.beep(1100, .2, 'triangle', .1, .24)) : A.slide(300, 100, .5, 'sawtooth', .1); }
+  else { h = NAME[w] + ' wins!'; p = why; A.beep(660, .12, 'triangle', .1); }
+  S0.save(); $('endH').textContent = h; $('endP').textContent = p; setTimeout(() => { if (S.over) O.show('ovEnd'); }, st.anim ? 900 : 100); hud();
+}
+const count = v => { let c = 0; for (const x of S.b) if (x === v) c++; return c; };
+function hud() {
+  $('s1').textContent = count(1); $('s3').textContent = count(3); $('s2').textContent = S.over ? 'Over' : NAME[S.turn]; $('s4').textContent = Math.min(S.turnNo + 1, S.c.maxTurn);
+  $('recLine').textContent = (st.vs === 'ai' ? 'Against the computer: ' + st.w + ' won · ' + st.l + ' lost · ' + st.d + ' drawn' : 'Two players on one screen') + '   |   Apprentices lost: Light ' + S.lost[1] + ', Dark ' + S.lost[2];
+  $('bUndo').disabled = !stack.length || ((busy || rolling) && !S.over); $('bCancel').disabled = !mode && sel < 0;
+  const me = S.turn, human = !S.over && !isAI(me), box = $('dice'); let h = '';
+  if (rolling) h = shown.map(v => '<button class="die roll" type="button" disabled><span class="face">' + FACE[v] + '</span><b>Rolling…</b></button>').join('');
+  else if (!S.over && !S.dice.length && human) h = '<button class="btn primary bigroll" data-act="roll" type="button">🎲 Roll the dice</button>';
+  else if (S.dice.length) { const can = human && !busy && !thinking;
+    h = S.dice.map(v => { const sp = SP[v], n = spellMoves(v).length;
+      return '<button class="die' + (ds === v && mode ? ' on' : '') + '" data-act="die" data-v="' + v + '" type="button"' + (can ? '' : ' disabled') + '><span class="face">' + FACE[v] + '</span><b>' + sp[0] + ' ' + sp[1] + '</b><small>' + (ds === v && mode === 'step' ? 'stepping with this die' : n ? 'tap to cast (or step)' : 'no target: step only') + '</small></button>'; }).join(''); }
+  else if (S.over) h = '<span class="kl">Game over</span>';
+  box.innerHTML = h;
+  $('spellInfo').textContent = (curSpell() ? HELP[ds] + ' Tap the die again to step instead.' : mode === 'step' ? 'Stepping with the ' + ds + ': tap a piece, then a square.' : human && S.dice.length ? 'Tap a die to cast its spell, or just tap a piece to step (the die with the least useful spell is used).' : '') + (note ? '  ' + note : '');
+}
+function status() {
+  let t; if (S.over) t = S.winner ? NAME[S.winner] + ' wins' : 'Draw'; else if (rolling) t = NAME[S.turn] + ' is rolling…'; else if (thinking || isAI(S.turn)) t = 'Computer is thinking…'; else if (!S.dice.length) t = (st.vs === 'two' ? NAME[S.turn] + ': ' : '') + 'roll the dice'; else if (st.vs === 'two') t = NAME[S.turn] + ': pick a die or step'; else t = 'Your move (' + NAME[S.turn] + ')';
+  $('msg').textContent = t;
+}
+/* ---------- input ---------- */
+function cellAt(e) { const p = C.pos(e), s = cell(), x = Math.floor((p.x - org) / s), y = Math.floor((p.y - org) / s); return x < 0 || y < 0 || x >= S.n || y >= S.n ? -1 : y * S.n + x; }
+cv.addEventListener('pointerdown', e => {
+  if (!S || busy || S.over || rolling || isAI(S.turn) || thinking || !S.dice.length) return; const i = cellAt(e); if (i < 0) return;
+  if (mode !== 'spell') {
+    if (RN.side(S.b[i]) === S.turn) { selectStep(sel === i ? -1 : i); hud(); return; }
+    const t = targets.find(x => x.to === i); if (sel >= 0 && t) { playMove(t.m); return; }
+    if (sel >= 0) { selectStep(-1); hud(); } return;
+  }
+  const f = ds, L = spellMoves(f);
+  if (f >= 4) { const m = L.find(x => RN.tb(x) === i); if (m != null) playMove(m); return; }
+  if (f === 1) { const m = L.find(x => RN.fa(x) === i); if (m != null) playMove(m); return; }
+  if (sel >= 0) { const t = targets.find(x => x.to === i); if (t) { playMove(t.m); return; } }
+  const srcs = srcList(); if (srcs.includes(i)) { selectSpellSrc(sel === i ? -1 : i); hud(); } else if (sel >= 0) { selectSpellSrc(-1); hud(); }
+});
+function cancel() { ds = null; mode = null; clearSel(); hud(); }
+function undo() {
+  if (!stack.length || ((busy || rolling) && !S.over)) return; token++; clearInterval(rollTimer); thinking = false; rolling = false; anims = []; busy = false; O.hide('ovEnd');
+  let s = stack.pop(); if (st.vs === 'ai') { while (stack.length && isAI(s.turn)) s = stack.pop(); }
+  S = s; ds = null; mode = null; clearSel(); note = 'Took back. Same dice as before.'; status(); hud(); if (!S.dice.length) startTurn(); else if (isAI(S.turn)) aiAct();
+}
+function doHint() {
+  if (!S || S.over || busy || thinking || rolling || isAI(S.turn) || !S.dice.length) return; const r = RN.search(RN.clone(S), 3, 800, 0, 3);
+  if (r && r.move != null) { const t = RN.ty(r.move); hint = { a: RN.fa(r.move), b: RN.tb(r.move) }; ds = null; mode = null; sel = -1; targets = []; hud(); $('msg').textContent = 'Hint: use the ' + RN.die(r.move) + (t ? ' to cast ' + SP[t][1] : ' to step') + ' (pulsing squares)'; }
+}
+/* ---------- bars ---------- */
+function setBars() {
+  const bar = (id, items, key, act) => { $(id).innerHTML = items.map(i => '<button class="btn sm' + (String(st[key]) === String(i[0]) ? ' on' : '') + '" data-act="' + act + '" data-v="' + i[0] + '" type="button">' + i[1] + '</button>').join(''); };
+  bar('vsBar', [['ai', 'Computer'], ['two', 'Two players']], 'vs', 'vs'); bar('sideBar', [[1, 'Light (first)'], [2, 'Dark (second)']], 'human', 'side');
+  bar('lvBar', Object.keys(LEVELS).map(k => [k, LEVELS[k].name]), 'level', 'level'); bar('sizeBar', [[5, '5 × 5 (quick)'], [7, '7 × 7 (classic)']], 'size', 'size');
+  $('sideRow').style.display = $('lvRow').style.display = st.vs === 'ai' ? '' : 'none';
+}
+/* ---------- the little teaching boards ---------- */
+let lstep = 0;
+const B5 = rows => { const b = new Int8Array(25); rows.forEach((r, y) => [...r].forEach((ch, x) => { b[y * 5 + x] = { a: 1, M: 2, d: 3, W: 4 }[ch] || 0; })); return b; };
+const TH5 = [0, 2, 22];
+const LESSONS = [
+  { t: '<b>1. Roll two dice, pick one.</b> The die you pick is your action for the turn (doubles: you may use both). Any die lets you <b>step</b> one piece 1 square in any direction; stepping onto an enemy captures it.', spec: () => ({ n: 5, b: B5(['..W..', '.d...', '.....', '..aa.', '..M..']), throne: TH5, marks: { sel: 18, dots: [{ to: 12 }, { to: 13 }, { to: 14 }, { to: 17 }, { to: 19 }] } }) },
+  { t: '<b>2. The number is a spell.</b> 1 🛡 Ward (Ur) · 2 🔀 Swap (Senet) · 3 🐴 Leap (chess) · 4 ✨ Summon (shogi) · 5 💜 Charm (Othello) · 6 ⚡ Bolt (xiangqi cannon). Here a 3 lets the Mage leap like a knight.', spec: () => ({ n: 5, b: B5(['.....', '.d.d.', '.....', '.....', '..M..']), throne: TH5, arrows: [{ f: 22, t: 11 }], marks: { hit: [] } }) },
+  { t: '<b>3. Mages matter.</b> Only a Mage can capture a Mage. Win by capturing the enemy Mage, or by ending a turn with your Mage on the ★ Throne and still being there at the start of your next turn.', spec: () => ({ n: 5, b: B5(['..W..', '.....', '..M..', '.....', '.....']), throne: TH5, arrows: [{ f: 12, t: 7 }, { f: 7, t: 2 }], marks: {} }) },
+  { t: '<b>4. Look at both dice.</b> A 6 is strong, but a 2 may be the Swap you need. Ward (a 1) protects a piece until you act again, so cast it last, on a Mage that sits on the Throne.', spec: () => ({ n: 5, b: B5(['..M..', '.....', '.d.d.', '.....', '..W..']), throne: [0, 22, 2], ward: [0, 2, -1], marks: {} }) }
+];
+function lesson() {
+  const L = LESSONS[lstep], c = $('mini').getContext('2d'); c.clearRect(0, 0, 220, 220); drawBoard(c, L.spec(), 220, { pad: .03 }); $('miniP').innerHTML = L.t;
+  $('miniDots').innerHTML = LESSONS.map((_, i) => '<i class="' + (i === lstep ? 'on' : '') + '"></i>').join(''); $('lBack').style.visibility = lstep ? '' : 'hidden'; $('lNext').textContent = lstep === LESSONS.length - 1 ? "Let's play" : 'Next ▶';
+}
+function showLearn() { lstep = 0; lesson(); O.show('ovLearn'); }
+ui.actions(document.body, {
+  newgame: newGame, undo, hint: doHint, cancel, roll: rollNow, learn: showLearn, lback: () => { if (lstep) { lstep--; lesson(); } }, lnext: () => { if (lstep < LESSONS.length - 1) { lstep++; lesson(); } else { O.hide('ovLearn'); st.learned = true; S0.save(); } },
+  die: b => pickDie(+b.dataset.v),
+  vs: b => { st.vs = b.dataset.v; S0.save(); newGame(); }, side: b => { st.human = +b.dataset.v; S0.save(); newGame(); },
+  level: b => { st.level = b.dataset.v; S0.save(); setBars(); }, size: b => { st.size = +b.dataset.v; S0.save(); newGame(); }
+});
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame(); if (!st.learned) showLearn();
+KIT.hook({ get S() { return S; }, st, newGame, playMove, rollNow, pickDie, get busy() { return busy; }, get thinking() { return thinking; }, get rolling() { return rolling; }, undo, get stack() { return stack; }, get anims() { return anims; } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

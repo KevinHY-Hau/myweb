@@ -1,0 +1,31 @@
+{
+  "name": "Chinese Checkers",
+  "short_name": "\u6ce2\u5b50\u68cb",
+  "description": "Hop your marbles across the star to the opposite corner. Long hops over any piece (land the same distance beyond), chain hops, 2 to 6 players, play the computer or pass and play",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2a1d3a",
+  "theme_color": "#2a1d3a",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

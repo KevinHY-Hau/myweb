@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 48 · Royal Game of Ur</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#15264f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ur">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.dicerow{display:flex;align-items:center;justify-content:center;gap:14px}
+#die{font-size:68px;line-height:1;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;border-radius:18px;border:5px solid #888;box-shadow:0 3px 8px rgba(0,0,0,.35);user-select:none;cursor:pointer}
+#die.roll{animation:dshake .18s linear infinite}
+@keyframes dshake{0%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-4px)}100%{transform:rotate(-8deg) translateY(0)}}
+#rollBtn{font-size:18px;padding:12px 22px}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}#die{width:76px;height:76px;font-size:54px}}
+.urcv{aspect-ratio:640/250}
+.urdice{display:flex;gap:10px;align-items:center;min-height:56px}
+.td{font-size:44px;line-height:48px;width:48px;text-align:center;color:#6b7280;opacity:.55;transition:transform .15s;user-select:none}
+.td.on{color:#f0b429;opacity:1;text-shadow:0 0 6px rgba(240,180,41,.55)}
+.td.spin{animation:dshake .18s linear infinite;opacity:.9;color:#aab}
+.dicerow{flex-wrap:wrap}
+@media (max-width:480px){.td{font-size:36px;width:40px;line-height:40px}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Royal Game of Ur</h2>
+  <p>Chapter 48 · The 4,500-year-old race game from ancient Mesopotamia. Throw the four two-sided dice, race your seven pieces round the board, hit your rival on the shared lane and land on the rosettes for an extra turn</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TURN</small><b id="s1">You</b></div>
+    <div class="tstat"><small>THROW</small><b id="s2">-</b></div>
+    <div class="tstat"><small>HOME YOU–THEM</small><b id="s3">0–0</b></div>
+    <div class="tstat"><small>MOVES</small><b id="s4">0</b></div>
+  </div>
+  <div class="tmsg" id="msg">Throw the dice</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv urcv" aria-label="Royal Game of Ur board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="dicerow"><div id="dice" class="urdice" aria-label="Four dice"></div><button class="btn primary" id="rollBtn" data-act="roll" type="button">🎲 Throw</button></div>
+  <div class="tbar">
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+  </div>
+  <div class="tbar"><span class="kl">Pieces each:</span><span id="pcsBar"></span></div>
+  <div class="tbar"><span class="kl">Bearing off:</span><span id="exBar"></span></div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="tbar"><span class="kl">Who starts:</span><span id="firstBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 Rules of the Royal Game of Ur</h2>
+    <p>A race for two. Each player has <b>7 pieces</b> (or 5). Be first to take all of yours round the board and <b>off</b> at the end. You are the blue pieces on the <b>bottom</b> row; your path goes right to left along your own 4 squares, then up and <b>across the middle lane</b> (shared with your rival) from left to right, then into your last two squares and off.</p>
+    <h3>The throw</h3>
+    <ul>
+      <li>You throw <b>four two-sided dice</b>. The number of marked tips that come up is your move: 0, 1, 2, 3 or 4. The middle numbers are the most likely (2 comes up 6 times in 16, 0 and 4 only once in 16).</li>
+      <li>Move <b>one</b> piece exactly that many squares, or bring a new piece on (a throw of 3 puts it on your third square). A throw of 0 means you lose your turn. If you can’t move, you lose your turn.</li>
+    </ul>
+    <h3>Squares and hitting</h3>
+    <ul>
+      <li>You may <b>not</b> land on your own piece.</li>
+      <li>The <b>middle lane</b> is shared. If you land on a rival there, that piece is <b>captured</b> and goes back to the start.</li>
+      <li>The five <b>rosettes</b> (🏵) are special: land on one and <b>throw again</b>. The rosette in the middle of the shared lane is also <b>safe</b>: a piece on it can’t be captured, and you can’t land on it if a rival is there. A piece parked on it blocks it for the rival.</li>
+    </ul>
+    <h3>Going home</h3>
+    <ul>
+      <li>To bear a piece off you need the <b>exact</b> number to step past the last square (a piece on your last square needs a 1, the one before needs a 2). The setting “Any throw” lets a higher throw bear off too, which makes the end quicker.</li>
+      <li>The first player to bear off <b>all</b> pieces wins.</li>
+    </ul>
+    <h3>This version</h3>
+    <ul>
+      <li>You are blue (bottom row); the computer or a friend is orange (top row). Tap a glowing piece to move it; tap the waiting pieces to bring one on. If only one move is possible it is played for you (a setting).</li>
+      <li>These are the Finkel rules, the common modern reconstruction. Nobody knows exactly how it was played 4,500 years ago, so other versions differ in details.</li>
+      <li>The computer looks ahead over the dice chances (Hard looks 3 throws ahead), but its judgement is simple, so it is not unbeatable.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🏺 The Royal Game of Ur was played in Mesopotamia (modern Iraq) about 4,500 years ago; a board was found in the Royal Cemetery at Ur and is in the British Museum. The rules are Irving Finkel's reconstruction from a cuneiform tablet (about 177 BC), with options for 5 pieces and for bearing off with any throw. Drawings, sounds, rules code and the computer player are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* The Royal Game of Ur (Finkel rules): path, dice, moves, captures, rosettes and the computer player. No drawing.
+   Each player's path has 14 squares: 1-4 private (own row, left block), 5-12 the shared middle lane, 13-14 private (own row, right block).
+   A piece is 0 (waiting), 1..14 (on the board) or 15 (borne off). Rosettes (extra turn, safe) are on path squares 4, 8 and 14; the middle one (8) is shared.
+   The four two-sided dice give 0,1,2,3,4 with chances 1,4,6,4,1 out of 16. */
+const UR_FIN = 15, UR_LANE0 = 5, UR_LANE1 = 12, UR_MID = 8;
+const UR_ROSETTE = [false, false, false, false, true, false, false, false, true, false, false, false, false, false, true, false];
+const UR_PROB = [1 / 16, 4 / 16, 6 / 16, 4 / 16, 1 / 16];
+function urNew(o) {
+  o = Object.assign({ pieces: 7, exact: true }, o || {}); const S = { o, p: [new Array(o.pieces).fill(0), new Array(o.pieces).fill(0)], turn: 0, roll: -1, winner: -1, over: false, moves: 0 };
+  return S;
+}
+const urClone = S => ({ o: S.o, p: [S.p[0].slice(), S.p[1].slice()], turn: S.turn, roll: S.roll, winner: S.winner, over: S.over, moves: S.moves });
+const urOff = (S, p) => S.p[p].filter(x => x === UR_FIN).length;
+/* every legal move for the player to move with this throw: {from, to, cap, rosette, off} (one entry per distinct square) */
+function urMoves(S, roll) {
+  if (S.over || roll <= 0) return []; const p = S.turn, q = 1 - p, mine = S.p[p], theirs = S.p[q], out = [], seen = new Set();
+  for (const from of mine) {
+    if (from === UR_FIN || seen.has(from)) continue; seen.add(from);
+    let to = from + roll;
+    if (to > UR_FIN) { if (S.o.exact) continue; to = UR_FIN; }
+    if (to < UR_FIN) {
+      if (mine.includes(to)) continue;                                   // not onto your own piece
+      const lane = to >= UR_LANE0 && to <= UR_LANE1, hit = lane && theirs.includes(to);
+      if (hit && to === UR_MID) continue;                                // the central rosette is safe
+      out.push({ from, to, cap: hit, rosette: UR_ROSETTE[to], off: false });
+    } else out.push({ from, to: UR_FIN, cap: false, rosette: false, off: true });
+  }
+  return out;
+}
+/* play a move (changes S). Returns true if the same player throws again. */
+function urPlay(S, m) {
+  const p = S.turn, q = 1 - p, mine = S.p[p], i = mine.indexOf(m.from); mine[i] = m.to; S.moves++;
+  if (m.cap) { const j = S.p[q].indexOf(m.to); S.p[q][j] = 0; }
+  S.roll = -1;
+  if (urOff(S, p) === S.o.pieces) { S.over = true; S.winner = p; return false; }
+  if (m.rosette) return true;
+  S.turn = q; return false;
+}
+function urPass(S) { S.turn = 1 - S.turn; S.roll = -1; }
+function urThrow(rnd) { let n = 0; for (let k = 0; k < 4; k++) if ((rnd ? rnd() : Math.random()) < .5) n++; return n; }
+
+/* ---------- the computer ---------- */
+/* a score for player p: progress, rosettes, and how likely each side is to be hit on the shared lane */
+function urEval(S, p) {
+  if (S.over) return S.winner === p ? 1000 : -1000;
+  const q = 1 - p; let s = 0;
+  const side = (a, b) => { // a = the player scored, b = the other
+    let v = 0;
+    for (const x of S.p[a]) { v += x === UR_FIN ? 17 : x; if (x === UR_MID) v += 3.5; else if (x === 4 || x === 14) v += 1.2; if (x >= UR_LANE0 && x <= UR_LANE1 && x !== UR_MID) { let risk = 0; for (const y of S.p[b]) { const d = x - y; if (y !== UR_FIN && d >= 1 && d <= 4 && y !== 0) risk += UR_PROB[d]; } for (const y of S.p[b]) if (y === 0 && x <= 4) risk += UR_PROB[x] * .5; v -= risk * (x + 2) * 0.9; } }
+    return v;
+  };
+  return side(S.p[p] === S.p[0] ? 0 : 1, q) - side(q, p) + (S.turn === p ? 0.8 : -0.8);
+}
+let urMemo = new Map(), urDeadline = 0, urNodes = 0;
+const urKey = (S, d) => S.p[0].slice().sort().join('') + '|' + S.p[1].slice().sort().join('') + '|' + S.turn + '|' + d;
+/* expected score for the player to move, before throwing, looking d throws ahead */
+function urVal(S, d) {
+  if (S.over) return urEval(S, S.turn); if (d <= 0) return urEval(S, S.turn);
+  const key = urKey(S, d), h = urMemo.get(key); if (h !== undefined) return h;
+  urNodes++; const p = S.turn; let tot = 0;
+  for (let r = 0; r <= 4; r++) {
+    let v;
+    if (r === 0) { const T = urClone(S); urPass(T); v = -urVal(T, d - 1); }
+    else { const ms = urMoves(S, r); if (!ms.length) { const T = urClone(S); urPass(T); v = -urVal(T, d - 1); } else { v = -1e9; for (const m of ms) { const T = urClone(S); const again = urPlay(T, m); const x = T.over ? 1000 : again ? urVal(T, d - 1) : -urVal(T, d - 1); if (x > v) v = x; } } }
+    tot += UR_PROB[r] * v;
+  }
+  urMemo.set(key, tot); return tot;
+}
+function urChoose(S, roll, level) {
+  const ms = urMoves(S, roll); if (ms.length <= 1) return ms[0] || null;
+  const cfg = typeof level === 'number' ? [level, 0] : { easy: [0, 8], normal: [2, 0], hard: [3, 0] }[level || 'normal'], p = S.turn; urMemo = new Map();
+  let best = ms[0], bs = -1e9;
+  for (const m of ms) {
+    const T = urClone(S); const again = urPlay(T, m);
+    let v = T.over ? 1000 : cfg[0] === 0 ? urEval(T, p) : (again ? 1 : -1) * urVal(T, cfg[0]);
+    v += (Math.random() - .5) * 2 * cfg[1]; if (m.cap) v += cfg[0] === 0 ? 4 : 0;
+    if (v > bs) { bs = v; best = m; }
+  }
+  return best;
+}
+if (typeof module !== 'undefined') module.exports = { UR_FIN, UR_MID, UR_ROSETTE, UR_PROB, urNew, urClone, urOff, urMoves, urPlay, urPass, urThrow, urEval, urVal, urChoose };
+
+/* The Royal Game of Ur. ur.js has the rules and the computer (checked on its own); this file is the board, the throw, the input, the animation and the game flow. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.ur.v1', { dark: true, sound: true, opp: 'cpu', pieces: 7, exact: true, first: 'you', level: 'normal', speed: 'normal', auto: true, board: 'lapis', rec: [0, 0], games: 0 }), st = S0.st;
+if (!Array.isArray(st.rec) || st.rec.length !== 2) st.rec = [0, 0];
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+settings([
+  { id: 'level', label: 'Computer level', type: 'select', options: [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard (looks 3 throws ahead)']], def: 'normal' },
+  { id: 'speed', label: 'Piece speed', type: 'select', options: [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']], def: 'normal' },
+  { id: 'auto', label: 'Play forced moves automatically', type: 'check', def: true },
+  { id: 'board', label: 'Board', type: 'select', options: [['lapis', 'Lapis and gold'], ['sand', 'Sandstone'], ['wood', 'Wood']], def: 'lapis' },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S0.save(); });
+
+const W = 640, H = 250, CS = 64, X0 = 36, Y0 = 20, cv = $('cv'), C = KIT.canvas(cv, W, H, 2), ctx = C.ctx;
+const COLS = ['#3d73e0', '#e0732f'], RIM = ['#14306e', '#7a3512'];
+const BOARDS = { lapis: { cell: '#1d3a78', cell2: '#27498f', mid: '#2b5aa8', line: '#d9b14a', gap: '#10214a', bg: '#0b1634', ros: '#f0c34a' }, sand: { cell: '#d9c08f', cell2: '#e6d3a6', mid: '#efe0b6', line: '#8a6a30', gap: '#b89c68', bg: '#7a6238', ros: '#b4452f' }, wood: { cell: '#8a5a2b', cell2: '#9c6a36', mid: '#b07b42', line: '#3e2a14', gap: '#5a3a1a', bg: '#2f1d0c', ros: '#f0d28a' } };
+const FACE = [0, 1, 2, 3, 4], SPEED = { slow: 190, normal: 120, fast: 62 };
+let S, V, phase = 'roll', legal = [], anim = null, token = 0, forced = [], hint = null, hintT = 0, last = null, thrown = [0, 0, 0, 0], TS = 1;
+const cpuTurn = () => st.opp === 'cpu' && S.turn === 1;
+const human = () => !cpuTurn();
+const who = p => st.opp === 'cpu' ? (p === 0 ? 'You' : 'The computer') : (p === 0 ? 'Blue' : 'Orange');
+const sleep = (ms, f) => { const t = token; setTimeout(() => { if (t === token) f(); }, ms * TS); };
+
+/* ---------- geometry ---------- */
+const rowOf = p => p === 0 ? 2 : 0;
+function cellOf(p, idx) {   // path square -> [col, row]
+  if (idx >= 1 && idx <= 4) return [4 - idx, rowOf(p)]; if (idx >= 5 && idx <= 12) return [idx - 5, 1]; if (idx === 13) return [7, rowOf(p)]; return [6, rowOf(p)];
+}
+const ctr = (col, row) => [X0 + col * CS + CS / 2, Y0 + row * CS + CS / 2];
+const isCell = (col, row) => row === 1 || col <= 3 || col >= 6;
+const stockXY = (p, k) => { const [bx, by] = ctr(4, rowOf(p)); const c = k % 4, r = Math.floor(k / 4); return [bx - CS / 2 + 21 + c * 28 + (r ? 14 : 0), by - 17 + r * 24]; };
+const homeXY = (p, k) => { const [bx, by] = ctr(8, rowOf(p)); return [bx + 14 + (k % 2) * 18, by - 26 + Math.floor(k / 2) * 11]; };
+function pieceXY(p, pos, k) { if (pos === 0) return stockXY(p, k); if (pos === 15) return homeXY(p, k); const [c, r] = cellOf(p, pos); return ctr(c, r); }
+
+/* ---------- flow ---------- */
+function newGame() {
+  token++; O.hide('ovEnd'); anim = null; legal = []; hint = null; last = null; thrown = [0, 0, 0, 0]; st.games = (st.games || 0) + 1;
+  S = urNew({ pieces: st.pieces, exact: st.exact }); S.turn = st.opp === 'cpu' ? (st.first === 'cpu' ? 1 : st.first === 'alt' ? (st.games % 2 === 0 ? 1 : 0) : 0) : 0;
+  V = [S.p[0].slice(), S.p[1].slice()]; phase = 'roll'; bars(); showDice(); hud(); rec(); setMsg(prompt()); S0.save(); kick();
+}
+const prompt = () => cpuTurn() ? 'The computer is about to throw…' : (st.opp === 'cpu' ? 'Your turn. ' : who(S.turn) + ' to throw. ') + 'Throw the dice.';
+function kick() { const t = token; if (S.over) return; hud(); if (cpuTurn() && phase === 'roll') { setMsg(prompt()); sleep(750, () => { if (phase === 'roll' && cpuTurn()) throwDice(); }); } }
+function throwDice() {
+  if (phase !== 'roll' || S.over) return; phase = 'rolling'; hud(); const t = token; let n = 0;
+  const r = forced.length ? forced.shift() : null, bits = r === null ? [0, 1, 2, 3].map(() => Math.random() < .5 ? 1 : 0) : [0, 1, 2, 3].map(i => i < r ? 1 : 0).sort(() => Math.random() - .5);
+  $('dice').innerHTML = [0, 1, 2, 3].map(() => '<span class="td spin">▲</span>').join(''); $('rollBtn').disabled = true;
+  const iv = setInterval(() => { if (t !== token) return clearInterval(iv); A.beep(280 + (n++ % 4) * 45, .03, 'square', .05); }, 80);
+  setTimeout(() => { clearInterval(iv); if (t !== token) return; thrown = bits; S.roll = bits.reduce((a, x) => a + x, 0); showDice(); afterThrow(); }, 620 * TS);
+}
+function afterThrow() {
+  const r = S.roll, name = who(S.turn); legal = urMoves(S, r); hint = null; hud();
+  if (r === 0) { setMsg(name + ' threw 0: no move.'); phase = 'pass'; return sleep(1100, passTurn); }
+  if (!legal.length) { setMsg(name + ' threw ' + r + ' but cannot move.'); phase = 'pass'; return sleep(1200, passTurn); }
+  phase = 'move'; hud();
+  if (cpuTurn()) { setMsg('The computer threw ' + r + '…'); return sleep(700, () => { if (phase !== 'move') return; const m = urChoose(S, r, st.level); if (m) doMove(m); }); }
+  setMsg((st.opp === 'cpu' ? 'You' : name) + ' threw ' + r + '. Tap a glowing piece.');
+  if (st.auto && legal.length === 1) sleep(800, () => { if (phase === 'move' && legal.length === 1) doMove(legal[0]); });
+}
+function passTurn() { urPass(S); phase = 'roll'; legal = []; S.roll = -1; showDice(); hud(); setMsg(prompt()); kick(); }
+function doMove(m) {
+  if (anim || phase !== 'move') return; const p = S.turn, from = m.from, to = m.to, k = V[p].indexOf(from), q = 1 - p;
+  const pts = []; if (from === 0) pts.push(stockXY(p, V[p].filter(x => x === 0).length - 1)); else pts.push(pieceXY(p, from, 0));
+  for (let i = from + 1; i < to; i++) pts.push(pieceXY(p, i, 0)); pts.push(to === 15 ? homeXY(p, V[p].filter(x => x === 15).length) : pieceXY(p, to, 0));
+  const stepMs = SPEED[st.speed] * TS * (from === 0 ? .8 : 1); anim = { p, k, pts, t0: performance.now(), dur: Math.max(200 * TS, (pts.length - 1) * stepMs), m }; V[p][k] = -1;
+  hint = null; legal = []; last = { p, to }; const again = urPlay(S, m); anim.again = again; phase = 'anim'; hud();
+  const t = token, hops = pts.length - 1; for (let i = 0; i < hops; i++) A.beep(420 + i * 55, .05, 'triangle', .1, i * stepMs / 1000);
+  setTimeout(() => {
+    if (t !== token) return; V = [S.p[0].slice(), S.p[1].slice()]; anim = null; hud();
+    if (m.cap) { A.beep(160, .25, 'sawtooth', .14); } if (m.rosette) { A.beep(660, .09, 'sine', .12); A.beep(880, .12, 'sine', .12, .09); }
+    if (S.over) return endGame();
+    const notes = []; if (m.cap) notes.push((who(p) === 'You' ? 'You capture' : who(p) + ' captures') + ' a piece!'); if (m.off) notes.push('A piece is home.'); if (again) notes.push(p === 0 && st.opp === 'cpu' ? 'Rosette: throw again!' : who(p) + ' throws again (rosette).');
+    phase = 'roll'; S.roll = -1; hud(); setMsg((notes.join(' ') + ' ' + prompt()).trim()); kick();
+  }, anim.dur + 40 * TS);
+}
+function endGame() {
+  phase = 'over'; hud(); const w = S.winner, you = st.opp === 'cpu' ? w === 0 : null;
+  if (st.opp === 'cpu') { st.rec[you ? 0 : 1]++; S0.save(); }
+  const h = st.opp === 'cpu' ? (you ? 'You win! 🎉' : 'The computer wins') : who(w) + ' wins!';
+  $('endH').textContent = h; $('endP').textContent = 'Pieces home: blue ' + urOff(S, 0) + ', orange ' + urOff(S, 1) + '. ' + S.moves + ' moves played.'; setMsg(h); rec();
+  A.beep(880, .3, 'sine', .15); A.beep(1100, .3, 'sine', .15, .15); setTimeout(() => O.show('ovEnd'), 700 * TS);
+}
+function showHint() { if (S.over || anim || phase !== 'move' || !human()) { if (phase === 'roll') setMsg('Throw first, then ask for a hint.'); return; } const m = urChoose(S, S.roll, 'hard'); if (m) { hint = m; hintT = performance.now() + 3500; setMsg('Hint: the blue ring shows the piece, the gold ring where it goes.'); } }
+
+/* ---------- screen bits ---------- */
+function setMsg(t) { $('msg').textContent = t; }
+function showDice() { const box = $('dice'); if (!S) return; box.innerHTML = [0, 1, 2, 3].map(i => '<span class="td' + (thrown[i] && S.roll >= 0 ? ' on' : '') + '">▲</span>').join(''); }
+function hud() {
+  if (!S) return; $('s1').textContent = S.over ? 'Over' : who(S.turn).replace('The computer', 'Computer') + (cpuTurn() ? ' 🤖' : ''); $('s2').textContent = S.roll >= 0 ? S.roll : '-';
+  $('s3').textContent = urOff(S, 0) + '–' + urOff(S, 1); $('s4').textContent = S.moves; $('s1').style.color = S.over ? '' : COLS[S.turn];
+  $('rollBtn').disabled = !(phase === 'roll' && human() && !S.over);
+}
+function rec() { $('recLine').textContent = st.opp === 'cpu' ? 'You: ' + st.rec[0] + ' wins, ' + st.rec[1] + ' losses' : 'Pass and play'; }
+function bars() {
+  const mk = (id, arr, cur, act) => { $(id).innerHTML = arr.map(([k, t]) => '<button class="btn sm' + (String(cur) === String(k) ? ' on' : '') + '" data-act="' + act + '" data-k="' + k + '" type="button">' + t + '</button>').join(''); };
+  mk('pcsBar', [[5, '5'], [7, '7']], st.pieces, 'pcs'); mk('exBar', [['1', 'Exact throw'], ['0', 'Any throw']], st.exact ? 1 : 0, 'ex');
+  mk('oppBar', [['cpu', '🤖 You (blue) vs computer'], ['two', '👥 Pass and play']], st.opp, 'opp'); mk('firstBar', [['you', 'You'], ['cpu', 'Computer'], ['alt', 'Take turns']], st.first, 'first'); $('firstBar').parentNode.style.display = st.opp === 'cpu' ? '' : 'none';
+}
+
+/* ---------- input ---------- */
+function squareAt(px, py) { // what was tapped: {kind:'cell', p, idx} / 'stock' / 'home'
+  const col = Math.floor((px - X0) / CS), row = Math.floor((py - Y0) / CS);
+  if (row >= 0 && row <= 2 && col >= 4 && col <= 5 && row !== 1) return { kind: 'stock', p: row === 2 ? 0 : 1 };
+  if (px > X0 + 8 * CS) return { kind: 'home', p: py < Y0 + 1.5 * CS ? 1 : 0 };
+  if (col < 0 || col > 7 || row < 0 || row > 2 || !isCell(col, row)) return null;
+  return { kind: 'cell', col, row };
+}
+function tap(h) {
+  if (phase !== 'move' || !human() || anim || !h) return; const p = S.turn; let m = null;
+  if (h.kind === 'stock' && h.p === p) m = legal.find(x => x.from === 0);
+  else if (h.kind === 'home' && h.p === p) m = legal.find(x => x.off);
+  else if (h.kind === 'cell') for (let idx = 1; idx <= 14 && !m; idx++) { const [c, r] = cellOf(p, idx); if (c === h.col && r === h.row) m = legal.find(x => x.from === idx) || legal.find(x => x.to === idx && !x.off); }
+  if (m) return doMove(m);
+  setMsg(h.kind === 'cell' ? 'That piece can\'t move with this throw.' : 'Nothing to move there.');
+}
+cv.addEventListener('pointerdown', e => { const q = C.pos(e); tap(squareAt(q.x, q.y)); });
+ui.actions(document.body, {
+  roll: () => { if (phase === 'roll' && human()) throwDice(); }, hint: showHint, restart: newGame, closeov: () => O.hide('ovEnd'),
+  pcs: b => { st.pieces = +b.dataset.k; S0.save(); newGame(); }, ex: b => { st.exact = b.dataset.k === '1'; S0.save(); newGame(); }, opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); }, first: b => { st.first = b.dataset.k; S0.save(); newGame(); }
+});
+window.addEventListener('keydown', e => { if (/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (phase === 'roll' && human()) throwDice(); } else if (e.key === 'h') showHint(); });
+
+/* ---------- drawing ---------- */
+function rosette(g, x, y, r, col) {
+  g.save(); g.translate(x, y); g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1;
+  for (let i = 0; i < 8; i++) { g.rotate(Math.PI / 4); g.beginPath(); g.ellipse(0, -r * .55, r * .22, r * .45, 0, 0, 7); g.fill(); g.stroke(); }
+  g.beginPath(); g.arc(0, 0, r * .22, 0, 7); g.fillStyle = '#fff'; g.fill(); g.restore();
+}
+function piece(g, x, y, p, alpha, glow) {
+  g.save(); g.globalAlpha = alpha == null ? 1 : alpha; const R = 21;
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + 1.5, y + 2.5, R, 0, 7); g.fill();
+  const gr = g.createRadialGradient(x - R * .35, y - R * .4, R * .1, x, y, R); gr.addColorStop(0, '#fff'); gr.addColorStop(.3, COLS[p]); gr.addColorStop(1, RIM[p]);
+  g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill(); g.strokeStyle = RIM[p]; g.lineWidth = 2; g.stroke();
+  g.fillStyle = 'rgba(255,255,255,.85)'; for (const [dx, dy] of [[0, 0], [-8, -8], [8, -8], [-8, 8], [8, 8]]) { g.beginPath(); g.arc(x + dx, y + dy, 2.2, 0, 7); g.fill(); }
+  if (glow) { g.strokeStyle = 'rgba(255,240,130,.95)'; g.lineWidth = 3.5; g.beginPath(); g.arc(x, y, R + 3, 0, 7); g.stroke(); }
+  g.restore();
+}
+function smallPiece(g, x, y, p) { const R = 11; g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.arc(x + 1, y + 1.5, R, 0, 7); g.fill(); const gr = g.createRadialGradient(x - 3, y - 4, 1, x, y, R); gr.addColorStop(0, '#fff'); gr.addColorStop(.3, COLS[p]); gr.addColorStop(1, RIM[p]); g.fillStyle = gr; g.beginPath(); g.arc(x, y, R, 0, 7); g.fill(); g.strokeStyle = RIM[p]; g.lineWidth = 1.5; g.stroke(); }
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0); if (!S) return; const t = performance.now(), B = BOARDS[st.board] || BOARDS.lapis;
+  g.fillStyle = B.bg; g.fillRect(0, 0, W, H);
+  // cells
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 8; col++) {
+    if (!isCell(col, row)) continue; const x = X0 + col * CS, y = Y0 + row * CS;
+    g.fillStyle = row === 1 ? B.mid : (row === 0 ? ((col + row) % 2 ? B.cell : B.cell2) : ((col + row) % 2 ? B.cell : B.cell2)); g.fillRect(x + 1, y + 1, CS - 2, CS - 2);
+    g.strokeStyle = B.line; g.lineWidth = 2; g.strokeRect(x + 3, y + 3, CS - 6, CS - 6);
+  }
+  // your rows and the rival's rows get a coloured edge
+  for (const p of [0, 1]) { const y = Y0 + rowOf(p) * CS; g.fillStyle = COLS[p]; g.globalAlpha = .55; g.fillRect(X0, p === 0 ? y + CS - 4 : y, 4 * CS, 4); g.fillRect(X0 + 6 * CS, p === 0 ? y + CS - 4 : y, 2 * CS, 4); g.globalAlpha = 1; }
+  for (const [c, r] of [[0, 0], [6, 0], [3, 1], [0, 2], [6, 2]]) { const [x, y] = ctr(c, r); rosette(g, x, y, 26, B.ros); }
+  // the gaps hold the waiting pieces
+  for (const p of [0, 1]) { const [bx, by] = ctr(4, rowOf(p)); g.fillStyle = B.gap; g.globalAlpha = .65; g.fillRect(bx - CS / 2 + 4, by - CS / 2 + 6, CS * 2 - 8, CS - 12); g.globalAlpha = 1; g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '11px sans-serif'; g.textAlign = 'center'; g.fillText('waiting', bx + CS / 2, by + CS / 2 - 5); }
+  // home trays
+  for (const p of [0, 1]) { const [bx, by] = ctr(8, rowOf(p)); g.fillStyle = B.gap; g.globalAlpha = .65; g.fillRect(bx - 6, by - CS / 2 + 6, 60, CS - 12); g.globalAlpha = 1; g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '11px sans-serif'; g.textAlign = 'center'; g.fillText('home', bx + 24, by + CS / 2 - 5); }
+  // pieces
+  const movable = new Set(), dest = [];
+  if (phase === 'move' && human()) for (const m of legal) { movable.add(m.from); dest.push(m); }
+  for (const p of [0, 1]) { let sk = 0, hk = 0; V[p].forEach((pos, i) => { if (pos < 0) return; if (pos === 0) { const [x, y] = stockXY(p, sk++); smallPiece(g, x, y, p); } else if (pos === 15) { const [x, y] = homeXY(p, hk++); smallPiece(g, x, y, p); } else { const [x, y] = pieceXY(p, pos, 0); piece(g, x, y, p, 1, false); } }); }
+  if (phase === 'move' && human()) {
+    const pu = .5 + .5 * Math.sin(t / 170), p = S.turn;
+    for (const m of dest) {
+      const [fx, fy] = m.from === 0 ? stockXY(p, 0) : pieceXY(p, m.from, 0); g.strokeStyle = 'rgba(255,255,255,' + (.6 + .4 * pu) + ')'; g.lineWidth = 3; g.beginPath(); g.arc(fx, fy, (m.from === 0 ? 14 : 24) + pu * 2, 0, 7); g.stroke();
+      if (m.off) { const [hx, hy] = ctr(8, rowOf(p)); g.fillStyle = 'rgba(255,230,90,' + (.25 + .2 * pu) + ')'; g.fillRect(hx - 6, hy - CS / 2 + 6, 60, CS - 12); }
+      else { const [x, y] = pieceXY(p, m.to, 0); g.strokeStyle = 'rgba(255,215,80,' + (.7 + .3 * pu) + ')'; g.lineWidth = 4; g.setLineDash([6, 5]); g.beginPath(); g.arc(x, y, 24, 0, 7); g.stroke(); g.setLineDash([]); if (m.cap) { g.fillStyle = 'rgba(255,60,60,.28)'; g.fill(); } }
+    }
+  }
+  if (hint && hintT > t) { const p = S.turn, m = hint, [fx, fy] = m.from === 0 ? stockXY(p, 0) : pieceXY(p, m.from, 0), [tx, ty] = m.off ? ctr(8, rowOf(p)) : pieceXY(p, m.to, 0); g.strokeStyle = 'rgba(90,200,255,.95)'; g.lineWidth = 4; g.beginPath(); g.arc(fx, fy, m.from === 0 ? 16 : 26, 0, 7); g.stroke(); g.strokeStyle = 'rgba(255,220,90,.95)'; g.beginPath(); g.arc(tx, ty, 26, 0, 7); g.stroke(); }
+  if (last && !anim && !S.over) { /* highlight nothing: the last mover's piece is already visible */ }
+  if (anim) {
+    const k = Math.min(1, (t - anim.t0) / anim.dur); let d = k * (anim.pts.length - 1), i = Math.min(anim.pts.length - 2, Math.floor(d)), f = d - i, a = anim.pts[i], b = anim.pts[i + 1];
+    const x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f - Math.sin(f * Math.PI) * 10; piece(g, x, y, anim.p, 1, false);
+  }
+  g.strokeStyle = S.over ? 'transparent' : COLS[S.turn]; g.lineWidth = 5; g.beginPath(); g.moveTo(8, S.turn === 0 ? H - 3 : 3); g.lineTo(W - 8, S.turn === 0 ? H - 3 : 3); g.stroke();
+}
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get V() { return V; }, get phase() { return phase; }, get legal() { return legal; }, get st() { return st; }, get anim() { return !!anim; },
+  setThrow: arr => { forced = arr.slice(); }, roll: () => { if (phase === 'roll' && human()) throwDice(); }, ts: x => { TS = x; }, newGame, hint: showHint, tap,
+  xyPiece: (p, pos) => { const [x, y] = pieceXY(p, pos, 0), r = cv.getBoundingClientRect(); return [r.left + x / W * r.width, r.top + y / H * r.height]; },
+  xyStock: p => { const [x, y] = stockXY(p, 0), r = cv.getBoundingClientRect(); return [r.left + x / W * r.width, r.top + y / H * r.height]; },
+  xyHome: p => { const [x, y] = ctr(8, rowOf(p)), r = cv.getBoundingClientRect(); return [r.left + (x + 24) / W * r.width, r.top + y / H * r.height]; },
+  setPieces: (a, b, turn) => { S.p[0] = a.slice(); S.p[1] = b.slice(); if (turn !== undefined) S.turn = turn; V = [S.p[0].slice(), S.p[1].slice()]; phase = 'roll'; legal = []; S.roll = -1; hud(); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

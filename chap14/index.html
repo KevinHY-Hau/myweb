@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 14 · 2048</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:560px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+
+/* ---- the game ---- */
+.top{display:flex;align-items:stretch;gap:8px;margin-bottom:10px}
+.top .title{font-size:clamp(34px,9vw,52px);font-weight:900;color:var(--accent);line-height:1;align-self:center;margin-right:auto;letter-spacing:-.02em}
+.score{min-width:76px;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+.score small{display:block;font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.score b{font-size:20px;color:var(--accent-light)}
+.bar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.bar .sizes{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:14px}
+.bar .sizes .btn.on{background:var(--accent);color:#000;border-color:transparent}
+#board{--n:4;--gap:10px;position:relative;width:100%;aspect-ratio:1;background:#8a7a68;border-radius:10px;padding:var(--gap);touch-action:none;user-select:none;-webkit-user-select:none;outline:none}
+:root[data-theme="dark"] #board{background:#2a2f3a}
+#grid{position:absolute;inset:var(--gap);display:grid;grid-template-columns:repeat(var(--n),1fr);grid-template-rows:repeat(var(--n),1fr);gap:var(--gap)}
+#grid i{background:rgba(255,255,255,.1);border-radius:7px}
+#tiles{position:absolute;inset:var(--gap)}
+.tile{position:absolute;--cell:calc((100% - (var(--n) - 1) * var(--gap)) / var(--n));width:var(--cell);height:var(--cell);left:0;top:0;
+  transform:translate(calc(var(--c) * (100% + var(--gap))),calc(var(--r) * (100% + var(--gap))));transition:transform .13s ease-in-out;display:flex;align-items:center;justify-content:center;border-radius:7px;font-weight:900;font-size:calc(min(560px,100vw) / var(--n) * .42);color:#776e65;background:#eee4da}
+.tile>div{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:7px}
+.tile.pop>div{animation:pop .18s ease-out}
+.tile.new>div{animation:appear .2s ease-out}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes appear{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.v2 >div{background:#eee4da;color:#776e65}.v4>div{background:#ede0c8;color:#776e65}.v8>div{background:#f2b179;color:#fff}.v16>div{background:#f59563;color:#fff}
+.v32>div{background:#f67c5f;color:#fff}.v64>div{background:#f65e3b;color:#fff}.v128>div{background:#edcf72;color:#fff;font-size:.85em;box-shadow:0 0 18px 2px rgba(243,215,116,.35)}
+.v256>div{background:#edcc61;color:#fff;font-size:.85em;box-shadow:0 0 22px 4px rgba(243,215,116,.45)}.v512>div{background:#edc850;color:#fff;font-size:.85em;box-shadow:0 0 26px 6px rgba(243,215,116,.55)}
+.v1024>div{background:#edc53f;color:#fff;font-size:.7em;box-shadow:0 0 30px 8px rgba(243,215,116,.65)}.v2048>div{background:#edc22e;color:#fff;font-size:.7em;box-shadow:0 0 34px 10px rgba(243,215,116,.8)}
+.vbig>div{background:#3c3a32;color:#fff;font-size:.6em}
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+.pts{position:absolute;right:12px;top:0;font-weight:900;color:var(--accent-light);animation:up .6s ease-out forwards;pointer-events:none}
+@keyframes up{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-34px)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">2048</h2>
+  <p>Chapter 14 · Slide the tiles, join the numbers, reach 2048</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+  <div class="top">
+    <div class="title">2048</div>
+    <div class="score"><small>SCORE</small><b id="sc" style="position:relative">0</b></div>
+    <div class="score"><small>BEST</small><b id="best">0</b></div>
+  </div>
+  <div class="bar">
+    <div class="sizes">Board <button class="btn sm" data-n="4" type="button">4×4</button><button class="btn sm" data-n="5" type="button">5×5</button><button class="btn sm" data-n="6" type="button">6×6</button></div>
+    <div><button class="btn sm" id="undo" type="button">↶ Undo</button> <button class="btn sm primary" id="new" type="button">New game</button></div>
+  </div>
+  <div id="board" tabindex="0" aria-label="2048 board">
+    <div id="grid"></div><div id="tiles"></div>
+    <div class="ov" id="ovWin"><h3>You made 2048!</h3><p>Keep going for a bigger tile?</p><div><button class="btn primary" id="keep" type="button">Keep playing</button> <button class="btn" id="newW" type="button">New game</button></div></div>
+    <div class="ov" id="ovLose"><h3>Game over</h3><p id="loseTxt"></p><div><button class="btn primary" id="newL" type="button">Try again</button></div></div>
+  </div>
+  <p class="hint">Arrow keys or W A S D to slide. On a phone, swipe on the board. Tiles with the same number merge into one.</p>
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🎯 The 2048 idea comes from Gabriele Cirulli's game (2014), itself inspired by 1024 and Threes. This version is my own code.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+(() => {
+const $ = id => document.getElementById(id), LS = 'kevinhyhau.ch14.v1';
+let st = { dark: true, n: 4, best: { 4: 0, 5: 0, 6: 0 }, game: null };
+try { Object.assign(st, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem(LS, JSON.stringify(st)); } catch (e) {} };
+function applyTheme() { document.documentElement.dataset.theme = st.dark ? 'dark' : 'light'; $('themeBtn').textContent = st.dark ? '🌙 Dark' : '☀️ Light'; }
+$('themeBtn').onclick = () => { st.dark = !st.dark; applyTheme(); save(); }; applyTheme();
+
+let N = st.n, tiles = [], score = 0, over = false, won = false, keepGoing = false, hist = [], uid = 1;
+const board = $('board'), tl = $('tiles');
+const cls = v => 'tile v' + (v > 2048 ? 'big' : v);
+function build() {
+  board.style.setProperty('--n', N); board.style.setProperty('--gap', N === 4 ? '10px' : N === 5 ? '8px' : '6px');
+  $('grid').innerHTML = '<i></i>'.repeat(N * N); tl.innerHTML = '';
+  document.querySelectorAll('.sizes .btn').forEach(b => b.classList.toggle('on', +b.dataset.n === N));
+}
+function place(t) { t.el.style.setProperty('--r', t.r); t.el.style.setProperty('--c', t.c); }
+function mkTile(v, r, c, isNew) {
+  const t = { id: uid++, v, r, c, el: document.createElement('div') }; t.el.className = cls(v) + (isNew ? ' new' : ''); t.el.innerHTML = '<div>' + v + '</div>'; place(t); tl.appendChild(t.el); tiles.push(t); return t;
+}
+const grid = () => { const g = Array.from({ length: N }, () => Array(N).fill(null)); tiles.forEach(t => g[t.r][t.c] = t); return g; };
+function addRandom() {
+  const g = grid(), free = []; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!g[r][c]) free.push([r, c]);
+  if (!free.length) return; const [r, c] = free[Math.floor(Math.random() * free.length)]; mkTile(Math.random() < .9 ? 2 : 4, r, c, true);
+}
+function snapshot() { return { t: tiles.map(t => [t.v, t.r, t.c]), score }; }
+function restore(s) { tl.innerHTML = ''; tiles = []; s.t.forEach(([v, r, c]) => mkTile(v, r, c, false)); score = s.score; }
+function persist() { st.game = { N, t: tiles.map(t => [t.v, t.r, t.c]), score, won, keepGoing, over }; save(); }
+function updHud() { $('sc').textContent = score; if (score > (st.best[N] || 0)) { st.best[N] = score; } $('best').textContent = st.best[N] || 0; $('undo').disabled = !hist.length || over; }
+function canMove() {
+  const g = grid(); for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const t = g[r][c]; if (!t) return true; if (c < N - 1 && g[r][c + 1] && g[r][c + 1].v === t.v) return true; if (r < N - 1 && g[r + 1][c] && g[r + 1][c].v === t.v) return true; } return false;
+}
+let busy = false;
+function move(dir) { // 0 left, 1 up, 2 right, 3 down
+  if (over || busy) return false; if ($('ovWin').classList.contains('show')) return false;
+  const before = snapshot(), g = grid(); let moved = false, gained = 0; const dead = [], pops = [];
+  for (let i = 0; i < N; i++) {
+    const line = []; for (let j = 0; j < N; j++) { const r = dir === 0 || dir === 2 ? i : dir === 1 ? j : N - 1 - j, c = dir === 1 || dir === 3 ? i : dir === 0 ? j : N - 1 - j; line.push([r, c, g[r][c]]); }
+    let k = 0, last = null;
+    for (let j = 0; j < N; j++) { const t = line[j][2]; if (!t) continue;
+      if (last && last.v === t.v && !last.merged) { t.r = last.r; t.c = last.c; last.v *= 2; last.merged = true; gained += last.v; dead.push(t); pops.push(last); moved = true; last = null; continue; }
+      const [tr, tc] = line[k]; if (t.r !== tr || t.c !== tc) moved = true; t.r = tr; t.c = tc; last = t; k++; }
+    // allow merged tile to be the one that can't merge again: handled by merged flag
+    last = null;
+  }
+  if (!moved) { tiles.forEach(t => t.merged = false); return false; }
+  hist.push(before); if (hist.length > 30) hist.shift(); score += gained;
+  tiles.forEach(place); busy = true;
+  if (gained) { const f = document.createElement('div'); f.className = 'pts'; f.textContent = '+' + gained; $('sc').appendChild(f); setTimeout(() => f.remove(), 650); }
+  setTimeout(() => {
+    dead.forEach(t => { t.el.remove(); tiles = tiles.filter(x => x !== t); });
+    pops.forEach(t => { t.el.className = cls(t.v) + ' pop'; t.el.firstChild.textContent = t.v; });
+    tiles.forEach(t => t.merged = false); addRandom(); busy = false; updHud();
+    if (!won && !keepGoing && tiles.some(t => t.v >= 2048)) { won = true; $('ovWin').classList.add('show'); }
+    if (!canMove()) { over = true; $('loseTxt').textContent = 'Score ' + score + ' · best tile ' + Math.max(...tiles.map(t => t.v)); $('ovLose').classList.add('show'); }
+    updHud(); persist();
+  }, 140);
+  return true;
+}
+function newGame(n) {
+  if (n) { N = n; st.n = n; } over = false; won = false; keepGoing = false; hist = []; score = 0; tiles = []; uid = 1; busy = false;
+  $('ovWin').classList.remove('show'); $('ovLose').classList.remove('show'); build(); addRandom(); addRandom(); updHud(); persist();
+}
+function undo() { if (busy || !hist.length || (over && false)) return; restore(hist.pop()); over = false; $('ovLose').classList.remove('show'); updHud(); persist(); }
+['new', 'newW', 'newL'].forEach(id => $(id).onclick = () => newGame());
+$('keep').onclick = () => { keepGoing = true; $('ovWin').classList.remove('show'); persist(); board.focus(); };
+$('undo').onclick = undo;
+document.querySelectorAll('.sizes .btn').forEach(b => b.onclick = () => newGame(+b.dataset.n));
+const KEYS = { ArrowLeft: 0, a: 0, A: 0, ArrowUp: 1, w: 1, W: 1, ArrowRight: 2, d: 2, D: 2, ArrowDown: 3, s: 3, S: 3 };
+window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; if (e.key in KEYS) { e.preventDefault(); move(KEYS[e.key]); } else if ((e.key === 'z' || e.key === 'Z') ) undo(); });
+let sx = 0, sy = 0, down = false;
+board.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return; move(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+board.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+// start: resume the saved game if there is one
+build();
+const g0 = st.game;
+if (g0 && g0.N === N && Array.isArray(g0.t) && g0.t.length && !g0.over) { score = g0.score || 0; won = !!g0.won; keepGoing = !!g0.keepGoing; g0.t.forEach(([v, r, c]) => mkTile(v, r, c, false)); updHud(); }
+else newGame();
+window.__g = { move, newGame, get tiles() { return tiles.map(t => [t.v, t.r, t.c]); }, set(arr) { tl.innerHTML = ''; tiles = []; arr.forEach(([v, r, c]) => mkTile(v, r, c, false)); }, get score() { return score; }, get over() { return over; } };
+})();
+</script>
+<style>
+/* the site's body fade-in leaves a transform behind; use opacity only */
+body{animation:fadeIn14 .8s ease-in forwards}
+@keyframes fadeIn14{from{opacity:0}to{opacity:1}}
+</style>
+</body>
+<script src="../nav.js"></script>
+</html>

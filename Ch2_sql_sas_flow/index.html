@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 2 - SQL / SAS Flow</title>
+
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:none;--flow-bg:rgb(28,33,40);--flow-wm:rgb(38,43,50)}
+:root[data-theme="light"]{--flow-bg:rgb(240,243,247);--flow-wm:rgb(230,233,237)}
+body{padding:1rem .5rem}main{padding:.8rem}
+.sf{display:flex;flex-direction:column;gap:10px}
+.sf-bar,.sf-search,.sf-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sf-name{color:var(--muted);font-size:13px}
+.sf-paste{display:flex;flex-direction:column;gap:6px}.sf-paste textarea{width:100%;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.sf-search input[type=search]{flex:1;min-width:200px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:.5rem .7rem;font:inherit}
+.sf-chk{font-size:13px;color:var(--muted);display:flex;gap:4px;align-items:center;cursor:pointer}
+.sf-stat{font-size:13px;color:var(--muted);min-height:1.3em}
+.sf-grid{display:grid;grid-template-columns:minmax(0,var(--lw,40fr)) 10px minmax(0,var(--rw,60fr));gap:0}
+.sf-split{cursor:col-resize;position:relative;touch-action:none}.sf-split::after{content:'';position:absolute;left:3px;top:0;bottom:0;width:4px;border-radius:2px;background:var(--line)}.sf-split:hover::after,.sf-split.on::after{background:var(--accent)}
+@media(max-width:860px){.sf-grid{grid-template-columns:1fr;gap:10px}.sf-split{display:none}}
+.sf-hbar{text-align:center;font-size:12px;color:var(--muted);cursor:row-resize;border:1px dashed var(--line);border-radius:8px;padding:2px;user-select:none;touch-action:none}.sf-hbar:hover,.sf-hbar.on{border-color:var(--accent);color:var(--accent-light)}
+.sf-left,.sf-right{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sf-code{height:var(--hl,70vh)}.sf-flow{height:var(--hr,70vh)}.sf-hbar{margin-top:6px}
+.sf-code,.sf-flow{min-height:240px;overflow:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;position:relative}
+.sf-code{font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:4px 0}
+.sf-code .r{display:flex;white-space:pre;cursor:default}
+.sf-code .r:hover{background:rgba(255,255,255,.05)}
+.sf-code .n{flex:0 0 52px;text-align:right;padding-right:10px;color:var(--muted);user-select:none;cursor:pointer;border-right:1px solid var(--line);margin-right:8px}
+.sf-code .r.m{background:rgba(251,191,36,.13);box-shadow:inset 3px 0 0 var(--accent)}
+.sf-code .r.mk .n{color:var(--accent-light);font-weight:700}
+.sf-code .r.hit{animation:sfhit 1.6s ease-out}
+@keyframes sfhit{0%,60%{background:rgba(251,191,36,.55)}100%{background:transparent}}
+.sf-code mark,.sf-hits mark{background:rgba(251,191,36,.45);color:inherit;border-radius:2px}
+.sf-hits{max-height:170px;overflow:auto;background:var(--panel2);border:1px solid var(--line);border-radius:10px;font-size:12.5px}
+.sf-hits .h{display:flex;gap:8px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);color:var(--fg);padding:3px 8px;cursor:pointer;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.sf-hits .h:hover,.sf-hits .h.on{background:rgba(251,191,36,.15)}
+.sf-hits .h b{flex:0 0 46px;color:var(--accent-light);text-align:right}
+.sf-hits .h span{overflow:hidden;text-overflow:ellipsis;white-space:pre}
+.sf-hits .t{padding:5px 8px;border-bottom:1px solid var(--line);color:var(--muted)}
+.sf-hits .chip{margin:0 4px 2px 0}
+.chip{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:999px;padding:1px 9px;font:12px ui-monospace,Menlo,Consolas,monospace;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.sf-flow{background:var(--flow-bg);cursor:grab}
+.sf-flowwrap{position:relative}.sf-wm{position:absolute;right:24px;bottom:14px;font:600 15px var(--font);color:var(--flow-wm);pointer-events:none;user-select:none;white-space:nowrap}
+.sf-flow .node.node.node rect.rzr,.sf-flow .node.node.node rect.rzb{fill:transparent;stroke:none;stroke-dasharray:none}.sf-flow .node.node.node rect.rzr{cursor:ew-resize}.sf-flow .node.node.node rect.rzb{cursor:ns-resize}.sf-flow .node.node.node path.rzh{fill:var(--accent);stroke:none;opacity:0;cursor:nwse-resize}.sf-flow .node.node:hover path.rzh,.sf-flow .node.node.sel path.rzh{opacity:.55}.sf-flow .node.node.node path.rzh:hover{opacity:.95}.sf-flow .rz{display:none}
+.sf-edit{position:absolute;z-index:5;background:var(--bg);color:var(--fg);border:2px solid var(--accent);border-radius:8px;padding:6px 8px;font:12px/16px ui-monospace,Menlo,Consolas,monospace;text-align:center;resize:both;min-width:60px;min-height:28px;outline:none;box-shadow:0 6px 24px rgba(0,0,0,.4)}.sf-flow.drag{cursor:grabbing}
+.sf-flow svg{display:block}
+.sf-flow .node{cursor:grab;touch-action:none}
+.sf-flow .node rect{fill:var(--panel2);stroke:var(--muted);stroke-width:1.2}
+.sf-flow .node.source rect{fill:rgba(76,175,80,.28);stroke:#4caf50}
+.sf-flow .node.final rect{fill:rgba(245,158,11,.30);stroke:#f59e0b}
+.sf-flow .node text{fill:var(--fg);font:600 13px ui-monospace,Menlo,Consolas,'DejaVu Sans Mono',monospace;pointer-events:none}
+.sf-flow .node.found rect{stroke:#fbbf24;stroke-width:3;stroke-dasharray:5 3}
+.sf-flow .node.sel rect{stroke:var(--accent);stroke-width:3.2}
+.sf-flow .edge polyline{fill:none;stroke:var(--muted);stroke-width:1.3;stroke-linejoin:round}.sf-flow .edge polygon{fill:var(--muted)}
+.sf-flow .edge.lit polyline{stroke:var(--accent);stroke-width:2.2}.sf-flow .edge.lit polygon{fill:var(--accent)}
+.sf-flow.focus .node:not(.lit):not(.sel){opacity:.22}.sf-flow.focus .edge:not(.lit){opacity:.12}
+.sf-info{font-size:13px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:64px}
+.sf-info h4{margin:0 0 4px;font:700 14px ui-monospace,Menlo,Consolas,monospace;color:var(--accent-light);word-break:break-all}
+.sf-info .row{margin:2px 0;color:var(--muted)}
+.sf-key{margin-left:auto;font-size:12px;color:var(--muted)}
+.sf-key .k{display:inline-block;width:11px;height:11px;border-radius:3px;margin:0 3px 0 8px;vertical-align:-1px;border:1px solid var(--muted)}
+.k.src{background:rgba(76,175,80,.5);border-color:#4caf50}.k.fin{background:rgba(245,158,11,.5);border-color:#f59e0b}
+.sf-empty{color:var(--muted);padding:14px;font:14px var(--font)}
+.sf-paste[hidden],.sf-hits[hidden]{display:none}
+.sf-sel{background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem;font:inherit}
+.sf-flow .node.cte rect{fill:rgba(129,140,248,.25);stroke:#818cf8;stroke-dasharray:6 3}.k.cte{background:rgba(129,140,248,.5);border-color:#818cf8}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h1 class="ch">Chapter 2 -SQL / SAS Flow</h1>
+  
+  <p>Load a SAS or SQL program (it detects which) and see it as a flow chart of tables: boxes for tables, arrows for where data comes from. Drag boxes, search any word, list every place it appears, and click to jump to that line of code</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="sf">
+  <div class="sf-bar">
+    <label class="btn primary" for="file">📂 Load SAS / SQL file</label><input type="file" id="file" accept=".sas,.sql,.txt,.log,.hql,.ddl,text/plain" hidden>
+    <button class="btn" id="bSample" type="button">🧪 SAS sample</button>
+    <button class="btn" id="bSampleSql" type="button">🧪 SQL sample</button>
+    <select id="mode" class="sf-sel" title="SAS or SQL? Auto-detect looks at the code"><option value="auto">Auto-detect</option><option value="sas">Read as SAS</option><option value="sql">Read as SQL</option></select>
+    <button class="btn" id="bPaste" type="button">📋 Paste code</button>
+    <span class="sf-name" id="fname">No file loaded</span>
+  </div>
+  <div class="sf-paste" id="pasteBox" hidden><textarea id="paste" rows="8" placeholder="Paste SAS or SQL code here…" spellcheck="false"></textarea><button class="btn primary sm" id="bBuild" type="button">Build flow</button></div>
+  <div class="sf-search">
+    <input type="search" id="q" placeholder="🔎 Search a word (table name, variable, macro…)" autocomplete="off" spellcheck="false">
+    <label class="sf-chk"><input type="checkbox" id="cCase"> Aa</label>
+    <label class="sf-chk"><input type="checkbox" id="cWord"> Word</label>
+    <button class="btn sm" id="bPrev" type="button" title="Previous match">▲</button><button class="btn sm" id="bNext" type="button" title="Next match (Enter)">▼</button>
+  </div>
+  <div class="sf-stat" id="stat">Load a SAS or SQL file, or press a sample button.</div>
+  <div class="sf-grid" id="grid">
+    <section class="sf-left">
+      <div class="sf-hits" id="hits" hidden></div>
+      <div class="sf-code" id="code" tabindex="0"><div class="sf-empty">Your code will show here.</div></div>
+      <div class="sf-hbar" id="hbarL" title="Drag up or down to change the height of the code panel">⋯ drag to change code height ⋯</div>
+    </section>
+    <div class="sf-split" id="split" title="Drag to make the code or the chart wider"></div>
+    <section class="sf-right">
+      <div class="sf-tools"><button class="btn sm" id="zOut" type="button">−</button><button class="btn sm" id="zIn" type="button">+</button><button class="btn sm" id="zFit" type="button">Fit</button><button class="btn sm" id="bEdit" type="button" title="Edit the text of the selected box (or double-click a box)">✏️ Edit box</button><button class="btn sm" id="bPng" type="button" title="Save the chart as a picture">🖼 Export PNG</button><button class="btn sm" id="bSvg" type="button" title="Save the chart as a sharp vector picture (SVG)">📐 Export SVG</button><button class="btn sm" id="bReset" type="button" title="Put every box back where it was">↺ Reset layout</button>
+        <span class="sf-key"><i class="k src"></i>source <i class="k mid"></i>made &amp; used <i class="k fin"></i>final <i class="k cte"></i>CTE (WITH)</span></div>
+      <div class="sf-flowwrap"><div class="sf-flow" id="flow"><div class="sf-empty">The flow chart will show here.</div></div><div class="sf-wm">Kevin Hau (Oct 2026) SQL SAS Flow</div></div>
+      <div class="sf-hbar" id="hbarR" title="Drag up or down to change the height of the chart panel">⋯ drag to change chart height ⋯</div>
+      <div class="sf-info" id="info">Click a box to see where it is created and used.</div>
+    </section>
+  </div>
+  <p class="hint">How to use: load a <b>.sas</b> or <b>.sql</b> file (it is read on your device, nothing is uploaded). The page <b>detects</b> whether it is SAS or SQL, and you can force one in the menu. Each <b>box</b> is a table and each <b>arrow</b> shows data going from one table to the next. <b>Drag a box</b> to move it (arrows follow). <b>Click a box</b> to light up everything it came from and everything made from it, and to see the lines where it is created and read; click a line number to jump to the code. <b>Search</b> lists every line with your word: click a result to jump there. <b>Click a code line</b> that creates a table to find its box. In SQL, tables made by <code>CREATE TABLE/VIEW</code>, <code>INSERT</code>, <code>SELECT … INTO</code> and <code>MERGE</code> become boxes, <code>WITH</code> names become purple boxes, and a loose <code>SELECT</code> becomes a “query” box. This is still a prototype: macro variables such as <code>&amp;yr.</code> are shown as written, not resolved.</p>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🔀 The SAS and SQL readers (comments, quotes, DATA / SET / MERGE, PROC SQL, CREATE TABLE, INSERT, WITH names, FROM / JOIN), the layout and the page are my own. Your file is read inside your browser and is never uploaded.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else last = performance.now(); });
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* SAS table-flow parser (prototype). Reads SAS code text, returns {lines, nodes, edges}.
+   It finds tables: DATA step outputs and SET/MERGE/UPDATE/MODIFY inputs, PROC SQL (CREATE TABLE/VIEW, INSERT INTO, FROM, JOIN),
+   and other PROCs (DATA= is the input; OUT= / BASE= is the output). Comments, quotes and DATALINES are ignored.
+   Macro variables are NOT resolved: table_&mmm. is shown exactly as written. */
+function SASPARSE(text) {
+  const WORD = /[A-Za-z0-9_&.%$#@]/;
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  // 1. blank out DATALINES / CARDS data so it is not read as code
+  for (let i = 0; i < lines.length; i++) {
+    const m = /\b(datalines4?|cards4?)\s*;/i.exec(lines[i]); if (!m) continue;
+    const four = /4/.test(m[1]); let j = i + 1;
+    while (j < lines.length && !(four ? /^;;;;/.test(lines[j]) : /^\s*;/.test(lines[j]))) { lines[j] = ''; j++; }
+    if (j < lines.length) lines[j] = lines[j].replace(/^;{1,4}/, '');
+    i = j;
+  }
+  const src = lines.join('\n');
+  // 2. tokens: words, strings, single punctuation. Comments are dropped. Every token remembers its line.
+  const toks = []; let i = 0, ln = 1, stmtStart = true; const n = src.length;
+  const skipTo = (str) => { const j = src.indexOf(str, i); const end = j < 0 ? n : j + str.length; for (let k = i; k < end; k++) if (src[k] === '\n') ln++; i = end; };
+  while (i < n) {
+    const c = src[i];
+    if (c === '\n') { ln++; i++; continue; }
+    if (c <= ' ') { i++; continue; }
+    if (c === '/' && src[i + 1] === '*') { i += 2; skipTo('*/'); continue; }
+    if (stmtStart && c === '*') { skipTo(';'); continue; }                              // * comment ;
+    if (c === '%' && src[i + 1] === '*') { skipTo(';'); continue; }                     // %* comment ;
+    if (c === "'" || c === '"') { const q = c, l0 = ln; let j = i + 1; while (j < n) { if (src[j] === '\n') ln++; if (src[j] === q) { if (src[j + 1] === q) { j += 2; continue; } break; } j++; } toks.push({ t: '"', ln: l0, s: true }); i = j + 1; stmtStart = false; continue; }
+    if (WORD.test(c)) { let j = i; while (j < n && WORD.test(src[j])) j++; toks.push({ t: src.slice(i, j), ln }); i = j; stmtStart = false; continue; }
+    toks.push({ t: c, ln }); stmtStart = c === ';'; i++;
+  }
+  // 3. statements (split on ;)
+  const stmts = []; let cur = [];
+  for (const t of toks) { if (t.t === ';' && !t.s) { if (cur.length) stmts.push(cur); cur = []; } else cur.push(t); }
+  if (cur.length) stmts.push(cur);
+
+  // 4. walk the statements
+  const nodes = new Map(), edges = new Map();
+  const U = s => s.t.toUpperCase();
+  const norm = nm => { let k = nm.toUpperCase(); if (k.startsWith('WORK.')) k = k.slice(5); return k; };
+  const show = nm => nm.replace(/^work\./i, '');
+  const latest = new Map();                                    // table name -> newest version of it. A table that reads itself while being rewritten gets a second box (v2, v3 ...)
+  const node = nm => { const k = norm(nm); let o = latest.get(k); if (!o) { o = { id: k, key: k, base: show(nm), name: show(nm), ver: 1, made: [], read: [] }; nodes.set(k, o); latest.set(k, o); } return o; };
+  const bump = o => { const ver = o.ver + 1, id = o.key + '#' + ver, n2 = { id, key: o.key, base: o.base, name: o.base + ' (v' + ver + ')', ver, made: [], read: [] }; nodes.set(id, n2); latest.set(o.key, n2); return n2; };
+  const isName = t => t && !t.s && /^[A-Za-z_&%]/.test(t.t) && !/^%(DO|END|LET|PUT|MACRO|MEND|IF|THEN|ELSE|GLOBAL|LOCAL|INCLUDE|INC|GOTO|RETURN|ABORT)$/i.test(t.t);
+  const skipParen = (s, j) => { if (s[j] && s[j].t === '(') { let d = 0; do { if (s[j].t === '(') d++; else if (s[j].t === ')') d--; j++; } while (j < s.length && d > 0); } return j; };
+  const addEdge = (a, b, kind, stepLine, readLine) => {
+    if (a.id === b.id) return; const key = a.id + '>' + b.id + '>' + kind; let e = edges.get(key);
+    if (!e) { e = { from: a.id, to: b.id, kind, line: stepLine, reads: [] }; edges.set(key, e); } if (readLine && !e.reads.includes(readLine)) e.reads.push(readLine);
+  };
+  let mode = '', step = null;          // mode: '' | 'data' | 'sql' | 'proc'
+  const flush = () => { if (step && (mode === 'data' || mode === 'proc')) { for (const o of step.outs) if (step.ins.some(i => i.n === o.n)) { const old = o.n, n2 = bump(old), ix = old.made.findIndex(m => m.line === step.line); if (ix >= 0) n2.made.push(old.made.splice(ix, 1)[0]); o.n = n2; }
+    for (const o of step.outs) for (const inp of step.ins) addEdge(inp.n, o.n, step.kind, step.line, inp.line); } step = null; };
+  const addOut = (nm, line, kind) => { const nd = node(nm); nd.made.push({ line, kind }); return nd; };
+  const addIn = (st, nm, line) => { const nd = node(nm); nd.read.push(line); st.ins.push({ n: nd, line }); };
+
+  for (const s of stmts) {
+    const w0 = U(s[0]), line = s[0].ln;
+    if (w0 === 'RUN' || w0 === 'QUIT') { flush(); if (w0 === 'QUIT') mode = ''; continue; }
+    if (w0 === 'DATA' && !(s[1] && s[1].t === '=')) {                                    // DATA a b(opts);
+      flush(); mode = 'data'; step = { kind: 'DATA', line, ins: [], outs: [] };
+      for (let j = 1; j < s.length;) { const t = s[j]; if (t.t === '/') break; if (t.t === '(') { j = skipParen(s, j); continue; } if (isName(t) && U(t) !== '_NULL_' && !(s[j + 1] && s[j + 1].t === '=')) step.outs.push({ n: addOut(t.t, line, 'DATA') }); j++; }
+      continue;
+    }
+    if (w0 === 'PROC') {
+      flush(); const p = s[1] ? U(s[1]) : ''; mode = p === 'SQL' ? 'sql' : 'proc'; step = mode === 'proc' ? { kind: 'PROC ' + p, line, ins: [], outs: [], skip: /^(DATASETS|COPY|CPORT|CIMPORT|CATALOG|FORMAT|OPTIONS)$/.test(p) } : null;
+      if (mode === 'sql') { /* the PROC SQL statement itself has nothing in it */ } else if (!step.skip) procScan(s, step, line);
+      continue;
+    }
+    if (mode === 'data' && step) {
+      for (let k = 0; k < s.length; k++) { const u = U(s[k]);
+        if ((u === 'SET' || u === 'MERGE' || u === 'UPDATE' || u === 'MODIFY') && (k === 0 || /^(THEN|ELSE)$/i.test(s[k - 1].t))) {
+          for (let j = k + 1; j < s.length;) { const t = s[j]; if (/^BY$/i.test(t.t)) break; if (t.t === '(') { j = skipParen(s, j); continue; } if (s[j + 1] && s[j + 1].t === '=') { j += 2; continue; } if (isName(t)) addIn(step, t.t, t.ln); j++; }
+          break; } }
+      continue;
+    }
+    if (mode === 'proc' && step && !step.skip) { procScan(s, step, line); continue; }
+    if (mode === 'sql') { sqlStmt(s, line); continue; }
+  }
+  flush();
+
+  function procScan(s, st, line) {                  // DATA=x is an input. OUT=x / BASE=x is an output. Works in the PROC line and in statements inside it (OUTPUT OUT=).
+    for (let j = 0; j < s.length; j++) { const u = U(s[j]); if (!(s[j + 1] && s[j + 1].t === '=' && isName(s[j + 2]))) continue;
+      if (u === 'DATA') addIn(st, s[j + 2].t, s[j + 2].ln); else if (u === 'OUT' || u === 'BASE') st.outs.push({ n: addOut(s[j + 2].t, line, st.kind) }); }
+  }
+  function sqlStmt(s, line) {
+    let outs = []; const ins = [];
+    const u0 = U(s[0]), u1 = s[1] ? U(s[1]) : '';
+    if (u0 === 'CREATE' && (u1 === 'TABLE' || u1 === 'VIEW') && isName(s[2])) outs.push(s[2].t);
+    else if (u0 === 'INSERT' && u1 === 'INTO' && isName(s[2])) outs.push(s[2].t);
+    const NOAL = /^(WHERE|GROUP|ORDER|HAVING|LEFT|RIGHT|INNER|FULL|CROSS|NATURAL|JOIN|ON|UNION|EXCEPT|INTERSECT|OUTER|LIMIT|USING|WINDOW|QUALIFY|SAMPLE|SET|VALUES|SELECT)$/i;
+    const GUARD = /^(YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|QUARTER|WEEK|DOW|DOY|EPOCH|CONNECTION)$/i;
+    const readOne = (j) => { j = skipParen(s, j) === j && s[j] && s[j].t === '(' ? j : j; if (s[j] && s[j].t === '(') return j; if (!isName(s[j]) || NOAL.test(s[j].t)) return j; ins.push(s[j]); j++; j = skipParen(s, j);
+      if (s[j] && /^AS$/i.test(s[j].t)) j++; if (s[j] && isName(s[j]) && !NOAL.test(s[j].t)) j++; return j; };
+    for (let k = 1; k < s.length; k++) { const u = U(s[k]);
+      if (u === 'FROM') { const nx = s[k + 1], pv = s[k - 1]; if (!nx || nx.s || /^\d/.test(nx.t) || GUARD.test(nx.t) || /^(DELETE|LEADING|TRAILING|BOTH|YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|QUARTER|WEEK|DOW|DOY|EPOCH)$/i.test(pv.t)) continue;
+        let j = k + 1; for (;;) { const j2 = readOne(j); if (j2 === j) break; j = j2; if (s[j] && s[j].t === ',') j++; else break; } }
+      else if (u === 'JOIN') readOne(k + 1); }
+    if (outs.length) { const key = norm(outs[0]), self = ins.some(t => norm(t.t) === key), inN = ins.map(t => ({ n: node(t.t), ln: t.ln })); let o = node(outs[0]); if (self) o = bump(o); o.made.push({ line, kind: 'SQL'}); for (const x of inN) { x.n.read.push(x.ln); addEdge(x.n, o, 'SQL', line, x.ln); } }
+    else for (const t of ins) node(t.t).read.push(t.ln);
+  }
+
+  return FINISH(lines, nodes, edges);
+}
+/* levels (columns) = longest path from a source. Loops (a table rewritten later) are cut by limiting the passes. Source tables are pulled next to their first user. */
+function FINISH(lines, nodes, edges) {
+  const list = [...nodes.values()], E = [...edges.values()]; list.forEach(o => o.level = 0);
+  for (let pass = 0; pass < list.length + 1; pass++) { let ch = false; for (const e of E) { const a = nodes.get(e.from), b = nodes.get(e.to); if (b.level < a.level + 1 && a.level < list.length) { b.level = a.level + 1; ch = true; } } if (!ch) break; }
+  const inSet = new Set(E.map(e => e.to)); for (const o of list) if (!inSet.has(o.id)) { const ls = E.filter(e => e.from === o.id).map(e => nodes.get(e.to).level); if (ls.length) o.level = Math.max(0, Math.min(...ls) - 1); }
+  const hasIn = new Set(E.map(e => e.to)), hasOut = new Set(E.map(e => e.from));
+  list.forEach(o => { o.role = !hasIn.has(o.id) ? (hasOut.has(o.id) ? 'source' : 'single') : !hasOut.has(o.id) ? 'final' : 'mid'; });
+  return { lines, nodes: list, edges: E };
+}
+
+/* Is this text SAS or plain SQL? Any strong SAS sign (PROC, DATA step, RUN/QUIT, %macro, libname) means SAS, otherwise SQL signs mean SQL. */
+function DETECT(text) {
+  const t = text.replace(/\/\*[\s\S]*?\*\//g, ' '), has = re => (t.match(re) || []).length;
+  const sas = has(/^\s*proc\s+\w+/gim) + has(/^\s*data\s+[\w.&]+[^;]*;/gim) + has(/^\s*(run|quit)\s*;/gim) + has(/^\s*%(macro|let|include|mend)\b/gim) + has(/^\s*libname\b/gim);
+  const sql = has(/\bselect\b[\s\S]{0,4000}?\bfrom\b/gi) + has(/\bcreate\s+(or\s+replace\s+)?(\w+\s+)*?(table|view)\b/gi) + has(/\binsert\s+(into|overwrite)\b/gi) + has(/\bmerge\s+into\b/gi) + has(/^\s*--/gm);
+  return sas > 0 ? 'sas' : sql > 0 ? 'sql' : 'sas';
+}
+
+/* Plain SQL reader: CREATE TABLE/VIEW ... AS SELECT, INSERT INTO ... SELECT, SELECT ... INTO, MERGE INTO, UPDATE ... FROM, WITH (CTE) names, and loose SELECT queries.
+   Tables come from FROM / JOIN / USING. Comments (-- and slash-star) and strings are ignored; "quoted", `quoted` and [quoted] names work. */
+function SQLPARSE(text) {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n'), src = lines.join('\n'), n = src.length, WORD = /[A-Za-z0-9_$#@]/;
+  const toks = []; let i = 0, ln = 1;
+  const nl = (a, b) => { for (let k = a; k < b; k++) if (src[k] === '\n') ln++; };
+  const ident = () => {                                                              // one name, possibly db.schema."table" with quotes
+    let out = ''; for (;;) { const c = src[i];
+      if (c === '"' || c === '`' || c === '[') { const q = c === '[' ? ']' : c, j = src.indexOf(q, i + 1), e = j < 0 ? n : j; out += src.slice(i + 1, e); nl(i, e + 1); i = e + 1; }
+      else if (c !== undefined && WORD.test(c)) { let j = i; while (j < n && WORD.test(src[j])) j++; out += src.slice(i, j); i = j; } else break;
+      if (src[i] === '.' && i + 1 < n && (WORD.test(src[i + 1]) || /["`[]/.test(src[i + 1]))) { out += '.'; i++; continue; } break; }
+    return out; };
+  while (i < n) {
+    const c = src[i];
+    if (c === '\n') { ln++; i++; continue; } if (c <= ' ') { i++; continue; }
+    if (c === '-' && src[i + 1] === '-') { while (i < n && src[i] !== '\n') i++; continue; }
+    if (c === '/' && src[i + 1] === '*') { const j = src.indexOf('*/', i + 2), e = j < 0 ? n : j + 2; nl(i, e); i = e; continue; }
+    if (c === "'") { const l0 = ln; let j = i + 1; while (j < n) { if (src[j] === '\n') ln++; if (src[j] === "'") { if (src[j + 1] === "'") { j += 2; continue; } break; } if (src[j] === '\\') j++; j++; } toks.push({ t: "'", ln: l0, s: true }); i = j + 1; continue; }
+    if (WORD.test(c) || c === '"' || c === '`' || c === '[') { const l0 = ln, nm = ident(); toks.push({ t: nm, ln: l0, q: c === '"' || c === '`' }); continue; }
+    toks.push({ t: c, ln }); i++;
+  }
+  const stmts = []; let cur = [], depth = 0;
+  for (const t of toks) { if (!t.s) { if (t.t === '(') depth++; else if (t.t === ')') depth = Math.max(0, depth - 1); } if (t.t === ';' && !t.s && depth === 0) { if (cur.length) stmts.push(cur); cur = []; } else cur.push(t); }
+  if (cur.length) stmts.push(cur);
+
+  const nodes = new Map(), edges = new Map(); const U = t => (t && !t.s && !t.q ? t.t.toUpperCase() : '');
+  const norm = nm => nm.toUpperCase();
+  const latest = new Map();
+  const node = (nm, cls, id) => { if (id) { let o = nodes.get(id); if (!o) { o = { id, name: nm, made: [], read: [], cls: cls || '' }; nodes.set(id, o); } return o; }
+    const k = norm(nm); let o = latest.get(k); if (!o) { o = { id: k, key: k, base: nm, name: nm, ver: 1, made: [], read: [], cls: cls || '' }; nodes.set(k, o); latest.set(k, o); } return o; };
+  const bump = o => { const ver = o.ver + 1, id = o.key + '#' + ver, n2 = { id, key: o.key, base: o.base, name: o.base + ' (v' + ver + ')', ver, made: [], read: [], cls: o.cls }; nodes.set(id, n2); latest.set(o.key, n2); return n2; };
+  const addEdge = (a, b, line, rl) => { if (a.id === b.id) return; const key = a.id + '>' + b.id; let e = edges.get(key); if (!e) { e = { from: a.id, to: b.id, kind: 'SQL', line, reads: [] }; edges.set(key, e); } if (rl && !e.reads.includes(rl)) e.reads.push(rl); };
+  const isName = t => t && !t.s && (t.q || /^[A-Za-z_#@]/.test(t.t));
+  const skipP = (s, j) => { if (s[j] && s[j].t === '(' && !s[j].s) { let d = 0; do { if (s[j].t === '(') d++; else if (s[j].t === ')') d--; j++; } while (j < s.length && d > 0); } return j; };
+  const NOAL = /^(WHERE|GROUP|ORDER|HAVING|LEFT|RIGHT|INNER|FULL|CROSS|NATURAL|JOIN|ON|UNION|EXCEPT|INTERSECT|MINUS|OUTER|LIMIT|OFFSET|FETCH|USING|WINDOW|QUALIFY|SAMPLE|SET|VALUES|SELECT|WITH|WHEN|THEN|LATERAL|STRAIGHT_JOIN|PIVOT|UNPIVOT|TABLESAMPLE|FOR|INTO|RETURNING|CONNECT|START)$/;
+  const GUARD = /^(YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|QUARTER|WEEK|DOW|DOY|EPOCH|DELETE|LEADING|TRAILING|BOTH|DISTINCT|TIMEZONE)$/;
+  // table names read between tokens lo..hi of statement s. cteMap turns a CTE name into its own node.
+  function inputs(s, lo, hi) {
+    const res = [];
+    const one = j => { if (j >= hi || !isName(s[j]) || NOAL.test(U(s[j]))) return j; const t = s[j]; j++;
+      if (s[j] && s[j].t === '(' && !s[j].s) return -1;                                  // name( ... ) is a function, not a table
+      res.push(t); if (s[j] && /^AS$/.test(U(s[j]))) j++; if (s[j] && isName(s[j]) && !NOAL.test(U(s[j])) && j < hi) { j++; if (s[j] && s[j].t === '(' && !s[j].s) j = skipP(s, j); } return j; };
+    const stack = []; for (let k = 0; k < lo; k++) { if (s[k].t === '(' && !s[k].s) stack.push(/^(EXTRACT|SUBSTRING|SUBSTR|TRIM|OVERLAY|POSITION)$/.test(U(s[k - 1]))); else if (s[k].t === ')' && !s[k].s) stack.pop(); }
+    for (let k = lo; k < hi; k++) { const u = U(s[k]); if (s[k].t === '(' && !s[k].s) { stack.push(/^(EXTRACT|SUBSTRING|SUBSTR|TRIM|OVERLAY|POSITION)$/.test(U(s[k - 1]))); continue; } if (s[k].t === ')' && !s[k].s) { stack.pop(); continue; }
+      if (u === 'FROM' && !stack[stack.length - 1]) { const nx = s[k + 1], pv = s[k - 1]; if (!nx || nx.s || /^\d/.test(nx.t) || GUARD.test(U(nx)) || (pv && GUARD.test(U(pv)))) continue;
+        let j = k + 1; for (;;) { const j2 = one(j); if (j2 < 0 || j2 === j) break; j = j2; if (s[j] && s[j].t === ',' && !s[j].s) j++; else break; } }
+      else if (u === 'JOIN') { let j = k + 1; if (/^(LATERAL)$/.test(U(s[j]))) j++; one(j); }
+      else if (u === 'USING' && k > 0 && /^(MERGE|INTO)$/.test('') ) { /* handled in MERGE */ } }
+    return res;
+  }
+  let qn = 0;
+  stmts.forEach((s, si) => {
+    const line = s[0].ln; let w = U(s[0]), lo = 0;
+    const cte = new Map(); let cStart = -1, cEnd = -1;
+    const readCTE = (k) => {                                                          // WITH a AS (...), b AS (...)  starting at token k; fills cte, returns the index after the last one
+      let j = k + 1; if (U(s[j]) === 'RECURSIVE') j++;
+      for (;;) { if (!isName(s[j])) break; const nm = s[j].t, nl0 = s[j].ln; let j2 = j + 1; if (s[j2] && s[j2].t === '(') j2 = skipP(s, j2); if (U(s[j2]) !== 'AS') break; j2++;
+        if (U(s[j2]) === 'NOT') j2++; if (U(s[j2]) === 'MATERIALIZED') j2++; if (!(s[j2] && s[j2].t === '(')) break;
+        const open = j2, close = skipP(s, j2) - 1, nd = node(nm, 'cte', 'CTE:' + norm(nm) + '@' + si); nd.made.push({ line: nl0, kind: 'CTE' }); cte.set(norm(nm), nd);
+        for (const t of inputs(s, open + 1, close)) { const a2 = cte.get(norm(t.t)) || node(t.t); a2.read.push(t.ln); addEdge(a2, nd, nl0, t.ln); }
+        j = close + 1; if (s[j] && s[j].t === ',') j++; else break; }
+      return j; };
+    if (w === 'WITH') { cStart = 0; cEnd = readCTE(0); lo = cEnd; w = U(s[lo]); }
+    else if (/^(CREATE|INSERT)$/.test(w)) { let d = 0; for (let k = 1; k < s.length; k++) { if (s[k].t === '(' && !s[k].s) d++; else if (s[k].t === ')' && !s[k].s) d--; else if (d === 0 && U(s[k]) === 'WITH' && isName(s[k + 1]) && (U(s[k + 2]) === 'AS' || (s[k + 2] && s[k + 2].t === '(' && U(s[skipP(s, k + 2)]) === 'AS'))) { cStart = k; cEnd = readCTE(k); break; } } }
+    let out = null, kind = '';
+    const t1 = U(s[lo + 1]);
+    if (w === 'CREATE') { let j = lo + 1; while (j < s.length && !/^(TABLE|VIEW)$/.test(U(s[j])) && j < lo + 8) j++; if (/^(TABLE|VIEW)$/.test(U(s[j]))) { j++; if (U(s[j]) === 'IF') j += 3; if (isName(s[j])) { out = s[j]; kind = 'CREATE'; } } }
+    else if (w === 'INSERT') { let j = lo + 1; while (j < s.length && /^(INTO|OVERWRITE|TABLE|IGNORE)$/.test(U(s[j]))) j++; if (isName(s[j])) { out = s[j]; kind = 'INSERT'; } }
+    else if (w === 'MERGE') { let j = lo + 1; if (U(s[j]) === 'INTO') j++; if (isName(s[j])) { out = s[j]; kind = 'MERGE'; } }
+    else if (w === 'UPDATE') { if (isName(s[lo + 1])) { out = s[lo + 1]; kind = 'UPDATE'; } }
+    else if (w === 'SELECT') { for (let k = lo; k < s.length; k++) if (U(s[k]) === 'INTO' && isName(s[k + 1]) && !/^(TEMP|TEMPORARY|TABLE|UNLOGGED)$/.test(U(s[k + 1]))) { out = s[k + 1]; kind = 'SELECT INTO'; break; } }
+    if (!/^(CREATE|INSERT|MERGE|UPDATE|SELECT)$/.test(w)) return;                      // DROP, ALTER, GRANT, SET ... nothing to draw
+    let ins = cStart > 0 ? inputs(s, lo, cStart).concat(inputs(s, cEnd, s.length)) : inputs(s, lo, s.length);
+    if (w === 'MERGE') { for (let k = lo; k < s.length; k++) if (U(s[k]) === 'USING' && isName(s[k + 1]) && !NOAL.test(U(s[k + 1])) && !(s[k + 2] && s[k + 2].t === '(')) ins.push(s[k + 1]); }
+    if (w === 'CREATE' && !out) return;
+    if (!out) { if (!ins.length || w !== 'SELECT') return; out = { t: 'query @ line ' + line, ln: line }; kind = 'SELECT'; const q = node(out.t, 'query', 'QUERY@' + line); q.made.push({ line, kind }); for (const t of ins) { const a = cte.get(norm(t.t)) || node(t.t); a.read.push(t.ln); addEdge(a, q, line, t.ln); } return; }
+    const self = /^(CREATE|INSERT|SELECT INTO)$/.test(kind) && ins.some(t => !cte.has(norm(t.t)) && norm(t.t) === norm(out.t)), inN = ins.map(t => ({ a: cte.get(norm(t.t)) || node(t.t), ln: t.ln }));
+    let o = node(out.t); if (self) o = bump(o); o.made.push({ line, kind });
+    for (const x of inN) { x.a.read.push(x.ln); addEdge(x.a, o, line, x.ln); }
+  });
+  const r = FINISH(lines, nodes, edges); r.mode = 'sql'; return r;
+}
+if (typeof module !== 'undefined') module.exports = { SASPARSE, SQLPARSE, DETECT };
+
+const SAMPLE_SAS = `/* Sample program: sales report */
+libname mylib "/data";
+%let yr = 2025;
+data work.sales_clean;
+   set mylib.sales_raw(where=(year=&yr.));
+   if amount > 0;
+run;
+data customers_vip other_customers;
+   set mylib.customers;
+   if spend > 1000 then output customers_vip; else output other_customers;
+run;
+* a comment with data fake; set nothing;
+proc sort data=sales_clean out=sales_sorted nodupkey;
+   by cust_id;
+run;
+proc sql;
+   create table work.sales_cust as
+   select a.*, b.region, extract(year from a.dt) as yr
+   from sales_sorted a
+   left join customers_vip b on a.cust_id = b.cust_id
+   where a.cust_id in (select cust_id from mylib.promo_list);
+   create table region_summary as
+   select region, sum(amount) as total from sales_cust group by region;
+quit;
+data lookup;
+   infile datalines;
+   input code $ label $;
+   datalines;
+A Alpha data fake
+B Beta set fake
+;
+run;
+data final_report;
+   merge region_summary(in=r) lookup;
+   by region;
+run;
+proc means data=final_report noprint;
+   class region;
+   output out=report_stats mean=avg;
+run;
+proc append base=mylib.history data=report_stats; run;
+proc print data=report_stats; run;
+`;
+const SAMPLE_NAME = 'sample.sas';
+const SAMPLE_SQL = `-- Sample SQL script: monthly sales report
+CREATE TABLE staging.sales_clean AS
+SELECT s.*, EXTRACT(year FROM s.sale_date) AS yr
+FROM raw.sales s
+WHERE s.amount > 0;
+
+-- the table reads itself: shown as two boxes (v1 in, v2 out)
+CREATE TABLE staging.sales_clean AS
+SELECT a.*
+FROM staging.sales_clean AS a
+INNER JOIN raw.customers AS b ON a.cust_id = b.cust_id;
+
+CREATE OR REPLACE VIEW mart.customer_value AS
+WITH spend AS (
+    SELECT cust_id, SUM(amount) AS total
+    FROM staging.sales_clean
+    GROUP BY cust_id
+), ranked AS (
+    SELECT sp.*, c.region
+    FROM spend sp
+    JOIN raw.customers c ON c.cust_id = sp.cust_id
+)
+SELECT r.*, p.segment
+FROM ranked r
+LEFT JOIN "mart"."segments" p ON p.region = r.region
+WHERE r.cust_id IN (SELECT cust_id FROM raw.promo_list);
+
+INSERT INTO mart.region_summary
+SELECT region, SUM(total) FROM mart.customer_value GROUP BY region;
+
+/* a comment mentioning FROM fake_table */
+SELECT * FROM mart.region_summary rs, raw.targets t WHERE rs.region = t.region;
+
+DROP TABLE IF EXISTS staging.tmp;
+`;
+const SAMPLE_SQL_NAME = 'sample.sql';
+
+/* SAS Flow (prototype): load a SAS program, draw its tables as a flow chart, search words, click to jump to the code.
+   The reading of the SAS code is in sasparse.js. This file is the page: loading, drawing the chart, search, selecting, jumping. */
+(() => {
+const { $, store, ui } = KIT;
+const S = store('kevinhyhau.ch28.v1', { dark: true, code: '', name: '', mode: 'auto' }), st = S.st;
+ui.theme($('themeBtn'), st, S.save);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const codeEl = $('code'), flowEl = $('flow'), hitsEl = $('hits'), infoEl = $('info');
+let custom = new Map(), ed = null, curText = '', curName = '', R = null, pos = new Map(), byId = new Map(), rows = [], selId = null, zoom = 1, size = { w: 100, h: 100 }, hits = [], hitAt = -1, lineNode = new Map();
+const BOX_H = 34, GAP_X = 110, GAP_Y = 22, PAD = 24;
+
+/* ---------- loading ---------- */
+function load(text, name) {
+  text = String(text || ''); if (text.length > 4e6) { $('stat').textContent = 'That file is very large (over 4 MB). Try a smaller part of it.'; return; }
+  curText = text; curName = name || ''; const want = $('mode').value, mode = want === 'auto' ? DETECT(text) : want; R = (mode === 'sql' ? SQLPARSE : SASPARSE)(text); R.mode = mode; byId = new Map(R.nodes.map(n => [n.id, n])); selId = null; hits = []; hitAt = -1; loadEdits();
+  lineNode = new Map(); R.nodes.forEach(n => n.made.forEach(m => { if (!lineNode.has(m.line)) lineNode.set(m.line, []); lineNode.get(m.line).push(n.id); }));
+  $('fname').textContent = name || 'pasted code'; $('stat').textContent = (want === 'auto' ? 'Detected: ' : 'Reading as: ') + mode.toUpperCase() + ' · ' + (R.nodes.length ? R.nodes.length + ' tables, ' + R.edges.length + ' links, ' + R.lines.length.toLocaleString() + ' lines of code.' : (mode === 'sql' ? 'No tables found (looking for CREATE TABLE, INSERT INTO, SELECT … FROM / JOIN).' : 'No tables found (looking for DATA steps, PROC SQL CREATE TABLE and PROC … OUT=). If this is SQL, choose “Read as SQL”.'));
+  st.name = name || ''; st.mode = want; st.code = text.length < 3e5 ? text : ''; S.save();
+  renderCode(); layout(); applyEdits(); renderFlow(); fit(); info(null); runSearch();
+}
+function info(id) {
+  if (!id) { infoEl.innerHTML = R && R.nodes.length ? 'Click a box to see where it is created and used.' : ''; return; }
+  const n = byId.get(id), up = reach(id, true), dn = reach(id, false), L = a => a.map(x => '<button class="chip" data-line="' + x + '" type="button">line ' + x + '</button>').join(' ');
+  infoEl.innerHTML = '<h4>' + esc(n.name) + '</h4><div class="row">' + ({ source: 'Source table (only read)', mid: 'Made here and used again', final: 'Final table (nothing reads it)', single: 'Single table' }[n.role]) + ' · ' + (up.size - 1) + ' tables upstream · ' + (dn.size - 1) + ' downstream</div>' +
+    '<div class="row">Created at: ' + (n.made.length ? n.made.map(m => '<button class="chip" data-line="' + m.line + '" type="button">line ' + m.line + ' · ' + esc(m.kind) + '</button>').join(' ') : '<i>not created in this code</i>') + '</div>' +
+    '<div class="row">Read at: ' + (n.read.length ? L([...new Set(n.read)].slice(0, 40)) + (new Set(n.read).size > 40 ? ' …' : '') : '<i>never read</i>') + '</div>';
+}
+function reach(id, up) { const seen = new Set([id]), q = [id]; while (q.length) { const c = q.pop(); for (const e of R.edges) { const nx = up ? (e.to === c ? e.from : null) : (e.from === c ? e.to : null); if (nx && !seen.has(nx)) { seen.add(nx); q.push(nx); } } } return seen; }
+
+/* ---------- code viewer ---------- */
+function renderCode() {
+  codeEl.innerHTML = R.lines.map((t, i) => '<div class="r' + (lineNode.has(i + 1) ? ' mk' : '') + '" data-i="' + (i + 1) + '"><span class="n" data-line="' + (i + 1) + '">' + (i + 1) + '</span><span class="t">' + esc(t) + '</span></div>').join('');
+  rows = codeEl.children;
+}
+function jump(line) {
+  const r = rows[line - 1]; if (!r) return; codeEl.scrollTop = Math.max(0, r.offsetTop - codeEl.clientHeight / 2 + r.offsetHeight / 2);
+  r.classList.remove('hit'); void r.offsetWidth; r.classList.add('hit');
+}
+
+/* ---------- layout: columns by level, rows ordered to keep arrows short ----------
+   An arrow that jumps over several columns gets a hidden "slot" in every column it crosses, so it travels through the gaps between boxes and never behind one. */
+const DUMMY_H = 8, moved = new Set(); let chains = [], dpos = new Map(), cols = [];
+const mctx = document.createElement('canvas').getContext('2d'); mctx.font = "600 13px ui-monospace,Menlo,Consolas,'DejaVu Sans Mono',monospace";
+const tw = s => mctx.measureText(s).width;                                                      // real width of a piece of text, so boxes fit their words
+function autoLines(name) { if (tw(name) <= 340) return [name]; const out = []; let cur = ''; for (const p of name.split(/(?<=[._])/)) { if (cur && tw(cur + p) > 300) { out.push(cur); cur = p; } else cur += p; } if (cur) out.push(cur); return out; }
+const linesOf = n => { const c = custom.get(n.id); return c && c.label != null ? c.label.split('\n') : autoLines(n.name); };
+function dim(n) { const c = custom.get(n.id) || {}, L = linesOf(n), aw = Math.max(110, Math.min(560, Math.ceil(Math.max(...L.map(tw))) + 32)), ah = Math.max(BOX_H, L.length * 16 + 16); return { w: c.w || aw, h: c.h || ah, L }; }
+const wOf = n => dim(n).w;
+function layout() {
+  pos = new Map(); dpos = new Map(); chains = []; moved.clear(); cols = []; if (!R || !R.nodes.length) return;
+  const items = new Map(), pred = new Map(), succ = new Map(); R.nodes.forEach(n => items.set(n.id, { id: n.id, level: n.level, h: dim(n).h }));
+  const link = (a, b) => { if (!succ.has(a)) succ.set(a, []); if (!pred.has(b)) pred.set(b, []); succ.get(a).push(b); pred.get(b).push(a); };
+  R.edges.forEach((e, k) => { const a = byId.get(e.from), b = byId.get(e.to), mids = []; let prev = e.from;
+    for (let lv = a.level + 1; lv < b.level; lv++) { const id = '~' + k + '_' + lv; items.set(id, { id, level: lv, h: DUMMY_H, dummy: true }); mids.push(id); link(prev, id); prev = id; }
+    link(prev, e.to); chains.push(mids); });
+  const byLv = []; items.forEach(it => { (byLv[it.level] = byLv[it.level] || []).push(it); }); cols = byLv.filter(Boolean);
+  const order = new Map(); cols.forEach(c => c.forEach((it, i) => order.set(it.id, i)));
+  const bary = (it, nb) => { const a = (nb.get(it.id) || []).map(id => order.get(id)); return a.length ? a.reduce((x, y) => x + y, 0) / a.length : order.get(it.id); };
+  for (let pass = 0; pass < 8; pass++) { const seq = pass % 2 ? cols.slice().reverse() : cols, nb = pass % 2 ? succ : pred;
+    seq.forEach(c => { c.sort((a, b) => bary(a, nb) - bary(b, nb)); c.forEach((it, i) => order.set(it.id, i)); }); }
+  const colH = c => c.reduce((t, it) => t + it.h, 0) + (c.length - 1) * GAP_Y, maxH = Math.max(...cols.map(colH)); let x = PAD;
+  cols.forEach(c => { const real = c.filter(it => !it.dummy), cw = real.length ? Math.max(...real.map(it => wOf(byId.get(it.id)))) : 30; let y = PAD + (maxH - colH(c)) / 2;
+    c.forEach(it => { if (it.dummy) dpos.set(it.id, { x, w: cw, y: y + it.h / 2 }); else pos.set(it.id, { x, y, w: wOf(byId.get(it.id)), h: dim(byId.get(it.id)).h }); y += it.h + GAP_Y; }); x += cw + GAP_X; });
+  fitSize();
+}
+function fitSize() { let w = 0, h = 0; pos.forEach(p => { w = Math.max(w, p.x + p.w); h = Math.max(h, p.y + p.h); }); size = { w: w + PAD, h: h + PAD }; }
+const mid = (p, side) => ({ x: side ? p.x + p.w : p.x, y: p.y + p.h / 2 });
+function clip(p, to) {                                                    // where the line from the middle of box p towards point "to" leaves the box
+  const cx = p.x + p.w / 2, cy = p.y + p.h / 2, dx = to.x - cx, dy = to.y - cy; if (!dx && !dy) return { x: cx, y: cy };
+  const t = Math.min(dx ? (p.w / 2) / Math.abs(dx) : 1e9, dy ? (p.h / 2) / Math.abs(dy) : 1e9); return { x: cx + dx * t, y: cy + dy * t };
+}
+function route(i) {                                                       // list of points for edge i
+  const e = R.edges[i], a = pos.get(e.from), b = pos.get(e.to);
+  if (moved.has(e.from) || moved.has(e.to) || b.x < a.x + a.w) { const ca = { x: a.x + a.w / 2, y: a.y + a.h / 2 }, cb = { x: b.x + b.w / 2, y: b.y + b.h / 2 }; return [clip(a, cb), clip(b, ca)]; }   // a box was moved: straight line between the two boxes
+  const pts = [mid(a, 1)]; chains[i].forEach(id => { const d = dpos.get(id); pts.push({ x: d.x, y: d.y }, { x: d.x + d.w, y: d.y }); }); pts.push(mid(b, 0)); return pts;
+}
+function edgeSvg(i) {
+  const pts = route(i), e = R.edges[i], n = pts.length, e2 = pts[n - 1], e1 = pts[n - 2], ang = Math.atan2(e2.y - e1.y, e2.x - e1.x), L = 9, w = 4.5, bx = e2.x - Math.cos(ang) * L, by = e2.y - Math.sin(ang) * L, px = -Math.sin(ang) * w, py = Math.cos(ang) * w;
+  const line = pts.slice(0, n - 1).concat([{ x: bx, y: by }]).map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+  return '<polyline points="' + line + '"/><polygon points="' + e2.x.toFixed(1) + ',' + e2.y.toFixed(1) + ' ' + (bx + px).toFixed(1) + ',' + (by + py).toFixed(1) + ' ' + (bx - px).toFixed(1) + ',' + (by - py).toFixed(1) + '"/>';
+}
+function nodeInner(n) {
+  const p = pos.get(n.id), L = dim(n).L, y0 = p.h / 2 + 4 - (L.length - 1) * 8;
+  return '<rect width="' + p.w + '" height="' + p.h + '" rx="8"/><text text-anchor="middle">' + L.map((t, i) => '<tspan x="' + p.w / 2 + '" y="' + (y0 + i * 16) + '">' + esc(t) + '</tspan>').join('') + '</text>' +
+    '<rect class="rzr" data-k="w" x="' + (p.w - 6) + '" y="0" width="6" height="' + (p.h - 24) + '"/><rect class="rzb" data-k="h" x="0" y="' + (p.h - 6) + '" width="' + (p.w - 24) + '" height="6"/><path class="rzh" data-k="wh" d="M' + p.w + ' ' + (p.h - 24) + 'L' + p.w + ' ' + p.h + 'L' + (p.w - 24) + ' ' + p.h + 'Z"/><title>' + esc(n.name) + ' (double-click to edit, drag the corner to resize)</title>';
+}
+function redrawNode(id) { const sv = $('svg'); if (!sv) return; const g = sv.querySelector('.node[data-id="' + CSS.escape(id) + '"]'); if (g) g.innerHTML = nodeInner(byId.get(id)); redrawEdgesOf(id); }
+function renderFlow() {
+  if (!R || !R.nodes.length) { flowEl.innerHTML = '<div class="sf-empty">No tables to draw.</div>'; return; }
+  let s = '';
+  R.edges.forEach((e, i) => { s += '<g class="edge" data-i="' + i + '" data-f="' + esc(e.from) + '" data-t="' + esc(e.to) + '">' + edgeSvg(i) + '<title>' + esc(byId.get(e.from).name + ' → ' + byId.get(e.to).name + ' (' + e.kind + ', line ' + e.line + ')') + '</title></g>'; });
+  for (const n of R.nodes) { const p = pos.get(n.id);
+    s += '<g class="node ' + (n.role === 'single' ? 'mid' : n.role) + (n.cls ? ' ' + n.cls : '') + '" data-id="' + esc(n.id) + '" transform="translate(' + p.x + ',' + p.y + ')">' + nodeInner(n) + '</g>'; }
+  flowEl.innerHTML = '<svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + size.w + ' ' + size.h + '" width="' + size.w * zoom + '" height="' + size.h * zoom + '">' + s + '</svg>';
+  paint();
+}
+function setZoom(z) { zoom = Math.max(.12, Math.min(3, z)); const sv = $('svg'); if (!sv) return; sv.setAttribute('width', size.w * zoom); sv.setAttribute('height', size.h * zoom); }
+function fit() { if (!R || !R.nodes.length) return; setZoom(Math.max(.6, Math.min((flowEl.clientWidth - 6) / size.w, (flowEl.clientHeight - 6) / size.h, 1.2))); flowEl.scrollLeft = 0; flowEl.scrollTop = 0; }
+/* moving a box: drag it. The arrows stay attached (they become straight lines to the box you moved). */
+const nd = { id: null, x: 0, y: 0, px: 0, py: 0, moved: false };
+function redrawEdgesOf(id) { const sv = $('svg'); R.edges.forEach((e, i) => { if (e.from === id || e.to === id) { const g = sv.querySelector('.edge[data-i="' + i + '"]'), t = g.querySelector('title'); g.innerHTML = edgeSvg(i); g.appendChild(t); } }); }
+flowEl.addEventListener('pointerdown', e => { const g = e.target.closest('.node'); if (!g || e.target.closest('.rzh,.rzr,.rzb')) return; const p = pos.get(g.dataset.id); nd.id = g.dataset.id; nd.x = e.clientX; nd.y = e.clientY; nd.px = p.x; nd.py = p.y; nd.moved = false; try { g.setPointerCapture(e.pointerId); } catch (x) {} });
+window.addEventListener('pointermove', e => { if (!nd.id) return; const dx = (e.clientX - nd.x) / zoom, dy = (e.clientY - nd.y) / zoom; if (!nd.moved && Math.abs(dx) + Math.abs(dy) < 4 / zoom) return;
+  nd.moved = true; const p = pos.get(nd.id); p.x = Math.max(4, nd.px + dx); p.y = Math.max(4, nd.py + dy); moved.add(nd.id); const g = $('svg').querySelector('.node[data-id="' + CSS.escape(nd.id) + '"]'); g.setAttribute('transform', 'translate(' + p.x + ',' + p.y + ')'); redrawEdgesOf(nd.id); paint(); });
+window.addEventListener('pointerup', () => { if (!nd.id) return; const was = nd.moved; nd.id = null; if (was) { refreshSize(); persist(); setTimeout(() => { nd.moved = false; }, 0); } });
+function refreshSize() { fitSize(); const sv = $('svg'); if (sv) { sv.setAttribute('viewBox', '0 0 ' + size.w + ' ' + size.h); setZoom(zoom); } }
+$('bReset').onclick = () => { if (R) { custom.clear(); layout(); renderFlow(); st.edits = null; S.save(); } };
+/* resizing a box: drag its bottom-right corner. Editing the text: double-click (Enter = new line, Ctrl+Enter or click away = done, Esc = cancel). */
+const rz = { k: 'wh', id: null, x: 0, y: 0, w: 0, h: 0 };
+flowEl.addEventListener('pointerdown', e => { const h = e.target.closest('.rzh,.rzr,.rzb'); if (!h) return; const g = h.closest('.node'), p = pos.get(g.dataset.id); rz.k = h.getAttribute('data-k') || h.getAttribute('class'); rz.id = g.dataset.id; rz.x = e.clientX; rz.y = e.clientY; rz.w = p.w; rz.h = p.h; e.preventDefault(); e.stopPropagation(); });
+window.addEventListener('pointermove', e => { if (!rz.id) return; const p = pos.get(rz.id), c = custom.get(rz.id) || {}; if (rz.k !== 'h') p.w = Math.max(60, Math.round(rz.w + (e.clientX - rz.x) / zoom)); if (rz.k !== 'w') p.h = Math.max(28, Math.round(rz.h + (e.clientY - rz.y) / zoom)); c.w = p.w; c.h = p.h; custom.set(rz.id, c); redrawNode(rz.id); const g = $('svg').querySelector('.node[data-id="' + CSS.escape(rz.id) + '"]'); nd.moved = true; });
+window.addEventListener('pointerup', () => { if (!rz.id) return; rz.id = null; refreshSize(); persist(); setTimeout(() => { nd.moved = false; }, 0); });
+function editNode(id) {
+  const n = byId.get(id), g = $('svg') && $('svg').querySelector('.node[data-id="' + CSS.escape(id) + '"]'); if (!n || !g) return; closeEdit(false);
+  const r = g.getBoundingClientRect(), wr = flowEl.parentNode.getBoundingClientRect(), ta = document.createElement('textarea'); ta.className = 'sf-edit'; ta.value = linesOf(n).join('\n'); ta.spellcheck = false;
+  ta.style.left = Math.max(0, r.left - wr.left) + 'px'; ta.style.top = Math.max(0, r.top - wr.top) + 'px'; ta.style.width = Math.max(r.width, 150) + 'px'; ta.style.height = Math.max(r.height, 56) + 'px';
+  flowEl.parentNode.appendChild(ta); ed = { id, ta, w0: ta.offsetWidth, h0: ta.offsetHeight }; ta.focus(); ta.select();
+  ta.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Escape') closeEdit(false); else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); closeEdit(true); } });
+  ta.addEventListener('blur', () => closeEdit(true)); $('stat').textContent = 'Editing: Enter = new line · Ctrl+Enter or click away = done · Esc = cancel · drag the corner of the editor to resize the box.';
+}
+function closeEdit(save) {
+  if (!ed) return; const { id, ta, w0, h0 } = ed; ed = null; const rw = ta.offsetWidth, rh = ta.offsetHeight; const v = ta.value.replace(/\s+$/, ''); ta.remove(); if (!save) return;
+  const n = byId.get(id), c = custom.get(id) || {}; if (!v.trim() || v === autoLines(n.name).join('\n')) delete c.label; else c.label = v; delete c.w; delete c.h; if (Math.abs(rw - w0) > 3 || Math.abs(rh - h0) > 3) { c.w = Math.max(60, Math.round(rw / zoom)); c.h = Math.max(28, Math.round(rh / zoom)); }
+  if (Object.keys(c).length) custom.set(id, c); else custom.delete(id);
+  const p = pos.get(id), d = dim(n); persist(); const keep = selId; layout(); applyEdits(); renderFlow(); if (keep) select(keep); else paint();
+}
+$('bEdit').onclick = () => { if (selId) editNode(selId); else $('stat').textContent = 'Click a box first, then press Edit box (or double-click a box).'; };
+flowEl.addEventListener('dblclick', e => { const g = e.target.closest('.node'); if (g) { e.preventDefault(); editNode(g.dataset.id); } });
+/* edits (new text, sizes, moved boxes) are kept for this file in the browser */
+const editKey = () => curName + ':' + curText.length;
+function persist() { if (!R) return; const posn = {}, cu = {}; moved.forEach(id => { const p = pos.get(id); if (p) posn[id] = [Math.round(p.x), Math.round(p.y)]; }); custom.forEach((v, k) => { cu[k] = v; }); st.edits = { key: editKey(), posn, custom: cu }; S.save(); }
+function loadEdits() { custom = new Map(); const E = st.edits; if (E && E.key === editKey()) Object.keys(E.custom || {}).forEach(k => { if (byId.has(k)) custom.set(k, E.custom[k]); }); }
+function applyEdits() { const E = st.edits; if (!E || E.key !== editKey()) return; Object.keys(E.posn || {}).forEach(id => { const p = pos.get(id); if (p) { p.x = E.posn[id][0]; p.y = E.posn[id][1]; moved.add(id); } }); fitSize(); }
+/* save the chart as a picture: a copy of the SVG with the colours written in, a background and the watermark */
+function exportPng(kind) {
+  if (!R || !R.nodes.length) { $('stat').textContent = 'Nothing to export yet.'; return; }
+  const dk = document.documentElement.dataset.theme !== 'light', C = dk ? { bg: 'rgb(28,33,40)', fg: '#e6edf3', mu: '#8b98a9', nf: 'rgba(255,255,255,.08)', wm: 'rgb(38,43,50)', ac: '#f59e0b' } : { bg: 'rgb(240,243,247)', fg: '#1f2328', mu: '#59636e', nf: 'rgba(0,0,0,.07)', wm: 'rgb(230,233,237)', ac: '#b45309' };
+  const sv = $('svg').cloneNode(true); sv.querySelectorAll('.rz,.rzh,.rzr,.rzb,title').forEach(x => x.remove()); sv.removeAttribute('id');
+  const sc = Math.max(.2, Math.min(4, Math.sqrt(6e7 / (size.w * size.h)), 12000 / size.w, 12000 / size.h)); sv.setAttribute('width', Math.round(size.w * sc)); sv.setAttribute('height', Math.round(size.h * sc)); if (flowEl.classList.contains('focus')) sv.setAttribute('class', 'focus');
+  const css = '.node rect{fill:' + C.nf + ';stroke:' + C.mu + ';stroke-width:1.2}.node.source rect{fill:rgba(76,175,80,.28);stroke:#4caf50}.node.final rect{fill:rgba(245,158,11,.30);stroke:#f59e0b}.node.cte rect{fill:rgba(129,140,248,.25);stroke:#818cf8;stroke-dasharray:6 3}.node.found rect{stroke:#fbbf24;stroke-width:3;stroke-dasharray:5 3}.node.sel rect{stroke:' + C.ac + ';stroke-width:3.2}' +
+    '.node text{fill:' + C.fg + ';font:600 13px ui-monospace,Menlo,Consolas,"DejaVu Sans Mono",monospace}.edge polyline{fill:none;stroke:' + C.mu + ';stroke-width:1.3;stroke-linejoin:round}.edge polygon{fill:' + C.mu + '}.edge.lit polyline{stroke:' + C.ac + ';stroke-width:2.2}.edge.lit polygon{fill:' + C.ac + '}' +
+    '.focus .node:not(.lit):not(.sel){opacity:.22}.focus .edge:not(.lit){opacity:.12}';
+  let str = new XMLSerializer().serializeToString(sv);
+  str = str.replace(/^(<svg[^>]*>)/, '$1<style>' + css + '</style><rect x="0" y="0" width="' + size.w + '" height="' + size.h + '" fill="' + C.bg + '"/><text x="' + (size.w - 18) + '" y="' + (size.h - 12) + '" text-anchor="end" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="600" fill="' + C.wm + '">Kevin Hau (Oct 2026) SQL SAS Flow</text>');
+  const base = (curName ? curName.replace(/\.[^.]*$/, '') : 'flow') + '-sql-sas-flow';
+  if (kind === 'svg') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['<?xml version="1.0" encoding="UTF-8"?>' + str], { type: 'image/svg+xml' })); a.download = base + '.svg'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); $('stat').textContent = 'Saved the chart as an SVG (sharp at any size).'; return; }
+  const url = URL.createObjectURL(new Blob([str], { type: 'image/svg+xml;charset=utf-8' })), img = new Image();
+  img.onload = () => { const cv = document.createElement('canvas'); cv.width = Math.round(size.w * sc); cv.height = Math.round(size.h * sc); const g = cv.getContext('2d'); g.fillStyle = C.bg; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+    cv.toBlob(bl => { const a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = (curName ? curName.replace(/\.[^.]*$/, '') : 'flow') + '-sql-sas-flow.png'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); $('stat').textContent = 'Saved the chart as a picture (' + cv.width + '×' + cv.height + ').'; }, 'image/png'); };
+  img.onerror = () => { URL.revokeObjectURL(url); $('stat').textContent = 'The browser could not make the picture.'; }; img.src = url;
+}
+$('bPng').onclick = () => exportPng('png'); $('bSvg').onclick = () => exportPng('svg');
+/* panel widths and heights: drag the bar between the panels, and the bar under them */
+(function () {
+  const grid = $('grid'), sp = $('split'), clampH = v => Math.max(200, Math.min(2400, +v)), applyW = () => { const w = Math.max(20, Math.min(80, +st.split || 40)); grid.style.setProperty('--lw', w + 'fr'); grid.style.setProperty('--rw', (100 - w) + 'fr'); }, applyH = () => { if (st.hl) grid.style.setProperty('--hl', clampH(st.hl) + 'px'); if (st.hr) grid.style.setProperty('--hr', clampH(st.hr) + 'px'); };
+  applyW(); applyH(); let mode = null, x0 = 0, y0 = 0, w0 = 0, h0 = 0, el0 = null;
+  const down = (m, el, tgt) => e => { mode = m; x0 = e.clientX; y0 = e.clientY; h0 = tgt ? tgt.offsetHeight : 0; w0 = +st.split || 40; el0 = el; el.classList.add('on'); try { el.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); };
+  sp.addEventListener('pointerdown', down('w', sp)); $('hbarL').addEventListener('pointerdown', down('hl', $('hbarL'), codeEl)); $('hbarR').addEventListener('pointerdown', down('hr', $('hbarR'), flowEl));
+  window.addEventListener('pointermove', e => { if (!mode) return; if (mode === 'w') { st.split = Math.max(20, Math.min(80, w0 + (e.clientX - x0) / grid.clientWidth * 100)); applyW(); } else { st[mode] = clampH(h0 + e.clientY - y0); applyH(); } });
+  window.addEventListener('pointerup', () => { if (!mode) return; mode = null; el0.classList.remove('on'); S.save(); });
+})();
+function paint() {                                                       // selection (lineage) and search highlights
+  const sv = $('svg'); if (!sv) return; const up = selId ? reach(selId, true) : new Set(), dn = selId ? reach(selId, false) : new Set();
+  flowEl.classList.toggle('focus', !!selId);
+  sv.querySelectorAll('.node').forEach(g => { const id = g.dataset.id; g.classList.toggle('sel', id === selId); g.classList.toggle('lit', up.has(id) || dn.has(id)); g.classList.toggle('found', foundIds.has(id)); });
+  sv.querySelectorAll('.edge').forEach(g => { const f = g.dataset.f, t = g.dataset.t; g.classList.toggle('lit', !!selId && ((up.has(f) && up.has(t)) || (dn.has(f) && dn.has(t)))); });
+}
+function select(id, scroll) {
+  selId = selId === id && !scroll ? null : id; info(selId); paint();
+  if (selId && scroll) { const p = pos.get(selId); flowEl.scrollLeft = Math.max(0, (p.x + p.w / 2) * zoom - flowEl.clientWidth / 2); flowEl.scrollTop = Math.max(0, (p.y + p.h / 2) * zoom - flowEl.clientHeight / 2); }
+}
+
+/* ---------- search: every line that contains the word ---------- */
+let foundIds = new Set();
+function runSearch() {
+  const term = $('q').value; foundIds = new Set(); hits = []; hitAt = -1; Array.from(rows).forEach(r => r.classList.remove('m'));
+  if (!R || !term) { hitsEl.hidden = true; hitsEl.innerHTML = ''; paint(); return; }
+  const flags = $('cCase').checked ? 'g' : 'gi', pat = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), re = new RegExp($('cWord').checked ? '(?<![A-Za-z0-9_&%.])' + pat + '(?![A-Za-z0-9_])' : pat, flags);
+  let count = 0; R.lines.forEach((t, i) => { re.lastIndex = 0; const m = t.match(re); if (m) { hits.push(i + 1); count += m.length; rows[i].classList.add('m'); } });
+  R.nodes.forEach(n => { re.lastIndex = 0; if (re.test(n.name)) foundIds.add(n.id); });
+  const tabs = R.nodes.filter(n => foundIds.has(n.id));
+  let h = '<div class="t">' + (hits.length ? count + ' matches on ' + hits.length + ' lines' : 'No matches') + (tabs.length ? ' · tables: ' + tabs.slice(0, 30).map(n => '<button class="chip" data-id="' + esc(n.id) + '" type="button">' + esc(n.name) + '</button>').join('') + (tabs.length > 30 ? ' …' : '') : '') + '</div>';
+  hits.slice(0, 400).forEach((ln, k) => { const t = R.lines[ln - 1]; re.lastIndex = 0; const first = t.search(re), cut = Math.max(0, first - 30); let seg = t.slice(cut, cut + 140), out = '', last = 0; const r2 = new RegExp(re.source, flags); let m;
+    while ((m = r2.exec(seg)) && m[0]) { out += esc(seg.slice(last, m.index)) + '<mark>' + esc(m[0]) + '</mark>'; last = m.index + m[0].length; } out += esc(seg.slice(last));
+    h += '<button class="h" data-k="' + k + '" data-line="' + ln + '" type="button"><b>' + ln + '</b><span>' + (cut ? '…' : '') + out + '</span></button>'; });
+  if (hits.length > 400) h += '<div class="t">Showing the first 400 lines.</div>';
+  hitsEl.innerHTML = h; hitsEl.hidden = false; paint();
+}
+function step(d) { if (!hits.length) return; hitAt = (hitAt + d + hits.length) % hits.length; jump(hits[hitAt]); hitsEl.querySelectorAll('.h').forEach(b => b.classList.toggle('on', +b.dataset.k === hitAt)); const b = hitsEl.querySelector('.h.on'); if (b) hitsEl.scrollTop = Math.max(0, b.offsetTop - 60); }
+
+/* ---------- events ---------- */
+let qT = 0; $('q').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(runSearch, 160); });
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); step(e.shiftKey ? -1 : 1); } });
+['cCase', 'cWord'].forEach(i => $(i).addEventListener('change', runSearch)); $('bNext').onclick = () => step(1); $('bPrev').onclick = () => step(-1);
+document.body.addEventListener('click', e => {
+  const ln = e.target.closest('[data-line]'); if (ln && !e.target.closest('.sf-code .t')) { const L = +ln.dataset.line; jump(L); const h = ln.closest('.h'); if (h) { hitAt = +h.dataset.k; hitsEl.querySelectorAll('.h').forEach(b => b.classList.toggle('on', b === h)); } const ids = lineNode.get(L); if (ids && ln.closest('.sf-code')) select(ids[0], true); return; }
+  const ch = e.target.closest('.chip[data-id]'); if (ch) { select(ch.dataset.id, true); return; }
+});
+codeEl.addEventListener('click', e => { const r = e.target.closest('.r'); if (!r) return; const ids = lineNode.get(+r.dataset.i); if (ids) select(ids[0], true); });
+flowEl.addEventListener('click', e => { if (nd.moved) return; const g = e.target.closest('.node'); if (g) { select(g.dataset.id); const n = byId.get(g.dataset.id); if (selId && n.made.length) jump(n.made[0].line); } else if (!drag.moved) { selId = null; info(null); paint(); } });
+const drag = { on: false, moved: false, x: 0, y: 0, sl: 0, st: 0 };                                       // mouse: drag the empty background to move the chart
+flowEl.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.target.closest('.node') || ed) return; drag.on = true; drag.moved = false; drag.x = e.clientX; drag.y = e.clientY; drag.sl = flowEl.scrollLeft; drag.st = flowEl.scrollTop; flowEl.classList.add('drag'); });
+window.addEventListener('pointermove', e => { if (!drag.on) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true; flowEl.scrollLeft = drag.sl - dx; flowEl.scrollTop = drag.st - dy; });
+window.addEventListener('pointerup', () => { drag.on = false; flowEl.classList.remove('drag'); setTimeout(() => { drag.moved = false; }, 0); });
+$('zIn').onclick = () => setZoom(zoom * 1.25); $('zOut').onclick = () => setZoom(zoom / 1.25); $('zFit').onclick = fit;
+flowEl.addEventListener('wheel', e => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoom(zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1)); } }, { passive: false });
+function readFile(f) { if (!f) return; f.text().then(t => load(t, f.name)); }
+$('file').addEventListener('change', e => { readFile(e.target.files[0]); e.target.value = ''; });
+$('bSample').onclick = () => load(SAMPLE_SAS, SAMPLE_NAME); $('bSampleSql').onclick = () => load(SAMPLE_SQL, SAMPLE_SQL_NAME);
+$('mode').value = st.mode || 'auto'; $('mode').addEventListener('change', () => { if (curText) load(curText, curName); else { st.mode = $('mode').value; S.save(); } });
+$('bPaste').onclick = () => { $('pasteBox').hidden = !$('pasteBox').hidden; if (!$('pasteBox').hidden) $('paste').focus(); };
+$('bBuild').onclick = () => { if ($('paste').value.trim()) { load($('paste').value, 'pasted code'); } };
+window.addEventListener('dragover', e => e.preventDefault()); window.addEventListener('drop', e => { e.preventDefault(); readFile(e.dataTransfer.files[0]); });
+window.addEventListener('resize', () => { if (R && R.nodes.length && zoom <= 1.21) { /* keep the user's zoom */ } });
+if (st.code) load(st.code, st.name || 'last file');
+KIT.hook({ load, editNode, closeEdit, exportPng, persist, dim, get custom() { return custom; }, select, jump, runSearch, setZoom, fit, get R() { return R; }, get pos() { return pos; }, get hits() { return hits; }, get selId() { return selId; } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

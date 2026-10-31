@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 56 · Solitaire</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b4a2c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Solitaire">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:1.4em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:560px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.kgcv{aspect-ratio:480/610}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.kgbar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.kgbar .btn{padding:10px 16px;font-size:15px}.kgbar .btn[disabled]{opacity:.4}
+.menu{display:flex;flex-direction:column;gap:10px;min-width:210px}.menu .btn{font-size:16px;padding:12px}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+#ovWin,#ovMenu{background:rgba(10,28,20,.94)!important}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.kgbar .btn{padding:9px 12px;font-size:14px}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Solitaire</h2>
+  <p>Chapter 56 · Klondike patience with tap-to-move or drag, draw one or three, undo, hints, daily deal, and deals that can always be won</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap kgwrap">
+  <div class="thead">
+    <div class="tstat"><small>SCORE</small><b id="s1">0</b></div>
+    <div class="tstat"><small>MOVES</small><b id="s2">0</b></div>
+    <div class="tstat"><small>TIME</small><b id="s3">0:00</b></div>
+    <div class="tstat"><small>DRAW</small><b id="s4">1</b></div>
+  </div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv kgcv" aria-label="Solitaire table"></canvas>
+    <div class="ov" id="ovWin"><h3 id="winH">You won!</h3><p id="winP"></p><div class="tbar"><button class="btn primary" data-act="random" type="button">New deal</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+    <div class="ov" id="ovMenu"><h3>New game</h3><div class="menu"><button class="btn primary" data-act="random" type="button">🎲 New deal</button><button class="btn" data-act="daily" type="button">📅 Daily deal</button><button class="btn" data-act="again" type="button">🔁 Replay this deal</button><button class="btn" data-act="closeov" type="button">Cancel</button></div></div>
+  </div>
+  <div class="tmsg" id="msg">Your move</div>
+  <div class="kgbar">
+    <button class="btn" id="bUndo" data-act="undo" type="button">↶ Undo</button>
+    <button class="btn" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn primary" id="bAuto" data-act="auto" type="button" style="display:none">⚡ Auto-finish</button>
+    <button class="btn" data-act="menu" type="button">🔄 New</button>
+  </div>
+  <div class="tbar"><span class="kl">Mode:</span><span id="drawBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+  <section class="rules" id="rules">
+    <h2>📖 How to play Solitaire (Klondike)</h2>
+    <p><b>Goal:</b> build all four suits up from Ace to King on the four <b>foundations</b> (top right).</p>
+    <ul>
+      <li><b>The table:</b> seven columns. Only the last card of a column is face up at the start. The <b>stock</b> (top left) holds the other 24 cards; tap it to turn cards onto the <b>waste</b> next to it. When the stock is empty, tap it again to turn the waste over (costs points).</li>
+      <li><b>Moving in the columns:</b> put a card on a card of the <b>opposite colour</b> that is <b>one higher</b> (a red 7 on a black 8). You can move a whole run of face-up cards together. Only a <b>King</b> (with the cards on it) may go on an empty column. When you move the last face-up card away, the card under it turns over.</li>
+      <li><b>Foundations:</b> start with an Ace, then 2, 3 … up to King, all the same suit. You can also take a card back down from a foundation if that helps.</li>
+      <li><b>Controls:</b> <b>tap</b> a card to send it to the best place (foundation first), or <b>drag</b> it where you want it. 💡 <b>Hint</b> shows a good move, ↶ <b>Undo</b> takes back as many moves as you like, and <b>Auto-finish</b> appears when every card is face up.</li>
+      <li><b>Modes:</b> <b>Draw 1</b> turns one card at a time (easier); <b>Draw 3</b> turns three and you can only use the top one (classic, harder).</li>
+      <li><b>Score:</b> waste to column +5, to foundation +10, column to foundation +10, turning a card over +5, foundation back to a column −15, turning the waste over again −100 (Draw 1) or −20 (Draw 3).</li>
+      <li><b>Deals:</b> with “New deals can always be won” on (the default), a computer solver checks the deal first, so it is possible to win, though it may be hard to find the way. <b>Daily deal</b> is the same random deal for everyone today (it may not be winnable). <b>Replay this deal</b> starts the same cards again.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🃏 Solitaire (Klondike) is a traditional card game; the rules and the Windows-style scoring are common ones. The card pictures, animations, sounds, rules code and the solver that checks a deal can be won are my own. Not included: Vegas betting scores, other solitaire games.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Solitaire (Klondike), part 1: the rules and a solver. No drawing. A card is a number 0..51 (suit*13 + rank, rank 0 = ace); +64 means face down.
+   The state is plain arrays so it can be copied fast (for undo and for the solver that makes sure a deal can be won). */
+const KG = (function () {
+  const rank = v => (v & 63) % 13, suit = v => ((v & 63) / 13) | 0, down = v => (v & 64) !== 0, up = v => v & 63, red = v => { const s = suit(v); return s === 1 || s === 2; };
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  function deal(seed, drawN) {
+    const r = mulberry(seed), d = Array.from({ length: 52 }, (_, i) => i); for (let i = 51; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; }
+    const t = []; let k = 0; for (let c = 0; c < 7; c++) { const col = []; for (let i = 0; i <= c; i++) { const v = d[k++]; col.push(i === c ? v : v | 64); } t.push(col); }
+    return { t, stock: d.slice(k).map(v => v | 64), waste: [], f: [0, 0, 0, 0], draw: drawN === 3 ? 3 : 1, score: 0, moves: 0, passes: 0, seed };
+  }
+  const clone = S => ({ t: S.t.map(c => c.slice()), stock: S.stock.slice(), waste: S.waste.slice(), f: S.f.slice(), draw: S.draw, score: S.score, moves: S.moves, passes: S.passes, seed: S.seed });
+  const canFound = (S, v) => rank(v) === S.f[suit(v)];
+  const canTab = (S, v, col) => { const c = S.t[col]; if (!c.length) return rank(v) === 12; const top = c[c.length - 1]; return !down(top) && red(top) !== red(v) && rank(top) === rank(v) + 1; };
+  const firstUp = c => { for (let i = 0; i < c.length; i++) if (!down(c[i])) return i; return c.length; };
+  function moves(S, o) {
+    o = o || {}; const out = [];
+    if (S.waste.length) { const v = S.waste[S.waste.length - 1]; if (canFound(S, v)) out.push({ k: 'w2f' }); for (let c = 0; c < 7; c++) if (canTab(S, v, c)) out.push({ k: 'w2t', to: c }); }
+    for (let c = 0; c < 7; c++) { const col = S.t[c]; if (!col.length) continue; const top = col[col.length - 1]; if (canFound(S, top)) out.push({ k: 't2f', from: c }); }
+    for (let c = 0; c < 7; c++) { const col = S.t[c], fu = firstUp(col); for (let i = fu; i < col.length; i++) { const v = col[i]; for (let to = 0; to < 7; to++) { if (to === c || !canTab(S, v, to)) continue; if (rank(v) === 12 && i === 0) continue; out.push({ k: 't2t', from: c, i, to }); } } }
+    if (!o.noF2T) for (let s = 0; s < 4; s++) { if (S.f[s] <= 0) continue; const v = s * 13 + S.f[s] - 1; for (let to = 0; to < 7; to++) if (canTab(S, v, to)) out.push({ k: 'f2t', s, to }); }
+    if (S.stock.length || S.waste.length) out.push({ k: 'draw' });
+    return out;
+  }
+  function flipTop(S, c) { const col = S.t[c]; if (col.length && down(col[col.length - 1])) { col[col.length - 1] = up(col[col.length - 1]); S.score += 5; return true; } return false; }
+  function apply(S, m) { // changes S; returns the cards that moved (for animation)
+    const moved = []; S.moves++;
+    if (m.k === 'draw') {
+      if (S.stock.length) { const n = Math.min(S.draw, S.stock.length); for (let i = 0; i < n; i++) { const v = up(S.stock.pop()); S.waste.push(v); moved.push(v); } }
+      else { S.stock = S.waste.reverse().map(v => v | 64); S.waste = []; S.passes++; if (S.passes >= 1) S.score = Math.max(0, S.score - (S.draw === 1 ? 100 : 20)); }
+    } else if (m.k === 'w2f') { const v = S.waste.pop(); S.f[suit(v)]++; S.score += 10; moved.push(v); }
+    else if (m.k === 'w2t') { const v = S.waste.pop(); S.t[m.to].push(v); S.score += 5; moved.push(v); }
+    else if (m.k === 't2f') { const v = S.t[m.from].pop(); S.f[suit(v)]++; S.score += 10; moved.push(v); flipTop(S, m.from); }
+    else if (m.k === 't2t') { const cs = S.t[m.from].splice(m.i); for (const v of cs) { S.t[m.to].push(v); moved.push(v); } flipTop(S, m.from); }
+    else if (m.k === 'f2t') { const v = m.s * 13 + S.f[m.s] - 1; S.f[m.s]--; S.t[m.to].push(v); S.score = Math.max(0, S.score - 15); moved.push(v); }
+    return moved;
+  }
+  const won = S => S.f[0] + S.f[1] + S.f[2] + S.f[3] === 52;
+  const hiddenLeft = S => S.t.reduce((a, c) => a + c.filter(down).length, 0);
+  /* ---------- the solver: depth-first search with a memory of positions already seen ---------- */
+  function key(S) { return S.t.map(c => c.join(',')).join('|') + '#' + S.stock.length + ',' + S.waste.join(',') + '#' + S.f.join(''); }
+  function mscore(S, m) {
+    if (m.k === 'w2f' || m.k === 't2f') return 90;
+    if (m.k === 't2t') { const col = S.t[m.from]; const reveals = m.i > 0 && down(col[m.i - 1]); return reveals ? 80 + (col.length - firstUp(col)) * 0 + Math.min(10, m.i) : (m.i === 0 ? 5 : 15); }
+    if (m.k === 'w2t') return 60; if (m.k === 'draw') return 30; return 1;
+  }
+  function solve(S0, maxNodes, deadline) {
+    const seen = new Set(), path = []; let nodes = 0, found = false;
+    function dfs(S) {
+      if (won(S)) return true; if (++nodes > maxNodes || (deadline && (nodes & 255) === 0 && Date.now() > deadline)) return false;
+      const k = key(S); if (seen.has(k)) return false; seen.add(k);
+      const ms = moves(S, { noF2T: true }).map(m => [mscore(S, m), m]).sort((a, b) => b[0] - a[0]);
+      for (const [, m] of ms) { if (m.k === 'draw' && S.stock.length === 0 && S.passes >= 3) continue; const N = clone(S); apply(N, m); path.push(m); if (dfs(N)) return true; path.pop(); if (nodes > maxNodes) return false; }
+      return false;
+    }
+    found = dfs(clone(S0)); return found ? path : null;
+  }
+  /* find a seed whose deal can be won (checked by the solver); falls back to the first seed if it runs out of time */
+  function winnableSeed(drawN, startSeed, ms) {
+    const end = Date.now() + ms; let tries = 0; for (let s = startSeed; Date.now() < end; s++) { tries++; const S = deal(s, drawN); if (solve(S, 60000, end)) return { seed: s, solved: true, tries }; } return { seed: startSeed, solved: false, tries };
+  }
+  function autoStep(S) { // one safe auto-finishing move: a card to a foundation, else a draw (stops when nothing helps)
+    for (let c = 0; c < 7; c++) { const col = S.t[c]; if (col.length && canFound(S, col[col.length - 1])) return { k: 't2f', from: c }; }
+    if (S.waste.length && canFound(S, S.waste[S.waste.length - 1])) return { k: 'w2f' };
+    if (S.stock.length || (S.waste.length && S.passes < 6)) return { k: 'draw' }; return null;
+  }
+  function hint(S) {
+    const ms = moves(S, { noF2T: false }); let best = null, bs = -1;
+    for (const m of ms) { if (m.k === 'f2t') continue; if (m.k === 'draw' && !S.stock.length && S.passes >= 4) continue; let s = mscore(S, m); if (m.k === 'draw') s = S.stock.length ? 30 : 8; if (m.k === 't2t' && m.i === firstUp(S.t[m.from]) && m.i === 0 && rank(S.t[m.from][0]) !== 12) s = 12; if (s > bs) { bs = s; best = m; } }
+    return best;
+  }
+  const RN = 'A23456789TJQK', SY = ['♠', '♥', '♦', '♣'];
+  const name = v => (RN[rank(v)] === 'T' ? '10' : RN[rank(v)]) + SY[suit(v)];
+  return { rank, suit, down, up, red, deal, clone, canFound, canTab, firstUp, moves, apply, won, hiddenLeft, solve, winnableSeed, autoStep, hint, key, name, RN, SY, mulberry };
+})();
+if (typeof module !== 'undefined') module.exports = KG;
+
+/* Solitaire (Klondike). kgcore.js has the rules and the solver (checked on its own); this file draws the table, takes taps and drags,
+   animates cards flying, and plays the win. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const blank = () => ({ g: 0, w: 0, best: 0, bestT: 0, streak: 0, bestStreak: 0 });
+const S0 = store('kevinhyhau.solitaire.v1', { dark: true, sound: true, draw: '1', winnable: true, fourc: false, stats: { 1: blank(), 3: blank() }, save: null }), st = S0.st;
+for (const k of [1, 3]) if (!st.stats || !st.stats[k]) { st.stats = st.stats || {}; st.stats[k] = blank(); }
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovWin', 'ovMenu']);
+const W = 480, H = 610, CW = 62, CH = 86, GAP = 7, X0 = 2, TOPY = 8, TABY = 122, cv = $('cv'), C = KIT.canvas(cv, W, H, 2), g = C.ctx;
+const FONT = '-apple-system,"Segoe UI",Roboto,"Noto Sans","DejaVu Sans",sans-serif';
+let G = null, drag = null, pend = null, flights = [], hide = new Set(), flipT = {}, hintInfo = null, nudge = null, undoStack = [], busy = 0, winAnim = null, now = 0, timerOn = false, TS = 1, autoRun = false, finding = false;
+const trail = document.createElement('canvas'); trail.width = W * 2; trail.height = H * 2; const tg = trail.getContext('2d'); tg.scale(2, 2);
+const T = () => performance.now() / 1000, colX = i => X0 + i * (CW + GAP), drawN = () => (+st.draw === 3 ? 3 : 1), say = t => { $('msg').textContent = t; };
+const fmtT = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+settings([
+  { id: 'draw', label: 'Cards turned from the stock', type: 'select', options: [['1', 'One (easier)'], ['3', 'Three (classic)']], def: '1' },
+  { id: 'winnable', label: 'New deals can always be won', type: 'check', def: true },
+  { id: 'fourc', label: 'Four-colour suits (easier to tell apart)', type: 'check', def: false },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), id => { S0.save(); if (id === 'draw') { bars(); newDeal('random'); } if (id === 'fourc') { cache = {}; } });
+
+/* ---------- card pictures (painted once, then copied) ---------- */
+let cache = {};
+const SUITC = () => st.fourc ? ['#1a1a1a', '#d12f2f', '#1b62c4', '#1f8a3a'] : ['#1a1a1a', '#d12f2f', '#d12f2f', '#1a1a1a'];
+const PIPS = { 1: [[.5, .5]], 2: [[.5, .08], [.5, .92]], 3: [[.5, .08], [.5, .5], [.5, .92]], 4: [[.2, .08], [.8, .08], [.2, .92], [.8, .92]], 5: [[.2, .08], [.8, .08], [.5, .5], [.2, .92], [.8, .92]], 6: [[.2, .08], [.8, .08], [.2, .5], [.8, .5], [.2, .92], [.8, .92]], 7: [[.2, .08], [.8, .08], [.5, .29], [.2, .5], [.8, .5], [.2, .92], [.8, .92]], 8: [[.2, .08], [.8, .08], [.5, .29], [.2, .5], [.8, .5], [.5, .71], [.2, .92], [.8, .92]], 9: [[.2, .08], [.8, .08], [.2, .36], [.8, .36], [.5, .5], [.2, .64], [.8, .64], [.2, .92], [.8, .92]], 10: [[.2, .08], [.8, .08], [.5, .22], [.2, .36], [.8, .36], [.2, .64], [.8, .64], [.5, .78], [.2, .92], [.8, .92]] };
+const rrect = (c, x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
+function img(v, back) {
+  const key = back ? 'back' : v; if (cache[key]) return cache[key]; const c = document.createElement('canvas'); c.width = CW * 2 + 4; c.height = CH * 2 + 4; const x = c.getContext('2d'); x.scale(2, 2); x.translate(1, 1);
+  if (back) { const gr = x.createLinearGradient(0, 0, CW, CH); gr.addColorStop(0, '#2b5fc2'); gr.addColorStop(1, '#173b86'); x.fillStyle = '#fff'; rrect(x, 0, 0, CW, CH, 7); x.fill(); x.fillStyle = gr; rrect(x, 3, 3, CW - 6, CH - 6, 5); x.fill(); x.strokeStyle = 'rgba(255,255,255,.28)'; x.lineWidth = 1; x.save(); rrect(x, 3, 3, CW - 6, CH - 6, 5); x.clip(); for (let i = -CH; i < CW + CH; i += 9) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + CH, CH); x.moveTo(i + CH, 0); x.lineTo(i, CH); x.stroke(); } x.restore(); x.strokeStyle = 'rgba(0,0,0,.35)'; rrect(x, .5, .5, CW - 1, CH - 1, 7); x.stroke(); return (cache[key] = c); }
+  const s = KG.suit(v), r = KG.rank(v), col = SUITC()[s], sy = KG.SY[s], rn = KG.RN[r] === 'T' ? '10' : KG.RN[r];
+  const gr = x.createLinearGradient(0, 0, 0, CH); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, '#f1ede2'); x.fillStyle = gr; rrect(x, 0, 0, CW, CH, 7); x.fill(); x.strokeStyle = 'rgba(0,0,0,.4)'; x.lineWidth = 1; rrect(x, .5, .5, CW - 1, CH - 1, 7); x.stroke();
+  x.fillStyle = col; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '700 ' + (rn.length > 1 ? 15 : 17) + 'px ' + FONT; x.fillText(rn, 11, 13); x.font = '15px ' + FONT; x.fillText(sy, 11, 27);
+  x.save(); x.translate(CW, CH); x.rotate(Math.PI); x.font = '700 ' + (rn.length > 1 ? 15 : 17) + 'px ' + FONT; x.fillText(rn, 11, 13); x.font = '15px ' + FONT; x.fillText(sy, 11, 27); x.restore();
+  const ax = 20, ay = 8, aw = CW - 40, ah = CH - 16;
+  if (r <= 9) { const P = PIPS[r + 1]; x.font = (r === 0 ? 34 : 16) + 'px ' + FONT; for (const p of P) { x.save(); x.translate(ax + p[0] * aw, ay + p[1] * ah + (r === 0 ? 0 : 0)); if (p[1] > .5 && r !== 0) x.rotate(Math.PI); x.fillText(sy, 0, 1); x.restore(); } }
+  else { x.strokeStyle = col; x.lineWidth = 1.5; rrect(x, 15, 12, CW - 30, CH - 24, 4); x.stroke(); x.fillStyle = col + '22'; x.fill(); x.fillStyle = col; x.font = '800 30px ' + FONT; x.fillText(rn, CW / 2, CH / 2 - 6); x.font = '18px ' + FONT; x.fillText(sy, CW / 2, CH / 2 + 18); }
+  return (cache[key] = c);
+}
+function card(v, x, y, faceUp, o) {
+  o = o || {}; const im = img(v & 63, !faceUp); let sx = 1; if (o.flip != null) { const p = Math.min(1, o.flip); const f = p < .5 ? 1 - 2 * p : 2 * p - 1; sx = Math.max(.02, f); if (p < .5) return card2(img(v & 63, true), x, y, sx); }
+  if (o.shadow) { g.fillStyle = 'rgba(0,0,0,.28)'; rrect(g, x + 3, y + 5, CW, CH, 7); g.fill(); }
+  card2(im, x, y, sx);
+}
+function card2(im, x, y, sx) { g.save(); g.translate(x + CW / 2, y); g.scale(sx, 1); g.drawImage(im, -CW / 2 - .5, -.5, CW + 1, CH + 1); g.restore(); }
+
+/* ---------- where every card is ---------- */
+function layout(S) {
+  const pos = {}, hits = []; const maxH = H - TABY - 10 - CH;
+  // stock and waste and foundations
+  hits.push({ k: 'stock', x: colX(0), y: TOPY, w: CW, h: CH });
+  S.waste.forEach((v, i) => { const n = S.waste.length, fan = S.draw === 3 ? Math.max(0, i - (n - 3)) : 0; pos[v] = { x: colX(1) + fan * 17, y: TOPY, up: true, z: 'w' }; });
+  if (S.waste.length) { const v = S.waste[S.waste.length - 1]; hits.push({ k: 'waste', x: pos[v].x, y: TOPY, w: CW, h: CH, v }); }
+  for (let s = 0; s < 4; s++) { for (let r = 0; r < S.f[s]; r++) pos[s * 13 + r] = { x: colX(3 + s), y: TOPY, up: true, z: 'f' }; if (S.f[s]) hits.push({ k: 'found', s, x: colX(3 + s), y: TOPY, w: CW, h: CH, v: s * 13 + S.f[s] - 1 }); }
+  S.t.forEach((col, c) => {
+    const dn = col.filter(KG.down).length, upn = col.length - dn; let dy = 12, uy = 26; const need = Math.max(0, dn - 0) * dy + Math.max(0, upn - 1) * uy; if (need > maxH) { const f = maxH / need; dy *= f; uy *= f; }
+    let y = TABY; col.forEach((v, i) => { const d = KG.down(v); pos[v & 63] = { x: colX(c), y, up: !d, z: 't', c, i }; if (!d) hits.push({ k: 'tab', c, i, x: colX(c), y, w: CW, h: i === col.length - 1 ? CH : uy, v: v & 63 }); y += d ? dy : uy; });
+  });
+  return { pos, hits };
+}
+const targetRect = (S, m) => { // where a move ends up (for hints)
+  if (m.k === 'draw') return { x: colX(0), y: TOPY, w: CW, h: CH };
+  if (m.k === 'w2f' || m.k === 't2f') { const v = m.k === 'w2f' ? S.waste[S.waste.length - 1] : S.t[m.from][S.t[m.from].length - 1]; return { x: colX(3 + KG.suit(v)), y: TOPY, w: CW, h: CH }; }
+  const c = m.to, col = S.t[c], L = layout(S); const lastH = L.hits.filter(h => h.k === 'tab' && h.c === c); const top = lastH.length ? lastH[lastH.length - 1] : null; return { x: colX(c), y: top ? top.y : TABY, w: CW, h: CH };
+};
+
+/* ---------- playing a move ---------- */
+function snapshot() { undoStack.push(KG.clone(G.S)); if (undoStack.length > 300) undoStack.shift(); }
+function doMove(m, silent) {
+  const S = G.S, before = layout(S).pos, wasDown = {}; S.t.forEach(c => c.forEach(v => { if (KG.down(v)) wasDown[v & 63] = 1; }));
+  snapshot(); const moved = KG.apply(S, m); if (!G.started) { G.started = true; timerOn = true; }
+  const after = layout(S).pos, n = T(); moved.forEach((v, i) => { const a = before[v], b = after[v]; if (a && b && (a.x !== b.x || a.y !== b.y)) { flights.push({ v, x0: a.x, y0: a.y, x1: b.x, y1: b.y, t0: n + i * .03, dur: m.k === 'draw' ? .16 : .22 }); hide.add(v); } });
+  S.t.forEach(c => c.forEach(v => { if (!KG.down(v) && wasDown[v & 63]) flipT[v & 63] = n + .1; }));
+  hintInfo = null;
+  if (!silent) { if (m.k === 'draw') A.noise(.05, .15); else if (m.k === 'w2f' || m.k === 't2f') { A.beep(660 + KG.rank(moved[0]) * 30, .08, 'triangle', .1); } else A.noise(.04, .18); }
+  persist(); hud(); if (KG.won(S)) return onWin(); autoBtn(); maybeAuto();
+}
+function persist() { st.save = G.S && !KG.won(G.S) ? { S: G.S, elapsed: G.elapsed, started: G.started } : null; S0.save(); }
+function undo() { if (!undoStack.length || busy || winAnim) return; const prev = undoStack.pop(); G.S = prev; flights = []; hide.clear(); hintInfo = null; A.beep(330, .06, 'triangle', .08); persist(); hud(); autoBtn(); say('Undone.'); }
+function autoBtn() { $('bAuto').style.display = G && !KG.won(G.S) && KG.hiddenLeft(G.S) === 0 && !finding ? '' : 'none'; }
+function fsum(S) { return S.f[0] + S.f[1] + S.f[2] + S.f[3]; }
+function autoFinish(auto) {
+  if (autoRun || winAnim) return; autoRun = true; let guard = 0, idle = 0, last = fsum(G.S); if (!auto) G.autoStuck = false;
+  (function step() { if (!autoRun || !G || KG.won(G.S) || guard++ > 400) { autoRun = false; return; } const m = KG.autoStep(G.S);
+    const stuck = () => { autoRun = false; G.autoStuck = true; say('Nothing more can be moved automatically. Your move!'); };
+    if (!m) return stuck(); const before = fsum(G.S); if (m.k === 'draw') { if (++idle > G.S.stock.length + G.S.waste.length + 2) return stuck(); } else idle = 0;
+    doMove(m); if (fsum(G.S) > before) idle = 0; setTimeout(step, m.k === 'draw' ? 55 : 110); })();
+}
+function maybeAuto() { if (G && !winAnim && !autoRun && !G.autoStuck && drawN() === 1 && KG.hiddenLeft(G.S) === 0 && !KG.won(G.S) && !finding) { say('All cards are open: sending them home…'); setTimeout(() => { if (G && !autoRun && !winAnim) autoFinish(true); }, 450); } }
+function describe(m) {
+  const S = G.S; if (m.k === 'draw') return S.stock.length ? 'Turn a card from the stock.' : 'Turn the waste pile over again.';
+  const src = m.k === 'w2f' || m.k === 'w2t' ? S.waste[S.waste.length - 1] : m.k === 't2f' ? S.t[m.from][S.t[m.from].length - 1] : m.k === 't2t' ? S.t[m.from][m.i] & 63 : m.s * 13 + S.f[m.s] - 1;
+  if (m.k === 'w2f' || m.k === 't2f') return 'Move ' + KG.name(src) + ' to the foundation.'; const top = S.t[m.to].length ? KG.name(S.t[m.to][S.t[m.to].length - 1]) : null; return 'Move ' + KG.name(src) + (top ? ' onto ' + top + '.' : ' to the empty column.');
+}
+function hint() {
+  if (!G || winAnim || KG.won(G.S)) return; const m = KG.hint(G.S); if (!m) { say('No moves left. Try Undo or a new deal.'); return; }
+  const S = G.S, ids = []; if (m.k === 'draw') { } else if (m.k === 'w2f' || m.k === 'w2t') ids.push(S.waste[S.waste.length - 1]); else if (m.k === 't2f') ids.push(S.t[m.from][S.t[m.from].length - 1]); else if (m.k === 't2t') for (let i = m.i; i < S.t[m.from].length; i++) ids.push(S.t[m.from][i] & 63);
+  hintInfo = { m, ids, rect: targetRect(S, m), until: T() + 2.6, from: m.k === 'draw' ? { x: colX(0), y: TOPY, w: CW, h: CH } : null }; say(describe(m)); A.beep(880, .05, 'sine', .06);
+}
+
+/* ---------- new deals, winning ---------- */
+function newDeal(mode, again) {
+  if (finding) return; O.hideAll(); autoRun = false; const dn = drawN(); winAnim = null; tg.clearRect(0, 0, W, H); flights = []; hide.clear(); flipT = {}; hintInfo = null; undoStack = [];
+  const start = (seed) => { G = { S: KG.deal(seed, dn), elapsed: 0, started: false, seed, mode }; G.counted = false; timerOn = false; finding = false; bars(); hud(); autoBtn(); persist(); say(mode === 'daily' ? 'Daily deal: everybody gets this deal today.' : (again ? 'Same deal again.' : 'Your move. Tap a card to send it to the best place, or drag it.')); };
+  if (mode === 'again' && G) { start(G.seed); return; }
+  if (mode === 'daily') { const d = new Date().toISOString().slice(0, 10); start(KIT.rng.hash('daily' + d + dn) % 1000000); return; }
+  const seed = Math.floor(Math.random() * 900000) + 1; if (!st.winnable) { start(seed); return; }
+  finding = true; say('Finding a deal that can be won…'); autoBtn(); setTimeout(() => { const r = KG.winnableSeed(dn, seed, 1600); start(r.seed); }, 30);
+}
+function onWin() {
+  const S = G.S, k = drawN(), s = st.stats[k]; if (!G.counted) { G.counted = true; s.g++; s.w++; s.streak++; s.bestStreak = Math.max(s.bestStreak, s.streak); if (!s.best || S.score > s.best) s.best = S.score; if (!s.bestT || G.elapsed < s.bestT) s.bestT = Math.round(G.elapsed); }
+  timerOn = false; persist(); S0.save(); statsLine(); A.beep(523, .12, 'square', .12); A.beep(659, .12, 'square', .12, .12); A.beep(784, .12, 'square', .12, .24); A.beep(1047, .3, 'square', .12, .36);
+  winAnim = { t0: T(), next: 0, order: [], parts: [], done: false };
+  for (let r = 12; r >= 0; r--) for (let s2 = 0; s2 < 4; s2++) winAnim.order.push(s2 * 13 + r);
+  say('You won! 🎉'); autoBtn();
+}
+function loseCheck() { }
+function statsLine() { const k = drawN(), s = st.stats[k]; $('recLine').textContent = 'Draw ' + k + ': won ' + s.w + ' of ' + s.g + ' · streak ' + s.streak + ' (best ' + s.bestStreak + ')' + (s.bestT ? ' · fastest ' + fmtT(s.bestT) : '') + (s.best ? ' · best score ' + s.best : ''); }
+function bars() { $('drawBar').innerHTML = [[1, 'Draw 1'], [3, 'Draw 3']].map(r => '<button class="btn sm' + (drawN() === r[0] ? ' on' : '') + '" data-act="draw" data-v="' + r[0] + '" type="button">' + r[1] + '</button>').join(''); statsLine(); }
+function hud() { if (!G) return; $('s1').textContent = G.S.score; $('s2').textContent = G.S.moves; $('s3').textContent = fmtT(G.elapsed); $('s4').textContent = G.S.draw; $('bUndo').disabled = !undoStack.length; }
+setInterval(() => { if (G && timerOn && !document.hidden && !winAnim) { G.elapsed += .25; if (Math.abs(G.elapsed - Math.round(G.elapsed)) < .01) { $('s3').textContent = fmtT(G.elapsed); if (Math.round(G.elapsed) % 5 === 0) persist(); } } }, 250);
+
+ui.actions(document, {
+  undo, hint, auto: () => autoFinish(false), menu: () => O.show('ovMenu'), closeov: () => O.hideAll(),
+  random: () => newDeal('random'), daily: () => newDeal('daily'), again: () => newDeal('again', true),
+  draw: b => { if (+b.dataset.v !== drawN()) { st.draw = String(b.dataset.v); S0.save(); bars(); newDeal('random'); } }
+});
+
+/* ---------- pointer: tap sends a card, drag moves a card or a run ---------- */
+const hitAt = (L, q) => { for (let i = L.hits.length - 1; i >= 0; i--) { const h = L.hits[i]; if (q.x >= h.x && q.x <= h.x + h.w && q.y >= h.y && q.y <= h.y + h.h) return h; } return null; };
+cv.addEventListener('pointerdown', e => {
+  if (!G || winAnim || busy) { if (winAnim && winAnim.done) O.show('ovWin'); return; } cv.setPointerCapture && cv.setPointerCapture(e.pointerId); const q = C.pos(e), L = layout(G.S);
+  // tableau cards are checked from the last drawn first so overlapping cards pick the right one
+  let h = null; for (let i = L.hits.length - 1; i >= 0; i--) { const t = L.hits[i]; if (q.x >= t.x && q.x <= t.x + t.w && q.y >= t.y && q.y <= t.y + t.h) { h = t; break; } }
+  if (!h) { // empty stock circle
+    if (q.x >= colX(0) && q.x <= colX(0) + CW && q.y >= TOPY && q.y <= TOPY + CH) { stockTap(); } return; }
+  if (h.k === 'stock') { stockTap(); return; }
+  let cards = [], src;
+  if (h.k === 'waste') { cards = [h.v]; src = { k: 'w' }; } else if (h.k === 'found') { cards = [h.v]; src = { k: 'f', s: h.s }; } else { const col = G.S.t[h.c]; cards = col.slice(h.i).map(v => v & 63); src = { k: 't', c: h.c, i: h.i }; }
+  pend = { cards, src, sx: q.x, sy: q.y, ox: q.x - h.x, oy: q.y - h.y, moved: false, x: h.x, y: h.y, id: e.pointerId };
+});
+cv.addEventListener('pointermove', e => { if (!pend) return; const q = C.pos(e); if (!pend.moved && Math.hypot(q.x - pend.sx, q.y - pend.sy) > 7) { pend.moved = true; drag = pend; cards_hide(drag.cards, true); } if (pend.moved) { pend.x = q.x - pend.ox; pend.y = q.y - pend.oy; } });
+const cards_hide = (cs, on) => cs.forEach(v => on ? hide.add(v) : hide.delete(v));
+window.addEventListener('pointerup', e => {
+  if (!pend) return; const p = pend; pend = null; const q = C.pos(e);
+  if (!p.moved) { tapCard(p); return; }
+  drag = null; cards_hide(p.cards, false); const cx = q.x - p.ox + CW / 2, cy = q.y - p.oy, S = G.S;
+  let m = null; const bottom = p.cards[0];
+  // foundation area: top row, over any of the four foundation slots
+  if (cy < TABY - 20 && cx > colX(3) - 12 && p.cards.length === 1 && KG.canFound(S, bottom)) m = p.src.k === 'w' ? { k: 'w2f' } : p.src.k === 't' ? { k: 't2f', from: p.src.c } : null;
+  else { let best = -1, bd = 1e9; for (let c = 0; c < 7; c++) { const d = Math.abs(cx - (colX(c) + CW / 2)); if (d < bd) { bd = d; best = c; } } if (best >= 0 && bd < CW * .85 && cy > 40) { if (p.src.k === 't' && p.src.c === best) m = null; else if (KG.canTab(S, bottom, best)) m = p.src.k === 'w' ? { k: 'w2t', to: best } : p.src.k === 'f' ? { k: 'f2t', s: p.src.s, to: best } : { k: 't2t', from: p.src.c, i: p.src.i, to: best }; } }
+  if (m) doMove(m); else { A.beep(200, .06, 'square', .05); say('That card cannot go there.'); }
+});
+window.addEventListener('pointercancel', () => { if (pend) { cards_hide(pend.cards, false); pend = null; drag = null; } });
+function stockTap() { if (!G || winAnim) return; const S = G.S; if (!S.stock.length && !S.waste.length) return; doMove({ k: 'draw' }); }
+function tapCard(p) {
+  const S = G.S, v = p.cards[0], single = p.cards.length === 1; let m = null;
+  if (single && KG.canFound(S, v) && p.src.k !== 'f') m = p.src.k === 'w' ? { k: 'w2f' } : { k: 't2f', from: p.src.c };
+  if (!m) { // best tableau column: a non-empty one first, an empty one only for a king that is not already at the bottom of a column
+    let pick = -1; for (let c = 0; c < 7; c++) { if (p.src.k === 't' && c === p.src.c) continue; if (S.t[c].length && KG.canTab(S, v, c)) { pick = c; break; } }
+    if (pick < 0 && KG.rank(v) === 12 && !(p.src.k === 't' && p.src.i === 0)) for (let c = 0; c < 7; c++) if (!S.t[c].length) { pick = c; break; }
+    if (pick >= 0) m = p.src.k === 'w' ? { k: 'w2t', to: pick } : p.src.k === 'f' ? { k: 'f2t', s: p.src.s, to: pick } : { k: 't2t', from: p.src.c, i: p.src.i, to: pick };
+  }
+  if (m) doMove(m); else { nudge = { ids: p.cards, t0: T() }; A.beep(200, .06, 'square', .05); say('No place for that card right now.'); }
+}
+
+/* ---------- drawing ---------- */
+const BG = KIT.cache(W * 2, H * 2, (c, w, h) => { const gr = c.createRadialGradient(w / 2, h * .4, 60, w / 2, h * .4, w); gr.addColorStop(0, '#1f8a55'); gr.addColorStop(1, '#0b4a2c'); c.fillStyle = gr; c.fillRect(0, 0, w, h); c.strokeStyle = 'rgba(255,255,255,.03)'; c.lineWidth = 2; for (let i = -h; i < w; i += 24) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i + h, h); c.stroke(); } });
+function slot(x, y, label, big) { g.strokeStyle = 'rgba(255,255,255,.28)'; g.lineWidth = 2; rrect(g, x + 1, y + 1, CW - 2, CH - 2, 7); g.stroke(); if (label) { g.fillStyle = 'rgba(255,255,255,.28)'; g.font = (big || 30) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(label, x + CW / 2, y + CH / 2); } }
+let lastF = 0;
+function draw() {
+  now = T(); const dt = Math.min(.05, now - (lastF || now)); lastF = now; if (!G) return; const S = G.S; g.drawImage(BG, 0, 0, W, H); g.drawImage(trail, 0, 0, W, H);
+  slot(colX(0), TOPY, S.stock.length ? '' : (S.waste.length ? '↻' : ''), 36); for (let s = 0; s < 4; s++) slot(colX(3 + s), TOPY, KG.SY[s], 30); for (let c = 0; c < 7; c++) slot(colX(c), TABY, c < 0 ? '' : '', 0);
+  const L = layout(S); flights = flights.filter(f => { if (now >= f.t0 + f.dur) { hide.delete(f.v); return false; } return true; });
+  if (S.stock.length) { const n = Math.min(3, Math.ceil(S.stock.length / 8)); for (let i = 0; i < n; i++) card(0, colX(0) - i * .6, TOPY - i * .8, false); }
+  const zorder = ['w', 'f', 't']; const byZone = { w: [], f: [], t: [] }; for (const k in L.pos) { const p = L.pos[k]; byZone[p.z].push([+k, p]); }
+  for (const z of zorder) { if (z === 'f') { for (let s = 0; s < 4; s++) { if (winAnim) { const gone = winAnim.parts.filter(q => KG.suit(q.v) === s).length, n = 13 - gone; if (n > 0) card(s * 13 + n - 1, colX(3 + s), TOPY, true); continue; } if (S.f[s]) { const v = s * 13 + S.f[s] - 1; if (!hide.has(v)) card(v, colX(3 + s), TOPY, true); else if (S.f[s] > 1) card(v - 1, colX(3 + s), TOPY, true); } } continue; }
+    if (z === 'w') { const n = S.waste.length; for (let i = Math.max(0, n - 3); i < n; i++) { const v = S.waste[i]; if (!hide.has(v)) card(v, L.pos[v].x, TOPY, true, { shadow: i > n - 3 || S.draw === 3 }); } continue; }
+    S.t.forEach((col, c) => col.forEach(v => { const p = L.pos[v & 63]; if (hide.has(v & 63)) return; let o = {}; const ft = flipT[v & 63]; if (ft && p.up) { const pr = (now - ft) / .22; if (pr >= 1) delete flipT[v & 63]; else if (pr >= 0) o.flip = pr; else { card(v & 63, p.x, p.y, false); return; } } let y = p.y; if (nudge && nudge.ids.includes(v & 63)) { const a = now - nudge.t0; if (a < .3) y += Math.sin(a * 60) * 3; else nudge = null; } card(v & 63, p.x, y, p.up, o); }));
+  }
+  // hint
+  if (hintInfo && now < hintInfo.until) { const a = .55 + .45 * Math.sin(now * 10); g.strokeStyle = 'rgba(255,230,90,' + a + ')'; g.lineWidth = 4; if (hintInfo.m.k === 'draw') { rrect(g, colX(0) - 2, TOPY - 2, CW + 4, CH + 4, 8); g.stroke(); } else { for (const id of hintInfo.ids) { const p = L.pos[id]; if (p) { rrect(g, p.x - 2, p.y - 2, CW + 4, (p.z === 't' && id !== hintInfo.ids[hintInfo.ids.length - 1] ? 28 : CH + 4), 8); g.stroke(); } } g.strokeStyle = 'rgba(120,255,160,' + a + ')'; const r = hintInfo.rect; rrect(g, r.x - 2, r.y - 2 + (S.t[hintInfo.m.to] && S.t[hintInfo.m.to].length ? 22 : 0), CW + 4, CH + 4, 8); g.stroke(); } } else hintInfo = null;
+  // flights
+  for (const f of flights) { const t = Math.max(0, (now - f.t0) / f.dur), e = 1 - Math.pow(1 - Math.min(1, t), 3), x = f.x0 + (f.x1 - f.x0) * e, y = f.y0 + (f.y1 - f.y0) * e - Math.sin(Math.min(1, t) * Math.PI) * 10; if (t > 0) card(f.v, x, y, true, { shadow: true }); }
+  // dragged cards
+  if (drag) drag.cards.forEach((v, i) => card(v, drag.x, drag.y + i * 26, true, { shadow: true }));
+  if (winAnim) drawWin(dt);
+}
+function drawWin(dt) {
+  const w = winAnim; const t = now - w.t0; while (w.next < w.order.length && t > w.next * .11) { const v = w.order[w.next++], s = KG.suit(v); w.parts.push({ v, x: colX(3 + s), y: TOPY, vx: (Math.random() < .5 ? -1 : 1) * (60 + Math.random() * 160), vy: -80 - Math.random() * 120, done: false }); A.beep(500 + (w.next % 13) * 40, .04, 'triangle', .05); }
+  for (const p of w.parts) { if (p.done) continue; p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.y > H - CH) { p.y = H - CH; p.vy *= -.72; } if (p.x < -CW || p.x > W) p.done = true; const im = img(p.v, false); tg.drawImage(im, p.x - .5, p.y - .5, CW + 1, CH + 1); }
+  if (!w.done && w.next >= w.order.length && t > w.order.length * .11 + 2.2) { w.done = true; const k = drawN(), s = st.stats[k]; $('winH').textContent = 'You won! 🎉'; $('winP').innerHTML = 'Score <b>' + G.S.score + '</b> · ' + G.S.moves + ' moves · time <b>' + fmtT(G.elapsed) + '</b><br>Won ' + s.w + ' of ' + s.g + ' (draw ' + k + ') · streak ' + s.streak; O.show('ovWin'); }
+}
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+bars();
+if (st.save && st.save.S && st.save.S.t && !KG.won(st.save.S) && (st.save.S.draw === drawN())) { G = { S: st.save.S, elapsed: st.save.elapsed || 0, started: !!st.save.started, seed: st.save.S.seed, mode: 'resume', counted: false }; timerOn = G.started; hud(); autoBtn(); say('Welcome back: your game was kept.'); } else newDeal('random');
+KIT.hook({ get G() { return G; }, get st() { return st; }, get layout() { return layout(G.S); }, doMove, newDeal, undo, hint, autoFinish, get winAnim() { return !!winAnim; }, get busy() { return finding; }, ts: x => { TS = x; }, get flights() { return flights.length; } });
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 45 · 波子棋 Chinese Checkers</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2a1d3a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="波子棋">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.dicerow{display:flex;align-items:center;justify-content:center;gap:14px}
+#die{font-size:68px;line-height:1;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;border-radius:18px;border:5px solid #888;box-shadow:0 3px 8px rgba(0,0,0,.35);user-select:none;cursor:pointer}
+#die.roll{animation:dshake .18s linear infinite}
+@keyframes dshake{0%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-4px)}100%{transform:rotate(-8deg) translateY(0)}}
+#rollBtn{font-size:18px;padding:12px 22px}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}#die{width:76px;height:76px;font-size:54px}}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">波子棋 Chinese Checkers</h2>
+  <p>Chapter 45 · Hop your marbles across the star to the opposite corner. Long hops over any piece (land the same distance beyond), chain hops, 2 to 6 players, play the computer or pass and play</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>TURN</small><b id="s1">Red</b></div>
+    <div class="tstat"><small>MOVES</small><b id="s2">0</b></div>
+    <div class="tstat"><small>IN TARGET</small><b id="s3">0</b></div>
+    <div class="tstat"><small>HOPS</small><b id="s4">Long</b></div>
+  </div>
+  <div class="tmsg" id="msg">Tap one of your marbles</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="Chinese checkers board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">Red wins</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+  </div>
+  <div class="tbar"><span class="kl">Players:</span><span id="nBar"></span></div>
+  <div class="tbar"><span class="kl">Marbles each:</span><span id="pcsBar"></span></div>
+  <div class="tbar"><span class="kl">Hops:</span><span id="ruleBar"></span></div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 Rules of 波子棋 (Chinese Checkers)</h2>
+    <p>波子 (bōzi) is Cantonese for “marble”. Each player has <b>10 marbles</b> (or 15) in one point of a six-pointed star. The aim is to <b>move every marble into the opposite point</b> before anyone else does. Nothing is ever captured.</p>
+    <h3>On your turn, move one marble in one of two ways</h3>
+    <ul>
+      <li><b>Step:</b> to any empty hole next to it (six directions).</li>
+      <li><b>Hop:</b> jump over <b>one</b> marble (yours or anyone’s) in a straight line and land on an empty hole <b>exactly as far beyond it as you were before it</b>. If the marble is next to you, you land just past it. If there are 2 empty holes before the marble, you land 2 holes after it, and so on. All the holes in between, on both sides, must be empty, and the landing hole must be on the board.</li>
+      <li><b>Chain:</b> after a hop you may keep hopping with the same marble, in any direction, as many times as you can. You can stop at any time. Tap the hole where you want to end up.</li>
+    </ul>
+    <h3>Winning</h3>
+    <ul>
+      <li>The first player to have <b>all marbles in the opposite point</b> wins. With 3 or more players the game ends as soon as one player gets there; the result shows how far everyone got.</li>
+      <li>Tip: build a “ladder” of marbles so your others can hop along it, and don’t leave one marble far behind.</li>
+    </ul>
+    <h3>This version</h3>
+    <ul>
+      <li>You are the bottom point (red). Other colours are the computer (Easy, Normal or Hard), or choose “Pass and play”, where the board turns to face whoever’s turn it is.</li>
+      <li>Players: 2 (opposite points), 3, 4 or 6. 15 marbles each is only for 2 or 3 players (otherwise it gets too crowded).</li>
+      <li>The <b>Hops</b> setting switches to the simpler rule where you may only hop over a marble that is right next to you.</li>
+      <li>Select a marble to see where it can go: small dots are steps, rings are hops.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🔮 Chinese checkers (波子棋 bōzi kei in Cantonese, 跳棋 tiàoqí). 121 holes, 10 or 15 marbles each, steps to a neighbouring hole and chained hops. The long-hop rule is the traditional one (jump any distance, landing as far beyond the jumped piece as you were before it); an adjacent-hops-only rule is a setting. Drawings, sounds, rules code and the computer player are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* 波子棋 Chinese checkers: board, moves (steps, hops, long hops, chains), win test and the computer player. No drawing.
+   The 121 holes are cells of a triangular grid with cube coordinates (x, y, z), x+y+z = 0.
+   Star = the hexagon |x|,|y|,|z| <= 4 (61 holes) plus six corner triangles of 10 holes. Camps are numbered clockwise from the bottom: 0..5. */
+const CC_TIPS = [[-4, -4, 8], [-8, 4, 4], [-4, 8, -4], [4, 4, -8], [8, -4, -4], [4, -8, 4]];
+const CC_DIRS = [[1, -1, 0], [1, 0, -1], [0, 1, -1], [-1, 1, 0], [-1, 0, 1], [0, -1, 1]];   // six neighbours, going round
+const CC_X = [], CC_Y = [], CC_Z = [], CC_ID = new Map();
+(function () { for (let x = -8; x <= 8; x++) for (let y = -8; y <= 8; y++) { const z = -x - y; if (z < -8 || z > 8) continue;
+  const hex = Math.abs(x) <= 4 && Math.abs(y) <= 4 && Math.abs(z) <= 4;
+  const tri = CC_TIPS.some(t => { const a = t.findIndex(v => Math.abs(v) === 8), s = Math.sign(t[a]); const v = [x, y, z]; return s * v[a] >= 5 && v.every((q, i) => i === a || s * q >= -4); });
+  if (hex || tri) { CC_ID.set(x + ',' + y + ',' + z, CC_X.length); CC_X.push(x); CC_Y.push(y); CC_Z.push(z); } } })();
+const CC_N = CC_X.length;                                  // 121
+const ccId = (x, y, z) => { const v = CC_ID.get(x + ',' + y + ',' + z); return v === undefined ? -1 : v; };
+const CC_NB = CC_X.map((_, c) => CC_DIRS.map(d => ccId(CC_X[c] + d[0], CC_Y[c] + d[1], CC_Z[c] + d[2])));
+const ccDist = (a, b) => (Math.abs(CC_X[a] - CC_X[b]) + Math.abs(CC_Y[a] - CC_Y[b]) + Math.abs(CC_Z[a] - CC_Z[b])) / 2;
+const CC_TIP = CC_TIPS.map(t => ccId(t[0], t[1], t[2]));
+function ccCamp(camp, n) { // the cells of a camp: 10 (4 rows) or 15 (5 rows)
+  const t = CC_TIPS[camp], a = t.findIndex(v => Math.abs(v) === 8), s = Math.sign(t[a]), thr = n === 15 ? 4 : 5, out = [];
+  for (let c = 0; c < CC_N; c++) { const v = [CC_X[c], CC_Y[c], CC_Z[c]]; if (s * v[a] >= thr && v.every((q, i) => i === a || s * q >= -4)) out.push(c); }
+  return out;
+}
+const CC_SEATS = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 6: [0, 1, 2, 3, 4, 5] };
+
+function ccNew(nPlayers, n, rule) {
+  const camps = CC_SEATS[nPlayers], owner = new Array(CC_N).fill(-1);
+  camps.forEach((cp, i) => ccCamp(cp, n).forEach(c => { owner[c] = i; }));
+  return { camps, n, rule: rule || 'long', owner, turn: 0, winner: -1, moves: 0, last: null };
+}
+const ccClone = S => ({ ...S, owner: S.owner.slice(), camps: S.camps.slice() });
+const ccTarget = (S, p) => ccCamp((S.camps[p] + 3) % 6, S.n);
+const ccPieces = (S, p) => { const o = []; for (let c = 0; c < CC_N; c++) if (S.owner[c] === p) o.push(c); return o; };
+
+/* every cell the piece on `from` can reach this turn: Map cell -> path (list of cells, starting with `from`).
+   A step goes to a neighbour. A hop goes over the first piece in a straight line and lands the same distance beyond it
+   (long rule; the 'short' rule only allows hopping a piece that is next to you). Hops can be chained. */
+function ccReach(S, from) {
+  const own = S.owner, res = new Map(); res.set(from, [from]);
+  const saved = own[from]; own[from] = -1;                  // the moving piece does not block itself
+  for (const nb of CC_NB[from]) if (nb >= 0 && own[nb] < 0 && !res.has(nb)) res.set(nb, [from, nb]);
+  const queue = [from], seen = new Set([from]);
+  while (queue.length) {
+    const c = queue.shift(), path = res.get(c);
+    for (let d = 0; d < 6; d++) {
+      let m = 0, cur = c, hit = -1;
+      while (true) { cur = CC_NB[cur][d]; if (cur < 0) break; m++; if (own[cur] >= 0) { hit = cur; break; } if (S.rule === 'short') break; }
+      if (hit < 0) continue;
+      if (S.rule === 'short' && m !== 1) continue;
+      let land = hit, ok = true;
+      for (let i = 0; i < m; i++) { land = CC_NB[land][d]; if (land < 0) { ok = false; break; } if (own[land] >= 0) { ok = false; break; } }
+      if (!ok || seen.has(land)) continue;
+      seen.add(land); const np = path.concat([land]); if (!res.has(land)) res.set(land, np); queue.push(land);
+      if (res.get(land).length > np.length) res.set(land, np);
+    }
+  }
+  own[from] = saved; res.delete(from); return res;
+}
+function ccMoves(S, p) { const out = []; for (const c of ccPieces(S, p)) for (const [to, path] of ccReach(S, c)) out.push({ from: c, to, path }); return out; }
+function ccPlay(S, m) {
+  const p = S.owner[m.from]; S.owner[m.from] = -1; S.owner[m.to] = p; S.last = m; S.moves++;
+  if (ccWon(S, p)) S.winner = p; else S.turn = (S.turn + 1) % S.camps.length;
+}
+const ccWon = (S, p) => { const tg = new Set(ccTarget(S, p)); const pcs = ccPieces(S, p); return pcs.length > 0 && pcs.every(c => tg.has(c)); };
+const ccInTarget = (S, p) => { const tg = new Set(ccTarget(S, p)); return ccPieces(S, p).filter(c => tg.has(c)).length; };
+
+/* ---------- the computer ---------- */
+function ccGain(S, p, m, tipOf, tg) {
+  let g = ccDist(m.from, tipOf) - ccDist(m.to, tipOf);
+  const inA = tg.has(m.from), inB = tg.has(m.to);
+  if (inA && !inB) g -= 10; if (!inA && inB) g += 2;
+  return g;
+}
+function ccChoose(S, level) {
+  const p = S.turn, tipOf = CC_TIP[(S.camps[p] + 3) % 6], tg = new Set(ccTarget(S, p)), mv = ccMoves(S, p);
+  if (!mv.length) return null;
+  const pcs = ccPieces(S, p), mean = pcs.reduce((a, c) => a + ccDist(c, tipOf), 0) / pcs.length;
+  const noise = level === 'easy' ? 5 : level === 'hard' ? 0 : 1.2;
+  let best = null, bs = -1e9;
+  const scored = mv.map(m => { const lag = Math.max(0, ccDist(m.from, tipOf) - mean); return { m, s: ccGain(S, p, m, tipOf, tg) + .25 * lag * (ccDist(m.from, tipOf) > ccDist(m.to, tipOf) ? 1 : 0) }; });
+  if (level === 'hard') { // add the best gain available next turn for the same piece set
+    scored.sort((a, b) => b.s - a.s);
+    for (const o of scored.slice(0, 12)) { const T = ccClone(S); T.owner[o.m.from] = -1; T.owner[o.m.to] = p; let nb = 0; for (const m2 of ccMoves(T, p)) nb = Math.max(nb, ccGain(T, p, m2, tipOf, tg)); o.s += .5 * nb; }
+  }
+  for (const o of scored) { const v = o.s + (Math.random() - .5) * 2 * noise; if (v > bs) { bs = v; best = o.m; } }
+  return best;
+}
+if (typeof module !== 'undefined') module.exports = { CC_N, CC_X, CC_Y, CC_Z, CC_NB, CC_TIPS, CC_TIP, CC_SEATS, ccId, ccDist, ccCamp, ccNew, ccClone, ccTarget, ccPieces, ccReach, ccMoves, ccPlay, ccWon, ccInTarget, ccChoose };
+
+/* 波子棋 Chinese checkers. cc.js has the board, the moves and the computer player (checked on its own); this file is the drawing, the input and the game flow. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.cc.v1', { dark: true, sound: true, opp: 'cpu', n: 2, pcs: 10, rule: 'long', level: 'normal', speed: 'normal', rotate: true, marbles: 'glass', board: 'wood', wins: 0, losses: 0 }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd']);
+settings([
+  { id: 'level', label: 'Computer level', type: 'select', options: [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard (looks one move further)']], def: 'normal' },
+  { id: 'speed', label: 'Marble speed', type: 'select', options: [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']], def: 'normal' },
+  { id: 'rotate', label: 'Pass and play: turn the board to face the player', type: 'check', def: true },
+  { id: 'marbles', label: 'Marbles', type: 'select', options: [['glass', 'Glass'], ['flat', 'Flat']], def: 'glass' },
+  { id: 'board', label: 'Board', type: 'select', options: [['wood', 'Wood'], ['green', 'Green felt'], ['night', 'Night']], def: 'wood' },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S0.save(); });
+
+const W = 640, SZ = 24.5, cv = $('cv'), C = KIT.canvas(cv, W, W, 2), ctx = C.ctx;
+const COLS = ['#e03b3b', '#f0b429', '#2fa84f', '#2f6fdb', '#8e44c8', '#f07b22'], NAME = ['Red', 'Yellow', 'Green', 'Blue', 'Purple', 'Orange'];
+const BOARDS = { wood: { bg: '#8a5a2b', hole: '#5a3716', rim: '#a8743c' }, green: { bg: '#2d6a4f', hole: '#1b4332', rim: '#40916c' }, night: { bg: '#2b2f4a', hole: '#171a2e', rim: '#454b78' } };
+const SPEED = { slow: .32, normal: .55, fast: 1.1 };
+const cpuTurn = () => st.opp === 'cpu' && S.turn !== 0;
+
+let S, hist = [], sel = -1, reach = null, anim = null, hintMv = null, hintT = 0, over = false, thinking = false, hover = -1, drag = null, token = 0, viewAng = 0;
+
+/* ---------- geometry ---------- */
+const pixOf = c => { const q = CC_X[c], r = CC_Z[c]; let x = SZ * Math.sqrt(3) * (q + r / 2), y = SZ * 1.5 * r; const a = viewAng, ca = Math.cos(a), sa = Math.sin(a); return [W / 2 + x * ca - y * sa, W / 2 + x * sa + y * ca]; };
+const cellAt = (px, py) => { let best = -1, bd = 21; for (let c = 0; c < CC_N; c++) { const [x, y] = pixOf(c), d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = c; } } return best; };
+function setView() { // pass and play: bring the camp of the player to move to the bottom
+  viewAng = (st.opp === 'two' && st.rotate && S && !over) ? -S.camps[S.turn] * Math.PI / 3 : 0;
+}
+
+/* ---------- flow ---------- */
+function newGame() {
+  token++; O.hide('ovEnd'); over = false; thinking = false; sel = -1; reach = null; anim = null; hintMv = null; hist = [];
+  if (st.n >= 4) st.pcs = 10;
+  S = ccNew(st.n, st.pcs, st.rule); setView(); bars(); hud(); rec(); setMsg(prompt()); kick();
+}
+const prompt = () => over ? '' : cpuTurn() ? NAME[S.camps[S.turn]] + ' (computer) is thinking…' : (st.opp === 'cpu' ? 'Your turn. ' : NAME[S.camps[S.turn]] + ' to move. ') + 'Tap one of your marbles.';
+function kick() { const t = token; if (over) return; hud(); if (cpuTurn()) { thinking = true; setTimeout(() => { if (t !== token) return; const m = ccChoose(S, st.level); thinking = false; if (m) doMove(m); else { S.turn = (S.turn + 1) % S.camps.length; kick(); } }, 450); } }
+function snap() { return { owner: S.owner.slice(), turn: S.turn, moves: S.moves, last: S.last }; }
+function doMove(m) {
+  if (anim || over) return; hist.push(snap()); const p = S.turn, pts = m.path.map(pixOf); let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  const hops = m.path.length - 1; sel = -1; reach = null; hintMv = null;
+  anim = { m, p, pts, len, t0: performance.now(), dur: Math.max(220, len / SPEED[st.speed]), played: 0 };
+  ccPlay(S, m); const t = token;
+  for (let i = 0; i < hops; i++) A.beep(420 + i * 70, .06, 'triangle', .12, i * (anim.dur / 1000 / Math.max(1, hops)));
+  setTimeout(() => {
+    if (t !== token) return; anim = null; hud();
+    if (S.winner >= 0) return endGame();
+    setView(); setMsg(prompt()); kick();
+  }, anim.dur + 40);
+}
+function undo() {
+  if (anim || !hist.length || st.opp === 'two' && false) return; token++; thinking = false; over = false; O.hide('ovEnd');
+  const back = () => { const h = hist.pop(); S.owner = h.owner; S.turn = h.turn; S.moves = h.moves; S.last = h.last; S.winner = -1; };
+  back(); if (st.opp === 'cpu') while (S.turn !== 0 && hist.length) back();
+  sel = -1; reach = null; hintMv = null; setView(); hud(); setMsg(prompt()); kick();
+}
+function hint() {
+  if (over || anim || cpuTurn()) return; const m = ccChoose(S, 'hard'); if (m) { hintMv = m; hintT = performance.now() + 3500; setMsg('Hint: move the marble that glows to the blue ring.'); }
+}
+function endGame() {
+  over = true; const w = S.winner, human = st.opp === 'cpu' ? w === 0 : null;
+  if (st.opp === 'cpu') { if (human) st.wins++; else st.losses++; S0.save(); }
+  const rows = S.camps.map((c, i) => NAME[c] + ' ' + ccInTarget(S, i) + '/' + st.pcs).join(', '), h = st.opp === 'cpu' ? (human ? 'You win! 🎉' : NAME[S.camps[w]] + ' wins') : NAME[S.camps[w]] + ' wins!';
+  $('endH').textContent = h; $('endP').textContent = 'Marbles home: ' + rows + '.'; setMsg(h); rec(); setView(); A.beep(880, .3, 'sine', .15, 0); A.beep(1100, .3, 'sine', .15, .15); setTimeout(() => O.show('ovEnd'), 600);
+}
+
+/* ---------- screen bits ---------- */
+function setMsg(t) { $('msg').textContent = t; }
+function hud() {
+  $('s1').textContent = over ? 'Over' : NAME[S.camps[S.turn]] + (cpuTurn() ? ' 🤖' : ''); $('s2').textContent = S.moves; $('s3').textContent = ccInTarget(S, S.turn) + '/' + st.pcs; $('s4').textContent = st.rule === 'long' ? 'Long' : 'Adjacent';
+  const col = COLS[S.camps[S.turn]]; $('s1').style.color = col;
+}
+function rec() { $('recLine').textContent = st.opp === 'cpu' ? 'You: ' + st.wins + ' wins, ' + st.losses + ' losses' : ''; }
+function bars() {
+  const mk = (id, arr, cur, act) => { $(id).innerHTML = arr.map(([k, t]) => '<button class="btn sm' + (String(cur) === String(k) ? ' on' : '') + '" data-act="' + act + '" data-k="' + k + '" type="button">' + t + '</button>').join(''); };
+  mk('nBar', [[2, '2'], [3, '3'], [4, '4'], [6, '6']], st.n, 'n');
+  mk('pcsBar', st.n <= 3 ? [[10, '10'], [15, '15']] : [[10, '10']], st.pcs, 'pcs');
+  mk('ruleBar', [['long', 'Long hops (any distance)'], ['short', 'Adjacent hops only']], st.rule, 'rule');
+  mk('oppBar', [['cpu', '🤖 You (Red) vs computer'], ['two', '👥 Pass and play']], st.opp, 'opp');
+}
+
+/* ---------- input ---------- */
+const mine = c => c >= 0 && S.owner[c] === S.turn;
+const canPlay = () => !over && !anim && !thinking && !cpuTurn();
+function select(c) { sel = c; reach = ccReach(S, c); if (!reach.size) setMsg('That marble is boxed in. Try another.'); else setMsg(''); A.beep(520, .04, 'sine', .08); }
+function tryTo(c) { const path = reach && reach.get(c); if (path) { doMove({ from: sel, to: c, path }); return true; } return false; }
+cv.addEventListener('pointerdown', e => {
+  if (!canPlay()) return; const p = C.pos(e), c = cellAt(p.x, p.y); if (c < 0) { sel = -1; reach = null; return; }
+  cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+  if (sel >= 0 && tryTo(c)) return;
+  if (mine(c)) { select(c); drag = { c, sx: p.x, sy: p.y, moved: false }; } else { sel = -1; reach = null; }
+});
+cv.addEventListener('pointermove', e => { const p = C.pos(e); if (drag && Math.hypot(p.x - drag.sx, p.y - drag.sy) > 10) drag.moved = true; if (e.pointerType === 'mouse' && canPlay()) hover = cellAt(p.x, p.y); });
+cv.addEventListener('pointerup', e => { if (!drag) return; const p = C.pos(e), c = cellAt(p.x, p.y), d = drag; drag = null; if (d.moved && c >= 0 && c !== d.c && sel === d.c) tryTo(c); });
+cv.addEventListener('pointerleave', () => { hover = -1; });
+ui.actions(document.body, {
+  restart: newGame, undo, hint, closeov: () => O.hide('ovEnd'),
+  n: b => { st.n = +b.dataset.k; S0.save(); newGame(); }, pcs: b => { st.pcs = +b.dataset.k; S0.save(); newGame(); }, rule: b => { st.rule = b.dataset.k; S0.save(); newGame(); }, opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); }
+});
+window.addEventListener('keydown', e => { if (/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; if (e.key === 'u') undo(); else if (e.key === 'h') hint(); });
+
+/* ---------- drawing ---------- */
+function marble(g, x, y, r, col, alpha) {
+  g.save(); g.globalAlpha = alpha == null ? 1 : alpha;
+  if (st.marbles === 'flat') { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 1.5; g.stroke(); }
+  else {
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(x + 1.5, y + 2.5, r, 0, 7); g.fill();
+    const gr = g.createRadialGradient(x - r * .35, y - r * .4, r * .08, x, y, r); gr.addColorStop(0, '#ffffff'); gr.addColorStop(.25, col); gr.addColorStop(1, 'rgba(0,0,0,.65)');
+    g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  g.restore();
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / W, 0, 0); if (!S) return; const t = performance.now(), B = BOARDS[st.board] || BOARDS.wood;
+  g.fillStyle = '#1b1426'; g.fillRect(0, 0, W, W);
+  // the star-shaped board: a fat disc behind the holes
+  g.fillStyle = B.bg; g.strokeStyle = B.rim; g.lineWidth = 3;
+  for (let c = 0; c < CC_N; c++) { const [x, y] = pixOf(c); g.beginPath(); g.arc(x, y, SZ * 1.05, 0, 7); g.fill(); }
+  for (let c = 0; c < CC_N; c++) { const [x, y] = pixOf(c); g.beginPath(); g.arc(x, y, SZ * 1.05, 0, 7); }
+  // camp tints and holes
+  const tint = new Array(CC_N).fill(-1); for (let k = 0; k < 6; k++) ccCamp(k, 10).forEach(c => tint[c] = k);
+  const targetOf = new Set(S.camps.map((c, i) => ccTarget(S, i)).flat());
+  for (let c = 0; c < CC_N; c++) { const [x, y] = pixOf(c); g.fillStyle = B.hole; g.beginPath(); g.arc(x, y, 16.5, 0, 7); g.fill(); if (tint[c] >= 0) { g.strokeStyle = COLS[tint[c]]; g.globalAlpha = .55; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, 16.5, 0, 7); g.stroke(); g.globalAlpha = 1; } }
+  // last move trail
+  if (S.last && !anim) { g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 4; g.lineJoin = 'round'; g.beginPath(); S.last.path.forEach((c, i) => { const [x, y] = pixOf(c); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); }
+  // marbles
+  const hintFrom = hintMv && hintT > t ? hintMv.from : -1, hintTo = hintMv && hintT > t ? hintMv.to : -1;
+  for (let c = 0; c < CC_N; c++) {
+    const o = S.owner[c]; if (o < 0) continue; if (anim && anim.m.to === c) continue; const [x, y] = pixOf(c);
+    marble(g, x, y, 15, COLS[S.camps[o]]);
+    if (c === sel) { g.strokeStyle = '#fff'; g.lineWidth = 3.5; g.beginPath(); g.arc(x, y, 19, 0, 7); g.stroke(); }
+    if (c === hintFrom) { const pu = .5 + .5 * Math.sin(t / 130); g.strokeStyle = 'rgba(80,170,255,' + (.6 + .4 * pu) + ')'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, 19 + pu * 3, 0, 7); g.stroke(); }
+  }
+  if (hintTo >= 0) { const [x, y] = pixOf(hintTo), pu = .5 + .5 * Math.sin(t / 130); g.strokeStyle = 'rgba(80,170,255,' + (.6 + .4 * pu) + ')'; g.lineWidth = 4; g.beginPath(); g.arc(x, y, 18, 0, 7); g.stroke(); }
+  // where the selected marble can go
+  if (sel >= 0 && reach && !anim) {
+    const col = COLS[S.camps[S.turn]];
+    for (const [c, path] of reach) {
+      const [x, y] = pixOf(c); if (path.length === 2 && ccDist(path[0], c) === 1) { g.fillStyle = col; g.globalAlpha = .8; g.beginPath(); g.arc(x, y, 6, 0, 7); g.fill(); g.globalAlpha = 1; }
+      else { g.strokeStyle = col; g.lineWidth = 4; g.beginPath(); g.arc(x, y, 12, 0, 7); g.stroke(); g.fillStyle = col; g.globalAlpha = .35; g.fill(); g.globalAlpha = 1; }
+    }
+    if (hover >= 0 && reach.has(hover)) { const path = reach.get(hover); g.strokeStyle = col; g.lineWidth = 3; g.setLineDash([6, 6]); g.beginPath(); path.forEach((c, i) => { const [x, y] = pixOf(c); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]); }
+  }
+  if (anim) {
+    const k = Math.min(1, (t - anim.t0) / anim.dur); let d = k * anim.len, x = anim.pts[0][0], y = anim.pts[0][1];
+    for (let i = 1; i < anim.pts.length; i++) { const a = anim.pts[i - 1], b = anim.pts[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (d <= L || i === anim.pts.length - 1) { const f = L ? Math.min(1, d / L) : 1; x = a[0] + (b[0] - a[0]) * f; y = a[1] + (b[1] - a[1]) * f; break; } d -= L; }
+    const hopping = anim.pts.length > 2 || ccDist(anim.m.from, anim.m.to) > 1, lift = hopping ? Math.sin(((d / 60) % 1) * Math.PI) * 6 : 0;
+    marble(g, x, y - lift, 15.5, COLS[S.camps[anim.p]]);
+  }
+  // whose turn: the frame
+  g.strokeStyle = COLS[S.camps[S.turn]]; g.lineWidth = 6; g.globalAlpha = over ? 0 : 1; g.beginPath(); g.roundRect ? g.roundRect(3, 3, W - 6, W - 6, 12) : g.rect(3, 3, W - 6, W - 6); g.stroke(); g.globalAlpha = 1;
+}
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get over() { return over; }, get thinking() { return thinking; }, get sel() { return sel; }, get reach() { return reach; }, get anim() { return !!anim; }, get st() { return st; }, get hist() { return hist.length; },
+  id: ccId, xy: c => { const [x, y] = pixOf(c), r = cv.getBoundingClientRect(); return [r.left + x / W * r.width, r.top + y / W * r.height]; },
+  move: (a, b) => { const r = ccReach(S, a), path = r.get(b); if (path) { doMove({ from: a, to: b, path }); return true; } return false; },
+  setOwner: (cells, who) => { S.owner.fill(-1); cells.forEach(([c, o]) => S.owner[c] = o); sel = -1; reach = null; hud(); }, newGame, undo
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

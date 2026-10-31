@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Work tool · Game Arena</title>
+
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:none;--good:#52c58a;--bad:#ef7b72;--amber:#e6a24b;--hole:#0a0f15}
+:root[data-theme="light"]{--good:#1d7549;--bad:#b0352d;--amber:#b5680d;--hole:#dfe6ef}
+body{padding:1rem .5rem}main{padding:.8rem;max-width:1180px}
+.ar{display:flex;flex-direction:column;gap:12px}
+.ar-nav{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line)}
+.ar-nav a{padding:8px 13px;border:1px solid transparent;border-bottom:0;border-radius:8px 8px 0 0;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px;margin-bottom:-1px}
+.ar-nav a[aria-current="page"]{color:var(--fg);background:var(--panel2);border-color:var(--line)}
+.ar-nav a:focus-visible,.ar-card:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ar-tab{display:none}.ar-tab.on{display:block}
+.ar-bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;position:sticky;top:0;z-index:5;backdrop-filter:blur(6px)}
+.ar-grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ar-grp>span{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ar-seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
+.ar-seg button{border:0;background:transparent;color:var(--fg);font:600 13.5px ui-monospace,Menlo,Consolas,monospace;padding:7px 10px;cursor:pointer;min-width:42px}
+.ar-seg button+button{border-left:1px solid var(--line)}
+.ar-seg button[aria-pressed="true"]{background:var(--accent);color:#000}
+.ar-status{font:12.5px ui-monospace,Menlo,Consolas,monospace;color:var(--muted);margin-left:auto}
+.ar-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.ar-chip{border:1px solid var(--line);background:transparent;color:var(--fg);font:600 12.5px var(--font);padding:4px 10px;border-radius:99px;cursor:pointer}
+.ar-chip[aria-pressed="true"]{background:var(--accent);color:#000;border-color:transparent}
+.ar-chip small{font-family:ui-monospace,Menlo,Consolas,monospace;opacity:.7;margin-left:4px}
+.ar-grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:10px;margin-top:10px}
+.ar-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:5px;min-width:0;cursor:pointer;position:relative}
+.ar-card.paused{border-color:var(--amber)}
+.ar-card svg{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:8px;background:var(--panel2)}
+.ar-top{display:flex;justify-content:space-between;gap:6px;font:600 11px ui-monospace,Menlo,Consolas,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.ar-ttl{font-size:12.5px;line-height:1.3;font-weight:600;min-height:2.6em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.ar-note-line{font:11.5px ui-monospace,Menlo,Consolas,monospace;color:var(--muted);min-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ar-prog{height:3px;background:var(--panel2);border-radius:3px;overflow:hidden}.ar-prog i{display:block;height:100%;background:var(--accent);width:0}
+.ar-res{font:700 11.5px var(--font);min-height:1.4em}.ar-res.w1,.ar-res.w2{color:var(--good)}.ar-res.w0{color:var(--amber)}
+.ar-ptag{position:absolute;top:14px;right:14px;background:var(--amber);color:#000;font:700 10.5px ui-monospace,Menlo,Consolas,monospace;padding:1px 6px;border-radius:5px;display:none}.ar-card.paused .ar-ptag{display:block}
+.ar-empty{grid-column:1/-1;border:1px dashed var(--line);border-radius:12px;padding:30px 16px;text-align:center;color:var(--muted)}
+.ar-read{max-width:92ch;margin-left:auto;margin-right:auto}
+.ar-read h2{font-size:1.4rem;color:var(--accent);margin:1.6rem 0 .4rem}.ar-read h2:first-child{margin-top:.2rem}
+.ar-read h3{font-size:1.02rem;color:var(--accent-light);margin:1rem 0 .3rem}
+.ar-read ul,.ar-read ol{margin:.4rem 0;padding-left:1.3rem}.ar-read li{margin:.35rem 0}
+.ar-read p{margin:.5rem 0}
+.ar-read code,.ar-code{font:12.5px ui-monospace,Menlo,Consolas,monospace;background:var(--panel2);padding:1px 5px;border-radius:5px}
+pre.ar-code{padding:9px 11px;border-radius:9px;overflow-x:auto;margin:6px 0;white-space:pre}
+.ar-lead{font-size:1.05rem;color:var(--fg);font-style:italic}
+.ar-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px;margin:.6rem 0}
+.ar-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.4rem 1rem .6rem}
+.ar-tw{overflow-x:auto;margin:.6rem 0}
+.ar-read table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:420px}
+.ar-read th,.ar-read td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.ar-read th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ar-note{border-left:3px solid var(--amber);padding:6px 12px;color:var(--muted);margin:1rem 0;background:var(--panel);border-radius:0 8px 8px 0}
+.ar-flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.8rem 0}
+.ar-flow span{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:.85rem;font-weight:600}
+.ar-flow i{color:var(--muted);font-style:normal}
+.ar-ok{color:var(--good);font-weight:700}.ar-wait{color:var(--amber);font-weight:700}
+@media(max-width:560px){.ar-status{margin-left:0;width:100%}.ar-flow i{display:none}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+/* files strip, play, learn, flow charts */
+.ar-files{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.ar-filerow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.ar-file{display:flex;align-items:center;gap:8px;min-width:0}
+.ar-fname{font:12.5px ui-monospace,Menlo,Consolas,monospace;color:var(--muted);max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ar-fname.ok{color:var(--good)}
+.ar-eng{font-size:13px;color:var(--muted);min-height:1.3em}.ar-eng.bad{color:var(--bad)}.ar-eng.good{color:var(--good)}
+a.btn{text-decoration:none}
+.ar-grp label{font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+input[type=text],select{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:13px var(--font)}
+#nums{width:15ch}
+.ar-playwrap{align-items:start}
+.ar-playbar{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:8px}
+.ar-board{max-width:540px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px}
+.ar-board svg{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:8px;background:var(--panel2);touch-action:manipulation;cursor:pointer}
+.ar-board .ar-empty{grid-column:auto}
+.ar-playbtns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.ar-opinion{min-height:1.4em;font-size:.9rem;margin:.4rem 0;color:var(--fg)}
+.ar-banner{margin:6px 2px 2px;font-weight:700}
+.ar-form{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;margin:.4rem 0}
+.ar-form label{font-size:.85rem;color:var(--muted)}
+.ar-prog2{height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;overflow:hidden}.ar-prog2 i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.ar-log{font:12.5px ui-monospace,Menlo,Consolas,monospace;color:var(--muted);margin:8px 0;min-height:2.6em;overflow-wrap:anywhere}
+.ar-report{white-space:pre-wrap;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;overflow-x:auto}
+.ar-stat{list-style:none;padding:0!important;margin:.3rem 0}.ar-stat li{margin:.2rem 0}
+/* flow charts (inline SVG, drawn by game.js) */
+.ar-fc{max-width:520px;margin:.6rem auto}
+.ar-fc svg{display:block;width:100%;height:auto}
+.ar-fc.wide{max-width:680px}
+.fc-bar-a{fill:var(--amber)}.fc-bar-b{fill:#5ab5d3}.fc-bar-c{fill:var(--good)}.fc-small{fill:var(--muted);font:11px var(--font)}.fc-tl{fill:var(--fg);font:12px var(--font)}.fc-tl.b{font-weight:700}.fc-dot{fill:var(--panel2);stroke:var(--muted);stroke-width:1.2}.fc-dot.win{fill:var(--good);stroke:var(--good)}.fc-q{fill:var(--amber);font:700 14px var(--font);text-anchor:middle}
+.fc-n{fill:var(--panel2);stroke:var(--line);stroke-width:1.2}
+.fc-rule .fc-n{stroke:var(--accent)}.fc-ai .fc-n{fill:rgba(90,181,211,.16);stroke:#5ab5d3}.fc-data .fc-n{fill:rgba(230,162,75,.14);stroke:var(--amber)}.fc-check .fc-n{fill:rgba(82,197,138,.14);stroke:var(--good)}
+.fc-t{fill:var(--fg);font:12px var(--font);text-anchor:middle}.fc-t.b{font-weight:700}.fc-lab{fill:var(--muted);font:11px var(--font);text-anchor:middle}
+.fc-e{stroke:var(--muted);stroke-width:1.5;fill:none}.fc-arrow{fill:var(--muted)}
+.ar-read a,.ar-box a{color:var(--accent-light)}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Chapter 3 - Game Arena</h2>
+  <p>Load your trained model and game files, watch the games, play the model, <br>
+    let it learn from your games, and download the updated files. <br>
+    Plus the code explained with flow charts, and the thinking behind Flock (Chapter 59) and Runes (Chapter 60)<br>
+    <small>All code, explanations and diagrams on this page were written by Claude (an AI assistant), at Kevin's request.</small></p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="ar">
+  <!-- YOUR FILES: always on top -->
+  <section class="ar-files" aria-label="Your files">
+    <div class="ar-filerow">
+      <div class="ar-file"><label class="btn" for="fModel">📦 1. Choose model file</label><input type="file" id="fModel" accept=".npz" hidden><span class="ar-fname" id="nModel">none yet</span></div>
+      <div class="ar-file"><label class="btn" for="fGames">🎞 2. Choose games file</label><input type="file" id="fGames" accept=".jsonl,.json,.txt" hidden><span class="ar-fname" id="nGames">none yet</span></div>
+      <button class="btn" id="bSample" type="button" title="A small tic-tac-toe model and 60 games, so you can try everything">🧪 Try the sample</button>
+      <a class="btn" href="rlgames.zip" download>⬇ Download rlgames package</a>
+    </div>
+    <div class="ar-eng" id="engine" role="status" aria-live="polite">The Python engine starts when you choose a file (about 17 MB the first time; your browser usually remembers it). Nothing you choose leaves your computer.</div>
+  </section>
+
+  <nav class="ar-nav" aria-label="Sections"><a href="#games" id="nav-games">🎞 Watch games</a><a href="#play" id="nav-play">🎮 Play the model</a><a href="#learn" id="nav-learn">🧠 Learn &amp; download</a><a href="#rl" id="nav-rl">📚 RL explained</a><a href="#code" id="nav-code">🛠 How the code works</a><a href="#ideas" id="nav-ideas">💡 Ideas: Flock &amp; Runes</a></nav>
+
+  <!-- WATCH GAMES -->
+  <section class="ar-tab" id="tab-games">
+    <div class="ar-bar" role="group" aria-label="Playback">
+      <button class="btn primary" id="play" type="button">Pause</button>
+      <div class="ar-grp"><span>Speed</span><div class="ar-seg" id="speeds" role="group" aria-label="Playback speed"></div></div>
+      <div class="ar-grp"><span>Boards</span><div class="ar-seg" id="slots" role="group" aria-label="Number of boards"></div></div>
+      <div class="ar-grp"><label for="nums">Game numbers</label><input type="text" id="nums" placeholder="e.g. 100, 105-110" maxlength="60" autocomplete="off"><button class="btn sm" id="bShow" type="button">Show</button></div>
+      <div class="ar-status" id="status" aria-live="polite"></div>
+    </div>
+    <div class="ar-grid" id="grid"></div>
+    <p class="hint">Only the games in the file you chose are shown. One move takes 2 seconds at 1×. Tap a board to pause just that board; Space pauses everything. Amber rings mark what changed on the last move. X always moves first. Leave "Game numbers" empty to see an even sample of the file; type numbers (the same numbers as <code>python run.py replay game 100</code>) to see exact games.</p>
+  </section>
+
+  <!-- PLAY -->
+  <section class="ar-tab" id="tab-play">
+    <div class="ar-two ar-playwrap">
+      <div>
+        <div class="ar-playbar">
+          <div class="ar-grp"><span>You play</span><div class="ar-seg" id="pSide" role="group" aria-label="Which side you play"></div></div>
+          <div class="ar-grp"><span>Model thinks</span><div class="ar-seg" id="pSims" role="group" aria-label="Model strength"></div></div>
+        </div>
+        <div class="ar-board" id="pBoard" aria-live="polite"><div class="ar-empty">Load a model file (or press "Try the sample") to play against it.</div></div>
+        <div class="ar-playbtns"><button class="btn primary" id="pNew" type="button" disabled>New game</button><button class="btn" id="pUndo" type="button" disabled>Undo</button><button class="btn" id="pHint" type="button" disabled>Hint</button><button class="btn" id="pPass" type="button" hidden>Pass</button></div>
+      </div>
+      <div class="ar-box">
+        <h3>How to play</h3>
+        <ul>
+          <li id="pHow">Load a model to start.</li>
+          <li>The model thinks by <b>tree search</b> guided by its network. "Model thinks" sets how many positions it looks at per move: more is stronger and slower.</li>
+          <li>Every finished game is kept for learning. Games you played: <b id="pCount">0</b>.</li>
+        </ul>
+        <div class="ar-opinion" id="pOpinion"></div>
+        <p class="hint" style="text-align:left" id="pMsg">&nbsp;</p>
+        <button class="btn" id="goLearn" type="button">Teach the model with these games →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEARN -->
+  <section class="ar-tab ar-read" id="tab-learn">
+    <h2>Let the model learn, then download everything</h2>
+    <p>The learner reads <b>your games file</b> and <b>the games you played</b>, copies what winners did, learns who tends to win, and plays some new games against itself. Then it measures itself against fixed opponents <b>before and after</b>, so you can see if it really improved. It runs on this page with the same Python code as in <code>rlgames.zip</code>.</p>
+    <div class="ar-two">
+      <div class="ar-box">
+        <h3>What will be used</h3>
+        <ul class="ar-stat" id="lStat"><li>Load a model first.</li></ul>
+        <h3>Settings</h3>
+        <div class="ar-form">
+          <label for="oRounds">Rounds</label><select id="oRounds"><option>1</option><option selected>3</option><option>5</option><option>10</option></select>
+          <label for="oSelf">Self-play games per round</label><select id="oSelf"><option>0</option><option selected>6</option><option>12</option><option>24</option></select>
+          <label for="oSims">Search per move</label><select id="oSims"><option value="20">quick (20)</option><option value="" selected>normal (default for this game)</option><option value="100">deep (100)</option></select>
+          <label for="oEval">Check games per opponent</label><select id="oEval"><option>4</option><option selected>8</option><option>16</option></select>
+          <label for="oHuman">Weight of games you played</label><select id="oHuman"><option value="1">1× (same as file games)</option><option value="3" selected>3×</option><option value="6">6×</option></select>
+        </div>
+        <div class="ar-playbtns"><button class="btn primary" id="lGo" type="button" disabled>Learn from the games</button><button class="btn" id="lStop" type="button" hidden>Stop</button></div>
+        <p class="hint" style="text-align:left">Tic-tac-toe takes seconds. Connect 4, Othello and Flock take a few minutes. Morris is slow in a browser (long games): use 1 round and few self-play games, or run <code>python run.py learn</code> on your computer.</p>
+      </div>
+      <div class="ar-box">
+        <h3>Progress</h3>
+        <div class="ar-prog2"><i id="lBar"></i></div>
+        <div class="ar-log" id="lLog" aria-live="polite">Nothing running.</div>
+        <h3>Download</h3>
+        <div class="ar-playbtns">
+          <button class="btn" id="dModel" type="button" disabled>⬇ Updated model (.npz)</button>
+          <button class="btn" id="dGames" type="button" disabled>⬇ Updated games (.jsonl)</button>
+          <button class="btn" id="dReport" type="button" disabled>⬇ Report (.md)</button>
+          <button class="btn" id="dZip" type="button" disabled>⬇ Everything (.zip)</button>
+        </div>
+        <button class="btn" id="lAdopt" type="button" disabled>▶ Play the updated model next</button>
+        <p class="hint" style="text-align:left">The updated games file holds your original games, the games you played, and the new self-play games. Load the two updated files next time and carry on.</p>
+      </div>
+    </div>
+    <h3>Report</h3>
+    <pre class="ar-report" id="lReport">No learning run yet.</pre>
+    <div class="ar-note"><b>Honest limits.</b> A short run changes the model a little. With 8 check games per opponent, a change smaller than about 0.2 is noise. The learner copies the moves of whoever won, so a weak winner can teach a bad habit; the value head also needs many games to be trustworthy. If the new model is not clearly better, keep the old file (the zip has both).</div>
+  </section>
+
+  <!-- HOW THE CODE WORKS -->
+  <!-- RL EXPLAINED -->
+  <section class="ar-tab ar-read" id="tab-rl">
+    <h2>Reinforcement learning, and how this Arena's learner is different</h2>
+    <p class="hint" style="text-align:left">Written by Claude, an AI assistant, at Kevin's request. Where it says "Claude", that is the AI that wrote the code and ran the tests.</p>
+    <p>Short version: <b>reinforcement learning (RL) is learning by trying things and being told how it went, not by being told the right answer.</b> This tab explains it from scratch, shows the main families, and then says honestly where the learner in this Arena is the same as the famous ones and where it is not.</p>
+
+    <h3>1. The idea in one picture</h3>
+    <div class="ar-fc" data-flow="agent"></div>
+    <ul>
+      <li><b>Agent</b> = the player (here: the model). <b>World</b> = the game.</li>
+      <li>The agent picks a move. The world answers with the <b>new position</b> and a <b>reward</b> (win +1, draw 0, loss −1).</li>
+      <li>Repeat thousands of times. The agent slowly learns which moves lead to rewards. Nobody ever tells it "this move was good".</li>
+    </ul>
+
+    <h3>2. How it differs from other machine learning</h3>
+    <div class="ar-tw"><table>
+      <thead><tr><th></th><th>Supervised</th><th>Unsupervised</th><th>Reinforcement</th></tr></thead>
+      <tbody>
+        <tr><td><b>Learns from</b></td><td>examples with the right answer</td><td>raw data, no answers</td><td>trying things and a reward</td></tr>
+        <tr><td><b>Feedback</b></td><td>instant, for every example</td><td>none</td><td>often <b>late</b> (end of the game)</td></tr>
+        <tr><td><b>Where data comes from</b></td><td>a fixed dataset</td><td>a fixed dataset</td><td>the agent <b>makes its own</b> by playing</td></tr>
+        <tr><td><b>Example</b></td><td>"this photo is a cat"</td><td>group similar customers</td><td>win at Go</td></tr>
+      </tbody></table></div>
+
+    <h3>3. The three hard parts of RL</h3>
+    <div class="ar-fc wide" data-flow="delay"></div>
+    <ul>
+      <li><b>Delayed reward (credit assignment).</b> In a 40-move game you only learn at the end that you won. Which of the 40 moves deserves the credit? Every RL method is a different answer to this.</li>
+      <li><b>Explore or exploit.</b> Keep playing the move that has worked (exploit), or try a new one that might be better (explore)? Only exploiting gets stuck; only exploring never improves.</li>
+      <li><b>Making its own data.</b> If the agent gets worse, the games it plays get worse, and it learns from those. Mistakes can feed on themselves.</li>
+    </ul>
+
+    <h3>4. The family tree of RL methods</h3>
+    <div class="ar-fc wide" data-flow="family"></div>
+    <div class="ar-tw"><table>
+      <thead><tr><th>Family</th><th>What it learns</th><th>Known for</th><th>Needs</th></tr></thead>
+      <tbody>
+        <tr><td><b>Value-based</b><br>Q-learning (1989), SARSA, DQN (2013-15)</td><td>A score for "how good is this move here?"; then it plays the best score</td><td>DQN learning Atari games from the screen</td><td>no rules, just experience</td></tr>
+        <tr><td><b>Policy-based</b><br>REINFORCE (1992), PPO (2017)</td><td>The move choice itself: it makes moves that led to reward more likely</td><td>PPO is widely used, including for tuning chat models from human ratings</td><td>no rules, just experience</td></tr>
+        <tr><td><b>Actor-critic</b><br>A2C / A3C (2016), SAC</td><td>Both: an "actor" picks moves, a "critic" scores them</td><td>robots, continuous control</td><td>no rules, just experience</td></tr>
+        <tr><td><b>Planning with search</b><br>MCTS (2006), AlphaGo (2016), <b>AlphaZero (2017)</b></td><td>A network guesses; a tree search <b>checks the guess</b> by imagining moves ahead, using the exact rules</td><td>Go, chess and shogi from nothing but the rules</td><td>the <b>rules</b> of the game (a perfect model)</td></tr>
+        <tr><td><b>Learned model</b><br>Dyna, MuZero (2019)</td><td>It learns its own rough copy of the rules, then plans inside that copy</td><td>strong play without being given the rules</td><td>experience only</td></tr>
+      </tbody></table></div>
+    <p class="hint" style="text-align:left">Dates are approximate (first well-known paper or result). Claude has not run these other methods in this project; this table is background, not measurements.</p>
+
+    <h3>5. Where the Arena sits</h3>
+    <ul>
+      <li>It is in the <b>"planning with search" family: a small copy of AlphaZero</b>. The game rules are known, so the search can imagine moves ahead exactly (tab "How the code works", part 3).</li>
+      <li>One small network with <b>two heads</b>: a <b>policy</b> head (a probability for each move) and a <b>value</b> head (who is winning).</li>
+      <li>It learns by <b>self-play</b>: the model plays itself with search, then trains so that its quick guess matches what the search found and who really won.</li>
+      <li>That answers the three hard parts: the <b>search</b> gives a better move than the raw guess (so credit is assigned move by move), random noise at the root of the search and a little variety in the moves it plays keep it <b>exploring</b>, and fixed opponents (random, greedy, plain search) check it is really improving.</li>
+    </ul>
+
+    <h3>6. How Claude's learner is different (the honest part)</h3>
+    <div class="ar-fc wide" data-flow="diff"></div>
+    <p><span style="color:var(--good)">■ Green</span> = same as AlphaZero. <span style="color:var(--amber)">■ Orange</span> = Claude's own addition, not a published algorithm.</p>
+    <div class="ar-tw"><table>
+      <thead><tr><th></th><th>Standard AlphaZero</th><th>This Arena</th></tr></thead>
+      <tbody>
+        <tr><td><b>Training data</b></td><td>only its own self-play games</td><td>self-play <b>plus</b> games from your file <b>plus</b> games you play (your games count 3× by default)</td></tr>
+        <tr><td><b>Value target</b></td><td>who won</td><td>who won (same)</td></tr>
+        <tr><td><b>Policy target on self-play</b></td><td>how often the search visited each move</td><td>same</td></tr>
+        <tr><td><b>Policy target on games from files</b></td><td>(none: it does not use outside games)</td><td>if the mover <b>won</b>: 40% on the move played, 60% on what the network already thought. <b>Drew</b>: 20% / 80%. <b>Lost</b>: keep the network's own opinion (neither copy nor punish)</td></tr>
+        <tr><td><b>Weak opponents</b></td><td>not applicable</td><td>never copy moves made by the "random" or "greedy" players: a lucky win over them teaches nothing</td></tr>
+        <tr><td><b>Scale</b></td><td>millions of games on special hardware</td><td>a few rounds of a few games, in your browser</td></tr>
+        <tr><td><b>Check</b></td><td>played against older versions or other programs</td><td>score before and after vs random, greedy, (perfect for tic-tac-toe) and your original model</td></tr>
+      </tbody></table></div>
+    <div class="ar-fc wide" data-flow="targets"></div>
+    <ul>
+      <li><b>Why not just copy every game?</b> Copying moves from a file is <b>imitation learning</b> (a kind of supervised learning). It can only get as good as the people or programs in the file. Self-play search can go beyond them.</li>
+      <li><b>Why mix?</b> AlphaGo (2016) used human games first and self-play after. Claude mixes them in the same round, so you can teach a model from your own games and let it check them by playing itself.</li>
+      <li><b>Why 40%?</b> In Claude's tests 30% to 50% worked as well as or better than 80%: copying winners too hard made models worse. This number is a hand-tuned setting, not a law.</li>
+    </ul>
+
+    <h3>7. What Claude's runs showed</h3>
+    <div class="ar-fc wide" data-flow="results"></div>
+    <ul>
+      <li>Self-play with search <b>did learn</b> in the full runs (score against random and greedy players near 1.0).</li>
+      <li>The <b>"learn from my games" step is much weaker evidence</b>: one tiny Connect-4-mini test did not improve the model. Claude fixed what made it worse (copying weak players’ moves, and copying winners too hard at 80%), but cannot claim it makes a model stronger in general.</li>
+      <li>Claude did <b>not</b> compare against other RL algorithms (Q-learning, PPO and so on), so there is no claim that this one is better or worse than them.</li>
+      <li>Each row rests on only 8 to 30 games, so read trends, not single numbers.</li>
+    </ul>
+    <h3>8. Best of five: merging several runs into one model</h3>
+    <ul>
+      <li><b>Idea:</b> train five variants of the learner (full recipe, no root noise, no temperature, few searches, no symmetry views), score them all the same way, keep the best, and then <b>merge all five into one student model</b>.</li>
+      <li><b>How the merge works (distillation):</b> the five models answer together as a committee, and the better a model scored, the more its answer counts. A student network, which starts as a copy of the best model, is trained to give the committee's answer by itself.</li>
+      <li><b>Not new science:</b> ensembles (many models voting, like a random forest), distillation and "keep the winner" are old ideas. Claude only wrote a small readable version. Averaging the numbers of separately trained networks does <b>not</b> work, which is why distillation is used.</li>
+      <li><b>Run it:</b> <code>python run.py best_of tictactoe</code> from the downloaded package. It writes <code>model.npz</code>, the student and the best single model, a pooled games file for the Learn tab, and a report.</li>
+      <li><b>Honest rule:</b> the student is only chosen if it scores at least as well as the best single model. In a quick test on tic-tac-toe (20 iterations per variant, 20 games per check) it did <b>not</b> beat the best single model: they were level within noise. Tic-tac-toe is probably too small for this to help; a bigger game such as Connect 4 is where it could show.</li>
+    </ul>
+    <div class="ar-note"><b>In one line:</b> the core is standard AlphaZero-style self-play on a tiny scale. The new parts are the extra training sources (your files and games) and the hand-made "copy winners at 40%" rule, and those are the parts that are least proven.</div>
+  </section>
+
+  <section class="ar-tab ar-read" id="tab-code">
+    <h2>How the code works</h2>
+    <p>The package is called <b>rlgames</b>. It is a small copy of AlphaZero's idea, written in plain Python and NumPy so every line can be read. <a href="rlgames.zip" download>Download it here</a> (it also runs this page).</p>
+
+    <h3>1. The big picture: the learning loop</h3>
+    <div class="ar-fc" data-flow="loop"></div>
+    <ul>
+      <li><b>Rules</b> are the only game-specific part. Everything else works for any game that follows the same five-function shape.</li>
+      <li><b>Self-play</b> makes training data without any human: the model plays itself and keeps what happened.</li>
+      <li><b>Fixed opponents</b> never change, so a rising score means real progress, not just "better than yesterday's me".</li>
+    </ul>
+
+    <h3>2. A game is five things</h3>
+    <div class="ar-tw"><table>
+      <thead><tr><th>Function</th><th>What it answers</th><th>Example (tic-tac-toe)</th></tr></thead>
+      <tbody>
+        <tr><td><code>initial()</code></td><td>What does the game start like?</td><td>an empty 3×3 board, X to move</td></tr>
+        <tr><td><code>legal(s)</code></td><td>Which moves are allowed here?</td><td>the empty squares, as numbers 0 to 8</td></tr>
+        <tr><td><code>step(s, a)</code></td><td>What does this move do? (returns a new position, never changes the old one)</td><td>put X on square 4</td></tr>
+        <tr><td><code>result(s)</code></td><td>Is it over? Who won?</td><td>+1 / 0 / −1 for the player to move, or nothing yet</td></tr>
+        <tr><td><code>encode(s)</code></td><td>Show me the board as numbers for the network</td><td>two planes: my stones, their stones</td></tr>
+      </tbody></table></div>
+    <p>A <b>move is one number</b>. Because moves and positions are plain numbers, the search can try a move, look at the result, and try another, without any picture or screen.</p>
+
+    <h3>3. Choosing one move: tree search (MCTS)</h3>
+    <div class="ar-fc" data-flow="search"></div>
+    <ul>
+      <li>The network gives a quick <b>guess</b>: which moves look good (the "prior" P) and who is winning (the "value" v).</li>
+      <li>The search then <b>checks the guess</b> by imagining moves ahead. It picks the child with the best <code>Q + c·P·√N/(1+n)</code>: Q is how well that move has gone so far, P the network's hunch, and the last part nudges it to try moves it has not visited much.</li>
+      <li>When the imagined line ends, the value is added back up the line, and <b>its sign flips at every step</b>, because my gain is your loss.</li>
+      <li>After N simulations the move that was visited most is played. More simulations means stronger but slower.</li>
+    </ul>
+
+    <h3>4. The network and how it learns</h3>
+    <div class="ar-fc" data-flow="net"></div>
+    <ul>
+      <li>It is a small "multi-layer perceptron": a few layers of numbers multiplied together, with negative values cut to zero (ReLU).</li>
+      <li>Two heads share it: the <b>policy head</b> (a probability for every move) and the <b>value head</b> (one number from −1 to +1: who is winning).</li>
+      <li>The <b>targets</b> come from self-play: the policy target is what the search chose; the value target is who actually won.</li>
+      <li>Backpropagation is written out by hand in <code>rlg/net.py</code> (about 70 lines). The optimiser is Adam. A learning step looks at a small random batch of positions, each shown through a random rotation or mirror (symmetry), so what it learns in one corner it knows in all.</li>
+    </ul>
+
+    <h3>5. What this page does with your files</h3>
+    <div class="ar-fc" data-flow="page"></div>
+    <ul>
+      <li>The page loads <b>Pyodide</b>: Python and NumPy compiled to run inside your browser, in a background worker so the screen never freezes.</li>
+      <li>It then loads <code>rlgames.zip</code> (the same file you can download) and calls <code>rlg/web_api.py</code>.</li>
+      <li><b>Files are checked before use:</b> the model must be plain float numbers whose sizes fit one of the games (no pickled code); every move of every game is replayed through the real rules, and games with an illegal move are dropped.</li>
+    </ul>
+
+    <h3>6. How "learn from my games" works exactly</h3>
+    <div class="ar-fc" data-flow="learn"></div>
+    <ul>
+      <li>For every position in a game, the <b>value target</b> is who won from that player's point of view.</li>
+      <li>The <b>move target</b>: if the player who moved went on to <b>win</b>, copy their move (40% of the weight on it, the rest on what the network already thought). If the game was a <b>draw</b>, half as strongly. If they <b>lost</b>, leave the network's own opinion alone.</li>
+      <li>Games you played count 3× by default, then self-play games are added and the network trains on the mix.</li>
+      <li>Moves made by the weak fixed opponents (random, greedy) in a games file are never copied: a lucky win teaches nothing.</li>
+      <li>Before and after, the model plays fixed opponents (random, greedy, and perfect for tic-tac-toe) and also the model you gave it, so you can see if it got better.</li>
+      <li><b>What Claude measured:</b> a Connect 4 model learning from its own run's later games beat the original in head-to-head matches (about 0.7 to 0.9 over 36 games, 4 tries) while self-play alone gave about 0.55. A tiny Connect 4 mini model from a very short run did <b>not</b> improve. So learning from a file helps when the file is large and from a reasonably trained model; it is not magic.</li>
+    </ul>
+
+    <h3>7. Where everything lives</h3>
+    <div class="ar-tw"><table>
+      <thead><tr><th>File</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>run.py</code></td><td>The commands: <code>train</code>, <code>learn</code>, <code>play</code>, <code>eval</code>, <code>replay</code>, <code>lab</code>, <code>export</code>, <code>selftest</code>.</td></tr>
+        <tr><td><code>rlg/games.py</code></td><td>The rules of every game behind one shape (Tic-tac-toe, Connect 4 and mini, Othello 6×6, Flock, Morris), including the rotations and mirrors.</td></tr>
+        <tr><td><code>rlg/net.py</code></td><td>The network, backpropagation and Adam, in plain NumPy.</td></tr>
+        <tr><td><code>rlg/mcts.py</code></td><td>The tree search. It works with any "evaluator", so the network and a random play-out are interchangeable.</td></tr>
+        <tr><td><code>rlg/train.py</code></td><td>The learning loop, the settings per game, and the checks against fixed opponents.</td></tr>
+        <tr><td><code>rlg/baselines.py</code></td><td>The fixed opponents: random, greedy, rollout search, a perfect tic-tac-toe player.</td></tr>
+        <tr><td><code>rlg/gamelog.py</code></td><td>Saves every game as one line (just the moves) and replays it.</td></tr>
+        <tr><td><code>rlg/web_api.py</code></td><td>What this page calls: load files with checks, play against the model, learn from games, export.</td></tr>
+        <tr><td><code>rlg/lab.py</code></td><td>The Game Lab: measures a new game (length, draws, first-player edge, skill versus luck) and tests strategy ideas.</td></tr>
+        <tr><td><code>rlg/user_games.py</code></td><td>Where you add a game of your own (Nim is the example).</td></tr>
+      </tbody></table></div>
+
+    <h3>8. A few lines you can read</h3>
+    <p>The whole forward pass of the network:</p>
+<pre class="ar-code">def forward(self, X):
+    hs = [X]; a = X
+    for W, b in zip(self.W, self.b):
+        a = np.maximum(0, a @ W + b); hs.append(a)        # layer: multiply, add, cut negatives to 0
+    return hs, a @ self.Wp + self.bp, np.tanh(a @ self.Wv + self.bv)[:, 0]   # policy scores, value (-1..+1)</pre>
+    <p>The choice inside the search (who to explore next):</p>
+<pre class="ar-code">q = np.divide(node.W, node.N, out=np.zeros_like(node.W), where=node.N > 0)    # how well has each move gone so far
+i = int(np.argmax(q + c_puct * node.P * math.sqrt(tot + 1) / (1 + node.N)))   # plus the network's hunch, plus curiosity</pre>
+    <p>One self-play game, and what it keeps:</p>
+<pre class="ar-code">while game.result(s) is None:
+    legal, visits = search(game, s, ev, sims, rng, noise=sw['dirichlet'])   # think ahead
+    a = pick(legal, visits, T, rng)                                         # choose (random early on, best later)
+    hist.append((game.encode(s), pi, s.turn)); s = game.step(s, a)          # remember the position and the search's opinion
+# at the end every position is labelled with who won: +1 / 0 / -1</pre>
+
+    <h3>9. Add your own game</h3>
+    <ul>
+      <li>Write a class with the five functions in <code>rlg/user_games.py</code> (about 60 lines). <code>python run.py lab yourgame</code> then measures it and <code>train</code> can teach a network (add a settings line in <code>rlg/train.py</code>).</li>
+      <li>This page plays only the games listed on it, because it needs a board picture for each.</li>
+    </ul>
+
+    <h3>Results from Claude's own runs</h3>
+    <div class="ar-tw"><table>
+      <thead><tr><th>Game</th><th>Time</th><th>What it reached</th><th>How far to trust it</th></tr></thead>
+      <tbody>
+        <tr><td>Tic-tac-toe</td><td>0.4 min</td><td>0 losses to the perfect player from iteration 40</td><td>Solid (a perfect opponent exists)</td></tr>
+        <tr><td>Connect 4 mini</td><td>0.7 min</td><td>1.00 vs random, 0.95 vs greedy, 0.70 vs plain search</td><td>Learned; rows are noisy</td></tr>
+        <tr><td>Connect 4</td><td>1.8 min</td><td>1.00 vs random, 0.93 vs greedy, 0.90 vs plain search</td><td>Learned; not proven strong</td></tr>
+        <tr><td>Othello 6×6</td><td>2.3 min</td><td>1.00 vs random, 0.94 vs greedy, 1.00 vs plain search</td><td>Learned; not proven strong</td></tr>
+      </tbody></table></div>
+    <p class="hint" style="text-align:left">Score = wins plus half the draws, out of 1. Single rows rest on 8 to 30 games: read trends, not single numbers. A GPU does not help here: about 80% of the time is search and game rules in Python; the network is under 20%.</p>
+    <div class="ar-note"><b>The Game Lab</b> (<code>python run.py lab morris</code>) is the other half: give it the rules of a new game and it plays thousands of games with players of different strength, then reports game length, draws, first-player edge, how much skill matters and how many truly different openings exist. It can only find strategies written in the features you give it.</div>
+  </section>
+
+  <!-- IDEAS -->
+  <section class="ar-tab ar-read" id="tab-ideas">
+    <h2>Why AI invented games</h2>
+    <p>I asked AI to code chess, shatranj, shogi, xiangqi, draughts, dama, Go, Othello, backgammon, mancala, Connect 4 and more. Each one taught AI a trick. Then I asked a different question: <b>what happens if AI summarised all these experience and start innovate new kind of game?</b> Chapters 59 and 60 are the answer.</p>
+    <div class="ar-flow" aria-label="The method in five steps"><span>1 Pick one new idea</span><i>→</i><span>2 Write the rules in one place</span><i>→</i><span>3 Let computers play each other</span><i>→</i><span>4 Count what went wrong</span><i>→</i><span>5 Change one rule, repeat</span></div>
+
+    <h2>Chapter 59: Flock</h2>
+    <p class="ar-lead">A game with one kind of stone and three rules, where a stone's power depends on its neighbours.</p>
+    <div class="ar-two">
+      <div class="ar-box"><h3>The rules</h3><ul>
+        <li><b>Move:</b> slide in a straight line over empty squares, as far as your <b>flock</b> is big (touching stones of your colour, up to 3). Alone you move 1; in a clump of three you move 3.</li>
+        <li><b>Capture:</b> after you move, an enemy stone touching the stone you moved, with another of yours right behind it, is captured (a sandwich). Only the stone that moved captures.</li>
+        <li><b>Win:</b> capture 3 stones, or leave the other side with no move. After 100 moves, more stones wins. You may not step straight back.</li></ul></div>
+      <div class="ar-box"><h3>The idea behind it</h3><ul>
+        <li>In chess a queen is always a queen. Here the <b>same stone is slow alone and fast in a crowd</b>, so every turn is a choice between <i>safe and slow</i> and <i>fast and exposed</i>.</li>
+        <li><b>Easy to teach first.</b> Claude wrote the three rules, then asked: can a new player say them back after one lesson? The stone shows its range as a number, so the main rule is on the board.</li>
+        <li><b>One kind of piece.</b> Chess has six pieces to memorise. Flock gets its variety from neighbours instead.</li></ul></div>
+    </div>
+    <h3>Self-played summary</h3>
+    <ul>
+      <li><b>Result:</b> a depth-3 computer beat a depth-1 computer <b>12–0</b> on 6×6 and <b>14–0</b> on 5×5. In 600 random games per board, Light won 248 and Dark 237 (5×5), and Light 220 and Dark 242 (6×6): side advantage looks small.</li>
+      <li><b>How the computer thinks:</b> alpha-beta search, captures tried first, a score of 100 per stone plus a little for range and mobility. Easy = depth 1 plus noise; Normal 3; Hard 5; Master up to 9 within 2.4 s.</li>
+      <li><b>Honest limit:</b> there are no human experts for a new game, so the levels are only as good as the self-play that tuned them.</li></ul>
+
+    <h2>Chapter 60: Runes</h2>
+    <p class="ar-lead">Claude's second invented game, with dice. The number you roll chooses which old game's magic you may cast.</p>
+    <div class="ar-two">
+      <div class="ar-box"><h3>The rules</h3><ul>
+        <li>Roll two dice, <b>pick one</b>. Doubles give both. Spend the die to step one square (8 directions, capture by stepping on), or cast its spell.</li>
+        <li><b>Win:</b> capture the enemy Mage (<b>only a Mage can capture a Mage</b>), or end your turn on the enemy Throne and still be there when your next turn starts. After 60 turns each, more Apprentices wins.</li></ul>
+        <div class="ar-tw"><table><thead><tr><th>Die</th><th>Spell</th><th>Borrowed from</th></tr></thead><tbody>
+        <tr><td>1</td><td>🛡 Ward</td><td>Royal Game of Ur (safe squares)</td></tr>
+        <tr><td>2</td><td>🔀 Swap</td><td>Senet</td></tr>
+        <tr><td>3</td><td>🐴 Leap</td><td>Chess knight</td></tr>
+        <tr><td>4</td><td>✨ Summon</td><td>Shogi drops</td></tr>
+        <tr><td>5</td><td>💜 Charm</td><td>Othello flips</td></tr>
+        <tr><td>6</td><td>⚡ Bolt</td><td>Xiangqi cannon</td></tr></tbody></table></div></div>
+      <div class="ar-box"><h3>The idea behind it</h3><ul>
+        <li><b>Dice decide which magic is available; you decide which of two to use.</b> A 6 is not always the best die, so luck gives variety but choice still matters.</li>
+        <li><b>Borrow, don't invent everything.</b> Each spell is a trick Claude had already used in an older chapter, so the engine reused tested ideas.</li>
+        <li><b>Claude's first try, Arcana (with mana), felt unsure,</b> so Claude replaced it instead of patching it. Throwing a design away early was cheaper than tuning it.</li></ul>
+        <h3>What dice change for a computer</h3><ul>
+        <li>Search gets a third kind of step, a <b>chance node</b>: the dice are rolled before each turn and the score is averaged over a few sampled rolls (2 or 3 here; all 36 would be too slow). This is a cheaper cousin of the backgammon method (expectimax).</li>
+        <li>A turn can hold two actions (doubles), so the search must know whether the next action is still mine: same sign if yes, flip the sign if the turn passed.</li></ul></div>
+    </div>
+    <h3>What self-play changed</h3>
+    <div class="ar-tw"><table>
+      <thead><tr><th>Version</th><th>What I saw</th><th>Change</th></tr></thead>
+      <tbody>
+        <tr><td>1: a die for every action, three on doubles</td><td>Games lasted <b>about 3 turns</b>; a Mage could be walked to the Throne or hit by a Leap almost at once; luck decided everything</td><td>Pick one die only (doubles give two)</td></tr>
+        <tr><td>2</td><td>About 5 turns; skill starts to show, but stepping on the Throne won instantly</td><td>Hold the Throne through one enemy turn</td></tr>
+        <tr><td>3</td><td>A lone Apprentice could still end the game</td><td>Only a Mage can capture a Mage</td></tr>
+        <tr><td>Final</td><td>About 8 turns per game</td><td>A depth-3 computer beats depth-1 <b>31–9</b> as Light and <b>31–9</b> as Dark (40 games each way)</td></tr>
+      </tbody></table></div>
+    <ul><li><b>Honest limits:</b> the computer mostly steps and Leaps; Charm and Summon are rarely used because they need a 5 or 4 <i>and</i> a matching board. 40 games cannot prove whether Light has a first-move edge (depth-2 against depth-2 split 24–16). Runes has dice, so the learner on this page cannot play it yet.</li></ul>
+
+    <h2>Seven lessons that held for every game</h2>
+    <ol class="ar-ol">
+      <li><b>Keep the rules in one place that never draws.</b> Easy to test with a bot, easy to put a new screen on.</li>
+      <li><b>A move is one small value</b> (an integer or a short path) you can list, compare, undo and send to a search.</li>
+      <li><b>make and unmake beat copying</b> in a search, if a test proves undo restores the exact position.</li>
+      <li><b>Tune by self-play, not by feeling.</b> Claude's first Flock was drawn to death; one rule fixed it, and Claude only knew because it counted the games.</li>
+      <li><b>Repetition is the enemy</b> of every perfect-information game. Decide how yours ends before you build it.</li>
+      <li><b>Show the rule on the board</b> (the range number on a Flock stone) so players learn without reading.</li>
+      <li><b>Say honestly what is untested.</b> A new game has no experts; the levels are only as good as the tuning.</li></ol>
+    <p class="hint" style="text-align:left">Full write-ups are in the wiki pages for Chapters 59 and 60. You can load a Flock model and play it on this page.</p>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🏟 <b>Written by Claude, an AI assistant, at the request of Kevin HY Hau:</b> the page, the browser player, the "learn from your games" step, the games, the explanations and the diagrams. Kevin chose what to build and edited some of the wording. The learning code is the real Python package you can download here, run inside your browser. Your files never leave your computer.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+window.ARENA_SAMPLE={"model": "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", "games": "{\"header\": true, \"game\": \"tictactoe\"}\n{\"n\": 1, \"label\": \"training self-play, iteration 1\", \"actions\": [5, 0, 4, 3, 6, 2, 1, 7, 8], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 29, \"label\": \"training self-play, iteration 2\", \"actions\": [3, 4, 6, 8, 0], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 58, \"label\": \"training self-play, iteration 3\", \"actions\": [8, 2, 6, 7, 0, 1, 4], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 87, \"label\": \"training self-play, iteration 5\", \"actions\": [6, 2, 4, 0, 1, 7, 8, 5, 3], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 116, \"label\": \"training self-play, iteration 6\", \"actions\": [0, 2, 6, 8, 3], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 145, \"label\": \"training self-play, iteration 8\", \"actions\": [0, 4, 2, 3, 1], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 174, \"label\": \"training self-play, iteration 9\", \"actions\": [8, 0, 6, 3, 7], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 202, \"label\": \"check after iteration 10: network (with search) vs random\", \"actions\": [2, 6, 3, 8, 7, 4, 5, 0], \"winner\": -1, \"why\": \"line\", \"players\": [\"random\", \"network\"]}\n{\"n\": 231, \"label\": \"check after iteration 10: network (with search) vs greedy\", \"actions\": [8, 1, 2, 5, 6, 4, 7], \"winner\": 1, \"why\": \"line\", \"players\": [\"network\", \"greedy\"]}\n{\"n\": 260, \"label\": \"check after iteration 10: network (with search) vs greedy\", \"actions\": [7, 2, 0, 8, 5, 4, 6, 3, 1], \"winner\": 0, \"why\": \"full\", \"players\": [\"greedy\", \"network\"]}\n{\"n\": 289, \"label\": \"check after iteration 10: instinct (network, no search) vs random\", \"actions\": [5, 0, 2, 6, 4, 3], \"winner\": -1, \"why\": \"line\", \"players\": [\"random\", \"instinct\"]}\n{\"n\": 318, \"label\": \"check after iteration 10: network (with search) vs PERFECT player\", \"actions\": [8, 4, 6, 7, 1, 5, 3, 0, 2], \"winner\": 0, \"why\": \"full\", \"players\": [\"network\", \"perfect\"]}\n{\"n\": 347, \"label\": \"check after iteration 10: network (with search) vs the previous network\", \"actions\": [0, 8, 3, 6, 7, 2, 5, 4], \"winner\": -1, \"why\": \"line\", \"players\": [\"previous network\", \"network\"]}\n{\"n\": 375, \"label\": \"training self-play, iteration 12\", \"actions\": [8, 4, 6, 7, 1, 2, 5, 0, 3], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 404, \"label\": \"training self-play, iteration 13\", \"actions\": [5, 0, 2, 8, 4, 6, 3], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 433, \"label\": \"training self-play, iteration 15\", \"actions\": [6, 4, 8, 7, 1, 2, 5, 0, 3], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 462, \"label\": \"training self-play, iteration 16\", \"actions\": [0, 7, 2, 6, 1], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 491, \"label\": \"training self-play, iteration 18\", \"actions\": [0, 3, 4, 2, 8], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 520, \"label\": \"training self-play, iteration 19\", \"actions\": [0, 4, 6, 3, 5, 8, 1, 2, 7], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 548, \"label\": \"training self-play, iteration 20\", \"actions\": [2, 1, 0, 4, 7, 8, 3, 6, 5], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 577, \"label\": \"check after iteration 20: network (with search) vs random\", \"actions\": [8, 3, 6, 2, 7], \"winner\": 1, \"why\": \"line\", \"players\": [\"network\", \"random\"]}\n{\"n\": 606, \"label\": \"check after iteration 20: network (with search) vs greedy\", \"actions\": [4, 0, 8, 6, 3, 5, 2, 7, 1], \"winner\": 0, \"why\": \"full\", \"players\": [\"greedy\", \"network\"]}\n{\"n\": 635, \"label\": \"check after iteration 20: instinct (network, no search) vs random\", \"actions\": [7, 6, 3, 4, 8, 0, 1, 5, 2], \"winner\": 0, \"why\": \"full\", \"players\": [\"random\", \"instinct\"]}\n{\"n\": 664, \"label\": \"check after iteration 20: network (with search) vs PERFECT player\", \"actions\": [8, 4, 6, 7, 1, 0, 5, 2, 3], \"winner\": 0, \"why\": \"full\", \"players\": [\"network\", \"perfect\"]}\n{\"n\": 693, \"label\": \"check after iteration 20: network (with search) vs the previous network\", \"actions\": [8, 4, 6, 7, 1, 2, 5, 0, 3], \"winner\": 0, \"why\": \"full\", \"players\": [\"previous network\", \"network\"]}\n{\"n\": 721, \"label\": \"training self-play, iteration 22\", \"actions\": [0, 4, 6, 3, 5, 7, 1, 2, 8], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 750, \"label\": \"training self-play, iteration 23\", \"actions\": [2, 3, 4, 6, 0, 1, 8], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 779, \"label\": \"training self-play, iteration 24\", \"actions\": [6, 4, 7, 8, 0, 3, 5, 1, 2], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 808, \"label\": \"training self-play, iteration 26\", \"actions\": [8, 4, 5, 2, 6, 7, 1, 3, 0], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 837, \"label\": \"training self-play, iteration 27\", \"actions\": [0, 4, 2, 1, 7, 3, 5, 8, 6], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 866, \"label\": \"training self-play, iteration 29\", \"actions\": [2, 4, 6, 1, 7, 8, 0, 3, 5], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 894, \"label\": \"training self-play, iteration 30\", \"actions\": [6, 4, 2, 1, 7, 8, 0, 3, 5], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 923, \"label\": \"check after iteration 30: network (with search) vs random\", \"actions\": [0, 2, 6, 4, 3], \"winner\": 1, \"why\": \"line\", \"players\": [\"network\", \"random\"]}\n{\"n\": 952, \"label\": \"check after iteration 30: network (with search) vs greedy\", \"actions\": [6, 4, 7, 8, 0, 3, 5, 2, 1], \"winner\": 0, \"why\": \"full\", \"players\": [\"greedy\", \"network\"]}\n{\"n\": 981, \"label\": \"check after iteration 30: instinct (network, no search) vs random\", \"actions\": [4, 6, 5, 3, 2, 8, 1, 7], \"winner\": -1, \"why\": \"line\", \"players\": [\"random\", \"instinct\"]}\n{\"n\": 1010, \"label\": \"check after iteration 30: network (with search) vs PERFECT player\", \"actions\": [0, 4, 6, 3, 5, 8, 1, 2, 7], \"winner\": 0, \"why\": \"full\", \"players\": [\"network\", \"perfect\"]}\n{\"n\": 1039, \"label\": \"check after iteration 30: network (with search) vs the previous network\", \"actions\": [8, 4, 6, 7, 1, 0, 5, 2, 3], \"winner\": 0, \"why\": \"full\", \"players\": [\"previous network\", \"network\"]}\n{\"n\": 1067, \"label\": \"training self-play, iteration 31\", \"actions\": [2, 5, 0, 3, 1], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 1096, \"label\": \"training self-play, iteration 33\", \"actions\": [6, 4, 8, 7, 1, 2, 0, 3, 5], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 1125, \"label\": \"training self-play, iteration 34\", \"actions\": [6, 0, 8, 4, 7], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 1154, \"label\": \"training self-play, iteration 36\", \"actions\": [8, 7, 0, 4, 1, 2, 6, 3, 5], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 1183, \"label\": \"training self-play, iteration 37\", \"actions\": [8, 4, 2, 5, 3, 7, 1, 0, 6], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 1212, \"label\": \"training self-play, iteration 39\", \"actions\": [6, 4, 0, 3, 5, 8, 2, 1, 7], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 1240, \"label\": \"training self-play, iteration 40\", \"actions\": [8, 4, 1, 2, 6, 7, 3, 0, 5], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 1269, \"label\": \"check after iteration 40: network (with search) vs random\", \"actions\": [2, 7, 8, 3, 5], \"winner\": 1, \"why\": \"line\", \"players\": [\"network\", \"random\"]}\n{\"n\": 1298, \"label\": \"check after iteration 40: network (with search) vs greedy\", \"actions\": [4, 0, 7, 1, 2, 6, 3, 5, 8], \"winner\": 0, \"why\": \"full\", \"players\": [\"greedy\", \"network\"]}\n{\"n\": 1327, \"label\": \"check after iteration 40: instinct (network, no search) vs random\", \"actions\": [5, 2, 4, 3, 0, 8, 6, 1, 7], \"winner\": 0, \"why\": \"full\", \"players\": [\"random\", \"instinct\"]}\n{\"n\": 1356, \"label\": \"check after iteration 40: network (with search) vs PERFECT player\", \"actions\": [2, 4, 8, 5, 3, 1, 7, 6, 0], \"winner\": 0, \"why\": \"full\", \"players\": [\"network\", \"perfect\"]}\n{\"n\": 1385, \"label\": \"check after iteration 40: network (with search) vs PERFECT player\", \"actions\": [6, 4, 3, 0, 8, 7, 1, 2, 5], \"winner\": 0, \"why\": \"full\", \"players\": [\"perfect\", \"network\"]}\n{\"n\": 1413, \"label\": \"training self-play, iteration 41\", \"actions\": [8, 4, 6, 3, 7], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 1442, \"label\": \"training self-play, iteration 43\", \"actions\": [4, 0, 1, 3, 6, 2, 7], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 1471, \"label\": \"training self-play, iteration 44\", \"actions\": [4, 7, 8, 0, 2, 6, 5], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 1500, \"label\": \"training self-play, iteration 45\", \"actions\": [8, 4, 6, 7, 1, 0, 2, 5, 3], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 1529, \"label\": \"training self-play, iteration 47\", \"actions\": [4, 8, 3, 5, 2, 6, 7, 1, 0], \"winner\": 0, \"why\": \"full\"}\n{\"n\": 1558, \"label\": \"training self-play, iteration 48\", \"actions\": [4, 6, 8, 0, 3, 1, 5], \"winner\": 1, \"why\": \"line\"}\n{\"n\": 1586, \"label\": \"check after iteration 49: network (with search) vs random\", \"actions\": [6, 4, 2, 5, 7, 3], \"winner\": -1, \"why\": \"line\", \"players\": [\"random\", \"network\"]}\n{\"n\": 1615, \"label\": \"check after iteration 49: network (with search) vs greedy\", \"actions\": [4, 3, 0, 8, 2, 5, 1], \"winner\": 1, \"why\": \"line\", \"players\": [\"network\", \"greedy\"]}\n{\"n\": 1644, \"label\": \"check after iteration 49: network (with search) vs rollout search\", \"actions\": [2, 4, 8, 5, 3, 0, 6, 7, 1], \"winner\": 0, \"why\": \"full\", \"players\": [\"rollout search\", \"network\"]}\n{\"n\": 1673, \"label\": \"check after iteration 49: instinct (network, no search) vs random\", \"actions\": [1, 4, 8, 0, 6, 7, 5, 2, 3], \"winner\": 0, \"why\": \"full\", \"players\": [\"random\", \"instinct\"]}\n{\"n\": 1702, \"label\": \"check after iteration 49: network (with search) vs PERFECT player\", \"actions\": [4, 6, 7, 1, 0, 8, 2, 5, 3], \"winner\": 0, \"why\": \"full\", \"players\": [\"network\", \"perfect\"]}\n"};
+
+/* Game Arena (a work page): load a model and a games file, watch the games, play the model, let it learn, download the results.
+   The learning code is the real Python package (rlgames.zip), run in your browser by Pyodide inside a background worker. Files never leave your computer.
+   This page only reads files you choose yourself: there is no upload, no shared list and no server of mine. */
+(() => {
+'use strict';
+const { store, ui } = KIT;
+const $ = id => document.getElementById(id);
+const P0 = store('kevinhyhau.arena.v2', { dark: true, speed: 1, slots: 16 }), st = P0.st;
+ui.theme($('themeBtn'), st, P0.save);
+const PYODIDE = 'https://cdn.jsdelivr.net/pyodide/v0.27.7/full/';
+const INTERVAL = 2000, SPEEDS = [0.5, 1, 2, 3, 4], SLOTS = [1, 4, 9, 16], COLS = { 1: [1, 1], 4: [2, 2], 9: [3, 2], 16: [4, 2] };
+const VIEW = ['tictactoe', 'connect4mini', 'connect4', 'othello6', 'flock5', 'flock6', 'morris', 'nim'];
+const NAMES = { tictactoe: 'Tic-tac-toe', connect4: 'Connect 4', connect4mini: 'Connect 4 mini', othello6: 'Othello 6×6', flock5: 'Flock 5×5', flock6: 'Flock 6×6', morris: 'Morris', nim: 'Nim' };
+const gname = g => NAMES[g] || g;
+const kind = g => g === 'tictactoe' ? 'ttt' : g.startsWith('connect4') ? 'c4' : g.startsWith('othello') ? 'oth' : g.startsWith('flock') ? 'flock' : g === 'morris' ? 'morris' : g === 'nim' ? 'nim' : 'grid';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------- the Python engine: Pyodide in a background worker ---------- */
+function workerMain() {
+  let py = null, api = null;
+  const post = m => self.postMessage(m);
+  self.onmessage = async e => {
+    const { id, cmd, a } = e.data;
+    try {
+      if (cmd === 'init') {
+        post({ prog: 'Downloading Python (about 12 MB)…' });
+        importScripts(a.pyodide + 'pyodide.js');
+        py = await loadPyodide({ indexURL: a.pyodide });
+        post({ prog: 'Loading NumPy…' }); await py.loadPackage('numpy');
+        post({ prog: 'Loading the learning code (rlgames.zip)…' });
+        const r = await fetch(a.pkg); if (!r.ok) throw new Error('could not load rlgames.zip (' + r.status + '). It must sit next to this page.');
+        py.unpackArchive(await r.arrayBuffer(), 'zip', { extractDir: '/pkg' });
+        py.runPython("import sys\nsys.path.insert(0, '/pkg/rlgames')");
+        api = py.pyimport('rlg.web_api');
+        post({ id, ok: true, r: 'ready' });
+      } else if (cmd === 'file') { py.FS.writeFile(a.path, new Uint8Array(a.buf)); post({ id, ok: true, r: 'ok' }); }
+      else if (cmd === 'call') { const r = api[a.fn](...a.args); post({ id, ok: true, r: typeof r === 'string' ? r : String(r) }); }
+    } catch (err) { post({ id, ok: false, e: String((err && err.message) || err) }); }
+  };
+}
+const E = { w: null, ready: null, seq: 0, pend: {}, state: 'idle' };
+function engineMsg(t, cls) { const el = $('engine'); el.textContent = t; el.className = 'ar-eng' + (cls ? ' ' + cls : ''); }
+function ask(cmd, a, tr) { return new Promise((res, rej) => { const id = ++E.seq; E.pend[id] = { res, rej }; E.w.postMessage({ id, cmd, a }, tr || []); }); }
+function startEngine() {
+  if (E.ready) return E.ready;
+  E.state = 'loading';
+  E.ready = new Promise((resolve, reject) => {
+    if (location.protocol === 'file:') { E.state = 'error'; engineMsg('This page must be opened from a website (http or https), not as a file from your disk, so it can load the Python engine.', 'bad'); reject(new Error('file protocol')); return; }
+    try { E.w = new Worker(URL.createObjectURL(new Blob(['(' + workerMain.toString() + ')()'], { type: 'text/javascript' }))); } catch (e) { E.state = 'error'; engineMsg('This browser cannot start a background worker.', 'bad'); reject(e); return; }
+    E.w.onmessage = ev => { const m = ev.data; if (m.prog) { engineMsg(m.prog); return; } const p = E.pend[m.id]; if (!p) return; delete E.pend[m.id]; m.ok ? p.res(m.r) : p.rej(new Error(m.e)); };
+    E.w.onerror = ev => { E.state = 'error'; engineMsg('The Python engine stopped: ' + (ev.message || 'unknown error'), 'bad'); };
+    ask('init', { pyodide: PYODIDE, pkg: new URL('rlgames.zip', location.href).href }).then(() => { E.state = 'ready'; engineMsg('Python engine ready. Your files stay on your computer.', 'good'); resolve(); },
+      e => { E.state = 'error'; E.ready = null; engineMsg('Could not start the Python engine (' + e.message + '). It needs an internet connection the first time.', 'bad'); reject(e); });
+  });
+  return E.ready;
+}
+const call = async (fn, ...args) => { await startEngine(); return ask('call', { fn, args }); };
+const callJ = async (fn, ...args) => JSON.parse(await call(fn, ...args));
+const writeFile = async (path, buf) => { await startEngine(); return ask('file', { path, buf }, [buf]); };
+
+/* ---------- checking a game record (the Python side already replayed it through the rules; this is a second check) ---------- */
+function clean(r) {
+  if (!r || typeof r !== 'object' || !VIEW.includes(r.game)) return null;
+  const game = r.game, cells = Array.isArray(r.cells) ? r.cells : null; if (!cells || cells.length < 2 || cells.length > 450) return null;
+  const len = typeof cells[0] === 'string' ? cells[0].length : 0; if (len < 3 || len > 400) return null;
+  for (const c of cells) { if (typeof c !== 'string' || c.length !== len) return null; for (let i = 0; i < c.length; i++) { const v = c.charCodeAt(i) - 66; if (v < -1 || v > 40) return null; } }
+  let shape = null; if (Array.isArray(r.shape)) { const [h, w] = r.shape; if (!(Number.isInteger(h) && Number.isInteger(w) && h > 0 && w > 0 && h * w === len && h <= 20 && w <= 20)) return null; shape = [h, w]; }
+  const k = kind(game); if (k === 'morris' && len !== 24) return null; if (k === 'nim' && len > 12) return null; if (['ttt', 'c4', 'oth', 'flock'].includes(k) && !shape) return null;
+  const notes = Array.isArray(r.notes) ? r.notes.slice(0, cells.length - 1).map(x => String(x).slice(0, 60)) : []; while (notes.length < cells.length - 1) notes.push('');
+  let hands = null; if (k === 'morris' && Array.isArray(r.hands) && r.hands.length === cells.length) hands = r.hands.map(h => [Math.max(0, Math.min(99, +h[0] | 0)), Math.max(0, Math.min(99, +h[1] | 0))]);
+  const players = Array.isArray(r.players) ? r.players.slice(0, 2).map(x => String(x).slice(0, 40)) : []; while (players.length < 2) players.push(players.length ? 'second player' : 'first player');
+  return { game, shape, title: String(r.title || gname(game)).slice(0, 120), players, winner: [0, 1, 2].includes(r.winner) ? r.winner : 0, why: String(r.why || '').slice(0, 30), cells, notes, hands, n: cells.length - 1 };
+}
+
+/* ---------- drawing the boards (SVG strings; only validated numbers go in) ---------- */
+const val = (s, i) => s.charCodeAt(i) - 66;
+const MCOORD = (() => { const out = []; for (let r = 0; r < 3; r++) { const d = 3 - r; for (const [dx, dy] of [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]]) out.push([3 + dx * d, 3 + dy * d]); } return out; })();
+function changes(prev, cur) { const placed = [], flipped = [], vacated = []; if (!prev) return { placed, flipped, vacated }; for (let i = 0; i < cur.length; i++) if (prev[i] !== cur[i]) { const a = val(prev, i), b = val(cur, i); if (a === 0 && b !== 0) placed.push(i); else if (a !== 0 && b === 0) vacated.push(i); else flipped.push(i); } return { placed, flipped, vacated }; }
+const ring = (x, y, r, w, col, dash) => '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="' + r.toFixed(2) + '" fill="none" stroke="' + col + '" stroke-width="' + w + '"' + (dash ? ' stroke-dasharray="1.6 1.6"' : '') + '/>';
+const AMB = '#e39a2d';
+function drawBoard(g, k) {
+  const cur = g.cells[k], prev = k > 0 ? g.cells[k - 1] : null, ch = changes(prev, cur), kd = kind(g.game); let s = '';
+  const marks = (xy, r) => { let o = ''; for (const i of ch.flipped) o += ring(...xy(i), r * .95, 1, AMB); for (const i of ch.placed) o += ring(...xy(i), r * 1.12, 1.6, AMB); for (const i of ch.vacated) o += ring(...xy(i), r * .8, .8, AMB, true); return o; };
+  if (kd === 'ttt') {
+    const xy = i => [10 + (i % 3 + .5) * 26.67, 10 + ((i / 3 | 0) + .5) * 26.67]; s += '<rect width="100" height="100" fill="#eadfc8"/><g stroke="#6b5a3c" stroke-width="1.6" stroke-linecap="round"><line x1="36.7" y1="12" x2="36.7" y2="88"/><line x1="63.3" y1="12" x2="63.3" y2="88"/><line x1="12" y1="36.7" x2="88" y2="36.7"/><line x1="12" y1="63.3" x2="88" y2="63.3"/></g>';
+    for (let i = 0; i < 9; i++) { const v = val(cur, i), [x, y] = xy(i); if (v === 1) s += '<path d="M' + (x - 7) + ' ' + (y - 7) + 'L' + (x + 7) + ' ' + (y + 7) + 'M' + (x + 7) + ' ' + (y - 7) + 'L' + (x - 7) + ' ' + (y + 7) + '" stroke="#b3342b" stroke-width="3.2" stroke-linecap="round"/>'; else if (v === -1) s += '<circle cx="' + x + '" cy="' + y + '" r="8" fill="none" stroke="#1f5a86" stroke-width="3.2"/>'; }
+    return s + marks(xy, 11);
+  }
+  if (kd === 'c4' || kd === 'oth' || kd === 'flock' || kd === 'grid') {
+    const [H, W] = g.shape || [Math.ceil(Math.sqrt(cur.length)), Math.ceil(Math.sqrt(cur.length))], cs = 92 / Math.max(H, W), ox = (100 - W * cs) / 2, oy = (100 - H * cs) / 2, xy = i => [ox + (i % W + .5) * cs, oy + ((i / W | 0) + .5) * cs];
+    if (kd === 'c4') { s += '<rect width="100" height="100" fill="var(--panel2)"/><rect x="' + (ox - 1.5) + '" y="' + (oy - 1.5) + '" width="' + (W * cs + 3) + '" height="' + (H * cs + 3) + '" rx="3" fill="#2a58c4"/>'; for (let i = 0; i < cur.length; i++) { const v = val(cur, i), [x, y] = xy(i); s += '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="' + (cs * .39).toFixed(2) + '" fill="' + (v === 1 ? '#e5473a' : v === -1 ? '#f3c53a' : 'var(--hole)') + '"/>'; } return s + marks(xy, cs * .45); }
+    if (kd === 'oth') { s += '<rect width="100" height="100" fill="var(--panel2)"/><rect x="' + ox + '" y="' + oy + '" width="' + W * cs + '" height="' + H * cs + '" fill="#2e7d50"/><g stroke="#1d5a38" stroke-width=".6">'; for (let i = 0; i <= W; i++) s += '<line x1="' + (ox + i * cs) + '" y1="' + oy + '" x2="' + (ox + i * cs) + '" y2="' + (oy + H * cs) + '"/>'; for (let j = 0; j <= H; j++) s += '<line x1="' + ox + '" y1="' + (oy + j * cs) + '" x2="' + (ox + W * cs) + '" y2="' + (oy + j * cs) + '"/>'; s += '</g>'; for (let i = 0; i < cur.length; i++) { const v = val(cur, i), [x, y] = xy(i); if (v) s += '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="' + (cs * .4).toFixed(2) + '" fill="' + (v === 1 ? '#15181b' : '#f4f2ea') + '" stroke="#00000055" stroke-width=".5"/>'; } return s + marks(xy, cs * .45); }
+    s += '<rect width="100" height="100" fill="var(--panel2)"/>'; for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) s += '<rect x="' + (ox + i * cs).toFixed(2) + '" y="' + (oy + j * cs).toFixed(2) + '" width="' + cs.toFixed(2) + '" height="' + cs.toFixed(2) + '" fill="' + ((i + j) & 1 ? '#c9b48a' : '#e3d3ad') + '"/>';
+    for (let i = 0; i < cur.length; i++) { const v = val(cur, i), [x, y] = xy(i); if (v > 0) s += '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="' + (cs * .36).toFixed(2) + '" fill="#f8f3e3" stroke="#6b5a3c" stroke-width=".7"/>'; else if (v < 0) s += '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="' + (cs * .36).toFixed(2) + '" fill="#2b2a33" stroke="#000" stroke-width=".7"/>'; else if (kd === 'grid' && v === 0) {} }
+    if (kd === 'grid') for (let i = 0; i < cur.length; i++) { const v = val(cur, i); if (v > 1) { const [x, y] = xy(i); s += '<text x="' + x.toFixed(2) + '" y="' + (y + 1.6).toFixed(2) + '" font-size="' + (cs * .4).toFixed(1) + '" text-anchor="middle" fill="#222" font-family="monospace">' + v + '</text>'; } }
+    return s + marks(xy, cs * .42);
+  }
+  if (kd === 'morris') {
+    const sp = 14, p = 8, xy = i => [p + MCOORD[i][0] * sp, p + MCOORD[i][1] * sp];
+    s += '<defs><linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e0b36a"/><stop offset="1" stop-color="#b97f38"/></linearGradient></defs><rect width="100" height="100" fill="url(#wood)"/><g stroke="#4a2c0e" stroke-width="1" fill="none" stroke-linecap="round">';
+    for (let r = 0; r < 3; r++) { let d = ''; for (let q = 0; q < 8; q++) { const [x, y] = xy(r * 8 + q); d += (q ? 'L' : 'M') + x + ' ' + y; } s += '<path d="' + d + 'Z"/>'; }
+    for (let q = 1; q < 8; q += 2) { const [x1, y1] = xy(q), [x2, y2] = xy(16 + q); s += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '"/>'; } s += '</g>';
+    for (let i = 0; i < 24; i++) { const v = val(cur, i), [x, y] = xy(i); if (!v) s += '<circle cx="' + x + '" cy="' + y + '" r="1.1" fill="#4a2c0e"/>'; else s += '<circle cx="' + x + '" cy="' + y + '" r="4.6" fill="' + (v === 1 ? '#f7f2e4' : '#25252b') + '" stroke="' + (v === 1 ? '#8c8470' : '#000') + '" stroke-width=".7"/>'; }
+    return s + marks(xy, 5.4);
+  }
+  if (kd === 'nim') {
+    s += '<rect width="100" height="100" fill="var(--panel2)"/>'; const n = cur.length, rh = 84 / Math.max(3, n);
+    for (let i = 0; i < n; i++) { const v = val(cur, i), pv = prev ? val(prev, i) : v, y = 10 + (i + .5) * rh; s += '<text x="6" y="' + (y + 2) + '" font-size="5" fill="var(--muted)" font-family="monospace">' + (i + 1) + '</text>'; for (let j = 0; j < Math.max(v, pv); j++) s += '<circle cx="' + (16 + j * 9) + '" cy="' + y + '" r="3.4" fill="' + (j < v ? '#2f7f9a' : 'none') + '" stroke="' + (j < v ? 'none' : AMB) + '" stroke-width=".9"' + (j < v ? '' : ' stroke-dasharray="1.2 1.2"') + '/>'; }
+    return s;
+  }
+  return s;
+}
+
+/* ---------- where things are on each board (for clicking) ---------- */
+function geom(game, shape) {
+  const k = kind(game);
+  if (k === 'ttt') return { xy: i => [10 + (i % 3 + .5) * 26.67, 10 + ((i / 3 | 0) + .5) * 26.67], r: 12, n: 9 };
+  if (k === 'morris') { const sp = 14, p = 8; return { xy: i => [p + MCOORD[i][0] * sp, p + MCOORD[i][1] * sp], r: 6.5, n: 24 }; }
+  const [H, W] = shape, cs = 92 / Math.max(H, W), ox = (100 - W * cs) / 2, oy = (100 - H * cs) / 2;
+  return { xy: i => [ox + (i % W + .5) * cs, oy + ((i / W | 0) + .5) * cs], r: cs * .5, n: H * W, W, H, cs, ox, oy };
+}
+const AMB2 = '#e39a2d', RED2 = '#e5473a';
+const dot = (x, y, r, col) => '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="' + r + '" fill="' + col + '" opacity=".85" pointer-events="none"/>';
+
+/* ---------- WATCH: the boards ---------- */
+const S = { playing: true, speed: SPEEDS.includes(st.speed) ? st.speed : 1, slots: SLOTS.includes(st.slots) ? st.slots : 16, pool: [], cards: [], rot: 0 };
+function layout() {
+  const n = Math.min(S.slots, S.pool.length), grid = $('grid'), [wide, narrow] = COLS[S.slots];
+  grid.style.setProperty('--cols', window.matchMedia('(min-width:760px)').matches ? wide : narrow);
+  const keep = S.cards.filter(c => S.pool.includes(c.g)).slice(0, n), used = new Set(keep.map(c => c.g));
+  S.cards.forEach(c => { if (!keep.includes(c)) c.el.remove(); });
+  while (keep.length < n) { let g = null; for (let t = 0; t < S.pool.length; t++) { const x = S.pool[(S.rot++) % S.pool.length]; if (!used.has(x)) { g = x; break; } } if (!g) break; used.add(g); keep.push(makeCard(g)); }
+  S.cards = keep; grid.innerHTML = '';
+  if (!S.pool.length) { const e = document.createElement('div'); e.className = 'ar-empty'; e.textContent = 'No games to show yet. Choose a games file above (the file written by python run.py train), or press "Try the sample".'; grid.appendChild(e); return; }
+  S.cards.forEach(c => grid.appendChild(c.el));
+}
+function makeCard(g) {
+  const el = document.createElement('div'); el.className = 'ar-card'; el.tabIndex = 0; el.setAttribute('role', 'button');
+  el.innerHTML = '<div class="ar-top"><span class="gn"></span><span class="mv"></span></div><svg viewBox="0 0 100 100" role="img"></svg><div class="ar-prog"><i></i></div><div class="ar-ttl"></div><div class="ar-note-line"></div><div class="ar-res"></div><span class="ar-ptag">paused</span>';
+  const c = { el, g, k: 0, acc: Math.random() * INTERVAL, paused: false, q: x => el.querySelector(x) };
+  const toggle = () => { c.paused = !c.paused; el.classList.toggle('paused', c.paused); };
+  el.onclick = toggle; el.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); toggle(); } };
+  paint(c); return c;
+}
+function paint(c) {
+  const g = c.g, k = c.k; c.q('.gn').textContent = gname(g.game); c.q('svg').innerHTML = drawBoard(g, k); c.q('svg').setAttribute('aria-label', gname(g.game) + ', move ' + k + ' of ' + g.n);
+  c.q('.mv').textContent = k + '/' + g.n; c.q('.ar-prog i').style.width = (g.n ? k / g.n * 100 : 0) + '%';
+  c.q('.ar-ttl').textContent = g.title; c.q('.ar-ttl').title = g.title + ' (X: ' + g.players[0] + ', O: ' + g.players[1] + ')';
+  let note = k ? g.notes[k - 1].replace('place a piece on point ', 'place ').replace('REMOVE enemy piece on point ', 'remove ').replace('move point ', 'move ').replace('drop in column ', 'column ') : 'start';
+  if (g.hands) note += ' · hand ' + g.hands[k][0] + '/' + g.hands[k][1]; c.q('.ar-note-line').textContent = note; c.q('.ar-note-line').title = k ? g.notes[k - 1] : '';
+  const res = c.q('.ar-res'); if (k === g.n) { const w = g.winner; res.className = 'ar-res w' + w; res.textContent = w === 0 ? 'Draw (' + g.why + ')' : (w === 1 ? 'X wins' : 'O wins') + ' · ' + g.why; } else { res.className = 'ar-res'; res.innerHTML = '&nbsp;'; }
+}
+function swapGame(c) { if (S.pool.length <= S.cards.length) return; const shown = new Set(S.cards.map(x => x.g)); for (let t = 0; t < S.pool.length; t++) { const g = S.pool[(S.rot++) % S.pool.length]; if (!shown.has(g)) { c.g = g; return; } } }
+function tick(dt) {
+  const step = INTERVAL / S.speed;
+  for (const c of S.cards) {
+    if (c.paused) continue; c.acc += dt;
+    if (c.k >= c.g.n) { if (c.acc >= step * 2.5) { c.acc = 0; c.k = 0; swapGame(c); paint(c); } continue; }
+    if (c.acc >= step) { c.acc -= step; if (c.acc > step) c.acc = 0; c.k++; paint(c); }
+  }
+}
+let last = performance.now(), statT = 0;
+function loop(now) { const dt = Math.min(100, now - last); last = now; if (S.playing && $('tab-games').classList.contains('on') && !document.hidden) tick(dt); statT += dt; if (statT > 500) { statT = 0; updateStatus(); } requestAnimationFrame(loop); }
+function updateStatus() { const n = S.cards.length, total = S.pool.length, secs = INTERVAL / S.speed / 1000; $('status').textContent = total ? n + ' of ' + total + ' games · ' + (secs % 1 ? secs.toFixed(2).replace(/0$/, '') : secs) + ' s per move' : '0 games'; }
+function seg(id, items, get, set, fmt, onset) { const box = $(id); box.innerHTML = ''; items.forEach(v => { const b = document.createElement('button'); b.type = 'button'; b.textContent = fmt(v); b.setAttribute('aria-pressed', get() === v); b.onclick = () => { set(v); [...box.children].forEach((x, i) => x.setAttribute('aria-pressed', items[i] === v)); onset(); }; box.appendChild(b); }); }
+function setPlaying(p) { S.playing = p; $('play').textContent = p ? 'Pause' : 'Play'; $('play').classList.toggle('primary', p); last = performance.now(); }
+$('play').onclick = () => setPlaying(!S.playing);
+document.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|TEXTAREA|BUTTON|A|SELECT/.test(document.activeElement.tagName) && $('tab-games').classList.contains('on')) { e.preventDefault(); setPlaying(!S.playing); } });
+seg('speeds', SPEEDS, () => S.speed, v => { S.speed = v; st.speed = v; P0.save(); }, v => v === 0.5 ? '½×' : v + '×', () => { S.cards.forEach(c => { c.acc = Math.random() * INTERVAL / S.speed * .9; }); updateStatus(); });
+seg('slots', SLOTS, () => S.slots, v => { S.slots = v; st.slots = v; P0.save(); }, v => String(v), () => { S.cards.forEach(c => c.el.remove()); S.cards = []; layout(); updateStatus(); });
+window.matchMedia('(min-width:760px)').addEventListener('change', layout);
+async function showGames() {
+  const r = await callJ('records_json', $('nums').value.slice(0, 80), 48);
+  if (!r.ok) { setPool([]); return; }
+  setPool(r.games.map(clean).filter(Boolean));
+}
+function setPool(list) { S.pool = list; S.cards.forEach(c => c.el.remove()); S.cards = []; S.rot = 0; layout(); updateStatus(); }
+$('bShow').onclick = () => showGames().catch(e => toast(e.message));
+$('nums').addEventListener('keydown', e => { if (e.key === 'Enter') $('bShow').click(); });
+
+/* ---------- loading files ---------- */
+const FS = { game: null, hasModel: false, files: 0 };
+const toast = t => { try { ui.toast ? ui.toast(t) : engineMsg(t, 'bad'); } catch (e) { engineMsg(t, 'bad'); } };
+function syncStatus(s) {
+  FS.game = s.game; FS.hasModel = s.has_model; FS.files = s.file_games;
+  $('nGames').textContent = s.file_games ? gname(s.game) + ': ' + s.file_games + ' games' : $('nGames').textContent; $('nGames').classList.toggle('ok', !!s.file_games);
+  $('pCount').textContent = s.human_games; renderLearnStat(s);
+  $('pNew').disabled = !s.has_model; $('lGo').disabled = !s.has_model || LN.running; $('goLearn').disabled = !s.has_model;
+}
+const syncNow = async () => syncStatus(await callJ('status_json'));
+async function loadModelBuf(buf, label) {
+  engineMsg('Reading the model…');
+  await writeFile('/tmp/model.npz', buf); const r = await callJ('set_model', '/tmp/model.npz');
+  if (!r.ok) { $('nModel').textContent = 'refused'; $('nModel').classList.remove('ok'); engineMsg(r.error, 'bad'); return false; }
+  $('nModel').textContent = label + ' · ' + gname(r.game); $('nModel').classList.add('ok'); engineMsg('Model loaded: ' + gname(r.game) + ' (' + r.params.toLocaleString() + ' numbers, hidden layers ' + r.hidden.join('×') + ').', 'good');
+  await syncNow(); if ((await callJ('status_json')).file_games === 0) { $('nGames').textContent = 'none yet'; $('nGames').classList.remove('ok'); setPool([]); }
+  newGame(true); return true;
+}
+async function loadGamesText(text, label) {
+  engineMsg('Checking every move of every game against the rules…');
+  const r = await callJ('set_games', text);
+  if (!r.ok) { $('nGames').textContent = 'refused'; $('nGames').classList.remove('ok'); engineMsg(r.error, 'bad'); return false; }
+  $('nGames').textContent = label + ' · ' + r.count + ' games'; $('nGames').classList.add('ok');
+  engineMsg(gname(r.game) + ': ' + r.count + ' games passed the rules check' + (r.skipped ? '; ' + r.skipped + ' were skipped (illegal or unreadable)' : '') + (r.capped ? '; only the first 3000 were read' : '') + '.', r.skipped ? '' : 'good');
+  await syncNow(); await showGames(); return true;
+}
+$('fModel').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return; if (f.size > 40e6) { engineMsg('That model file is over 40 MB.', 'bad'); return; }
+  $('nModel').textContent = f.name; try { await startEngine(); await loadModelBuf(await f.arrayBuffer(), f.name); } catch (err) { engineMsg('Could not read the model: ' + err.message, 'bad'); }
+});
+$('fGames').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return; if (f.size > 12e6) { engineMsg('That games file is over 12 MB. Use --keep-every when training, or export fewer games.', 'bad'); return; }
+  $('nGames').textContent = f.name; try { await startEngine(); await loadGamesText(await f.text(), f.name); } catch (err) { engineMsg('Could not read the games: ' + err.message, 'bad'); }
+});
+$('bSample').onclick = async () => {
+  const sm = window.ARENA_SAMPLE; if (!sm) return;
+  try { await startEngine(); const bin = atob(sm.model), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); const ok = await loadModelBuf(buf.buffer, 'sample'); if (ok) await loadGamesText(sm.games, 'sample'); } catch (err) { engineMsg('Could not load the sample: ' + err.message, 'bad'); }
+};
+
+/* ---------- PLAY: you against the model ---------- */
+const PL = { side: 1, sims: 60, acts: [], pos: null, sel: -1, busy: false, hint: null, token: 0, saved: false, hist: [] };
+const COLORS = { ttt: ['X', 'O'], c4: ['red', 'yellow'], oth: ['black', 'white'], flock: ['light', 'dark'], morris: ['light', 'dark'] };
+const HOW = { ttt: 'Click an empty square.', c4: 'Click a column to drop your disc into it.', oth: 'Click a square where your disc flips the other side. If you have no move, press Pass.', flock: 'Click one of your stones, then click where it should go. A stone moves in a straight line, as far as its flock is big.', morris: 'Placing: click an empty point. Then click a stone and then a neighbouring empty point (with 3 stones you may fly anywhere). After a mill, click an enemy stone to remove it.' };
+seg('pSide', [1, -1], () => PL.side, v => { PL.side = v; }, v => v === 1 ? 'First' : 'Second', () => newGame(false));
+seg('pSims', [20, 60, 150], () => PL.sims, v => { PL.sims = v; }, v => ({ 20: 'Quick', 60: 'Normal', 150: 'Deep' }[v]), () => {});
+const pMsg = t => { $('pMsg').textContent = t; };
+async function newGame(first) {
+  if (!FS.hasModel) return;
+  const tk = ++PL.token; PL.acts = []; PL.sel = -1; PL.hint = null; PL.saved = false; PL.hist = []; $('pOpinion').textContent = ''; pMsg(' ');
+  const k = kind(FS.game); $('pHow').textContent = (HOW[k] || '') + ' You are the ' + (PL.side === 1 ? 'first' : 'second') + ' player (' + (COLORS[k] || ['first', 'second'])[PL.side === 1 ? 0 : 1] + ').';
+  await refreshPos(tk);
+}
+async function refreshPos(tk) {
+  const pos = await callJ('position_json', JSON.stringify(PL.acts)); if (tk !== PL.token) return; PL.pos = pos; drawPlay();
+  if (pos.over) { await finishGame(tk); return; }
+  const mine = pos.turn === PL.side; $('pUndo').disabled = !PL.acts.length; $('pHint').disabled = !mine; $('pPass').hidden = !(mine && pos.legal.some(l => l[1] === 's'));
+  if (!mine) await aiTurn(tk);
+}
+function drawPlay() {
+  const pos = PL.pos, box = $('pBoard'); if (!pos) return; const g = { game: pos.game, shape: pos.shape, cells: pos.cells, hands: pos.hands }, k = pos.cells.length - 1, kd = kind(pos.game);
+  let over = '';
+  if (!pos.over && pos.turn === PL.side) {
+    const G = geom(pos.game, pos.shape), L = pos.legal, from = new Set(L.filter(l => l[1] === 'm').map(l => l[2]));
+    if (PL.sel >= 0) { over += '<circle cx="' + G.xy(PL.sel)[0] + '" cy="' + G.xy(PL.sel)[1] + '" r="' + (G.r * .85) + '" fill="none" stroke="' + AMB2 + '" stroke-width="1.6"/>'; L.filter(l => l[1] === 'm' && l[2] === PL.sel).forEach(l => { const [x, y] = G.xy(l[3]); over += dot(x, y, G.r * .22, AMB2); }); }
+    else {
+      from.forEach(f => { const [x, y] = G.xy(f); over += '<circle cx="' + x + '" cy="' + y + '" r="' + (G.r * .8) + '" fill="none" stroke="' + AMB2 + '" stroke-width="1" stroke-dasharray="1.6 1.6" pointer-events="none"/>'; });
+      if (kd !== 'c4') L.filter(l => l[1] === 'p').forEach(l => { const [x, y] = G.xy(l[3]); over += dot(x, y, G.r * .16, AMB2); });
+      L.filter(l => l[1] === 'x').forEach(l => { const [x, y] = G.xy(l[3]); over += '<circle cx="' + x + '" cy="' + y + '" r="' + (G.r * .85) + '" fill="none" stroke="' + RED2 + '" stroke-width="1.6" pointer-events="none"/>'; });
+    }
+    if (kd === 'c4') L.filter(l => l[1] === 'p').forEach(l => { const c = l[3], x = G.ox + (c + .5) * G.cs; over += '<path d="M' + (x - 2.4) + ' 3 L' + (x + 2.4) + ' 3 L' + x + ' 6.2Z" fill="' + AMB2 + '" opacity=".8" pointer-events="none"/>'; });
+  }
+  if (PL.hint) { const G = geom(pos.game, pos.shape); PL.hint.forEach(c => { if (c < 0) return; if (kd === 'c4') { const x = G.ox + (c + .5) * G.cs; over += '<rect x="' + (x - G.cs / 2) + '" y="' + G.oy + '" width="' + G.cs + '" height="' + (G.H * G.cs) + '" fill="none" stroke="#5ab5d3" stroke-width="1.4" stroke-dasharray="2 1.6" pointer-events="none"/>'; } else { const [x, y] = G.xy(c); over += '<circle cx="' + x + '" cy="' + y + '" r="' + (G.r * .95) + '" fill="none" stroke="#5ab5d3" stroke-width="1.6" stroke-dasharray="2 1.6" pointer-events="none"/>'; } }); }
+  box.innerHTML = '<svg viewBox="0 0 100 100" role="img" aria-label="Game board, your turn: ' + (pos.turn === PL.side ? 'yes' : 'no') + '">' + drawBoard(g, k) + over + '</svg><div class="ar-banner" id="pBanner"></div>';
+  box.querySelector('svg').addEventListener('click', onBoardClick);
+  const ban = $('pBanner'), n = pos.cells.length - 1; ban.textContent = pos.over ? '' : (pos.turn === PL.side ? 'Your move.' : 'The model is thinking…') + (pos.hands ? '  Stones still to place: you ' + pos.hands[n][PL.side === 1 ? 0 : 1] + ', model ' + pos.hands[n][PL.side === 1 ? 1 : 0] + '.' : '');
+}
+function onBoardClick(ev) {
+  const pos = PL.pos; if (!pos || pos.over || pos.turn !== PL.side || PL.busy) return;
+  const rc = ev.currentTarget.getBoundingClientRect(), x = (ev.clientX - rc.left) / rc.width * 100, y = (ev.clientY - rc.top) / rc.height * 100, kd = kind(pos.game), G = geom(pos.game, pos.shape), L = pos.legal; let cell = -1;
+  if (kd === 'c4') { const c = Math.floor((x - G.ox) / G.cs); if (c >= 0 && c < G.W && y > G.oy - 4 && y < G.oy + G.H * G.cs + 2) cell = c; }
+  else { let best = 1e9; for (let i = 0; i < G.n; i++) { const [cx, cy] = G.xy(i), d = Math.hypot(cx - x, cy - y); if (d < best) { best = d; cell = i; } } if (best > G.r * 1.15) cell = -1; }
+  if (cell < 0) { PL.sel = -1; drawPlay(); return; }
+  const single = L.find(l => l[2] === -1 && l[3] === cell && l[1] !== 's'); if (single) { playMove(single[0]); return; }
+  if (PL.sel >= 0) { const mv = L.find(l => l[1] === 'm' && l[2] === PL.sel && l[3] === cell); if (mv) { playMove(mv[0]); return; } }
+  if (L.some(l => l[1] === 'm' && l[2] === cell)) { PL.sel = cell; PL.hint = null; drawPlay(); return; }
+  PL.sel = -1; drawPlay();
+}
+async function playMove(a) { const tk = PL.token; PL.hist.push(PL.acts.length); PL.acts.push(a); PL.sel = -1; PL.hint = null; $('pOpinion').textContent = ''; await refreshPos(tk); }
+$('pPass').onclick = () => { const l = PL.pos && PL.pos.legal.find(x => x[1] === 's'); if (l && !PL.busy) playMove(l[0]); };
+async function aiTurn(tk) {
+  PL.busy = true; $('pHint').disabled = true; $('pUndo').disabled = true; $('pPass').hidden = true;
+  try {
+    await new Promise(r => setTimeout(r, 250)); const r = await callJ('ai_move_json', JSON.stringify(PL.acts), PL.sims); if (tk !== PL.token) return;
+    if (!r.ok) { pMsg(r.error); return; }
+    const pct = Math.round((r.value + 1) / 2 * 100); $('pOpinion').textContent = 'Before its move the model rated its chances at about ' + pct + '% (its network alone, no search).';
+    PL.acts.push(r.action); PL.busy = false; await refreshPos(tk);
+  } catch (e) { pMsg('The model could not move: ' + e.message); } finally { PL.busy = false; }
+}
+async function finishGame(tk) {
+  const pos = PL.pos; $('pUndo').disabled = !PL.acts.length; $('pHint').disabled = true; $('pPass').hidden = true; if (PL.saved) return; PL.saved = true;
+  const w = pos.winner, you = PL.side, msg = w === 0 ? 'Draw (' + pos.why + ').' : (w === you ? 'You win! (' + pos.why + ')' : 'The model wins (' + pos.why + ').');
+  const ban = $('pBanner'); if (ban) ban.textContent = msg;
+  const r = await callJ('add_human_game', JSON.stringify(PL.acts), w, pos.why, you, 'played by you against the model (' + new Date().toISOString().slice(0, 10) + ')'); if (tk !== PL.token) return;
+  pMsg(r.ok ? 'Game saved for learning (' + r.count + ' so far). Press New game, or go to "Learn & download".' : (r.error || 'could not save the game')); await syncNow();
+}
+$('pNew').onclick = () => newGame(false);
+$('pUndo').onclick = async () => { if (PL.busy || !PL.acts.length) return; const tk = ++PL.token; PL.saved = PL.pos && PL.pos.over ? PL.saved : false; do { PL.acts.pop(); const p = await callJ('position_json', JSON.stringify(PL.acts)); if (p.turn === PL.side || !PL.acts.length) break; } while (true); PL.sel = -1; PL.hint = null; $('pOpinion').textContent = ''; PL.saved = false; await refreshPos(tk); };
+$('pHint').onclick = async () => {
+  if (PL.busy || !PL.pos || PL.pos.over) return; PL.busy = true; $('pHint').disabled = true; const tk = PL.token;
+  try { const r = await callJ('ai_move_json', JSON.stringify(PL.acts), Math.max(PL.sims, 60)); if (tk !== PL.token || !r.ok) return; const l = PL.pos.legal.find(x => x[0] === r.action); PL.hint = l ? (l[1] === 'm' ? [l[2], l[3]] : [l[3]]) : null; PL.sel = -1; drawPlay(); pMsg('The model would play the dashed spot (' + Math.round(r.top[0][1] * 100) + '% of its search).'); }
+  finally { PL.busy = false; $('pHint').disabled = false; }
+};
+$('goLearn').onclick = () => { location.hash = '#learn'; };
+
+/* ---------- LEARN: let the model learn, then download ---------- */
+const LN = { running: false, cancel: false, done: false };
+function renderLearnStat(s) {
+  const ul = $('lStat'); ul.innerHTML = '';
+  const add = t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); };
+  if (!s.has_model) { add('Load a model first.'); return; }
+  add('Model: ' + gname(s.game)); add('Games from your file: ' + s.file_games + (s.file_games > 100 ? ' (an even sample of 100 is used)' : '')); add('Games you played: ' + s.human_games); if (s.learned) add('Last run made ' + s.new_games + ' new self-play games.');
+}
+const logL = t => { $('lLog').textContent = t; };
+$('lGo').onclick = async () => {
+  if (LN.running) return; const o = { rounds: +$('oRounds').value, selfplay: +$('oSelf').value, sims: $('oSims').value ? +$('oSims').value : null, eval_games: +$('oEval').value, human_weight: +$('oHuman').value };
+  const b = await callJ('learn_begin', JSON.stringify(o)); if (!b.ok) { logL(b.error); return; }
+  LN.running = true; LN.cancel = false; $('lGo').disabled = true; $('lStop').hidden = false; ['dModel', 'dGames', 'dReport', 'dZip', 'lAdopt'].forEach(i => { $(i).disabled = true; }); $('lBar').style.width = '0%'; logL('Starting…');
+  try {
+    for (;;) {
+      if (LN.cancel) { await call('learn_cancel'); logL('Stopped. Nothing was changed.'); break; }
+      const d = await callJ('learn_step'); if (d.error) { logL('Stopped by a problem: ' + d.error); break; }
+      $('lBar').style.width = d.pct + '%'; if (!d.done) logL(d.msg);
+      if (d.done) { $('lReport').textContent = d.report || ''; logL('Finished. The report is below and the files are ready to download.'); ['dModel', 'dGames', 'dReport', 'dZip', 'lAdopt'].forEach(i => { $(i).disabled = false; }); break; }
+    }
+  } catch (e) { logL('Stopped: ' + e.message); } finally { LN.running = false; $('lStop').hidden = true; await syncNow().catch(() => {}); $('lGo').disabled = !FS.hasModel; }
+};
+$('lStop').onclick = () => { LN.cancel = true; logL('Stopping after this step…'); };
+function saveBlob(name, parts, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(parts, { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); }
+const fromB64 = s => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+$('dModel').onclick = async () => saveBlob('model_updated.npz', [fromB64(await call('export_model_b64', true))], 'application/octet-stream');
+$('dGames').onclick = async () => saveBlob('games_updated.jsonl', [await call('export_games_text')], 'text/plain');
+$('dReport').onclick = async () => saveBlob('report.md', [await call('export_report')], 'text/markdown');
+$('dZip').onclick = async () => saveBlob('arena_learning_results.zip', [fromB64(await call('export_zip_b64'))], 'application/zip');
+$('lAdopt').onclick = async () => { const r = await callJ('adopt_updated'); if (!r.ok) { logL(r.error); return; } $('nModel').textContent = 'updated model · ' + gname(r.game); logL('Now using the updated model and the updated games. Play it, or learn again.'); await syncNow(); await showGames(); newGame(false); location.hash = '#play'; };
+
+/* ---------- flow charts (inline SVG; drawn here so they follow the light/dark theme) ---------- */
+function flowSvg(id, W, H, nodes, edges) {
+  const N = {}; nodes.forEach(n => { N[n.id] = n; });
+  const anc = (n, s, o) => s === 't' ? [o == null ? n.cx : o, n.y] : s === 'b' ? [o == null ? n.cx : o, n.y + n.h] : s === 'l' ? [n.cx - n.w / 2, n.y + n.h / 2] : [n.cx + n.w / 2, n.y + n.h / 2];
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Flow chart"><defs><marker id="fa' + id + '" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" class="fc-arrow"/></marker></defs>';
+  edges.forEach(e => {
+    const a = N[e.a], b = N[e.b], p = [anc(a, e.fa || 'b', e.ax)].concat(e.via || [], [anc(b, e.fb || 't', e.bx)]);
+    s += '<path class="fc-e" d="M' + p.map(q => q[0] + ' ' + q[1]).join(' L') + '" marker-end="url(#fa' + id + ')"/>';
+    if (e.lab) s += '<text class="fc-lab" x="' + e.lx + '" y="' + e.ly + '">' + esc(e.lab) + '</text>';
+  });
+  nodes.forEach(n => {
+    s += '<g class="fc-' + n.k + '"><rect class="fc-n" x="' + (n.cx - n.w / 2) + '" y="' + n.y + '" width="' + n.w + '" height="' + n.h + '" rx="9"/>';
+    const lh = 15, y0 = n.y + (n.h - n.t.length * lh) / 2 + 11.5; n.t.forEach((t, i) => { s += '<text class="fc-t' + (i === 0 ? ' b' : '') + '" x="' + n.cx + '" y="' + (y0 + i * lh) + '">' + esc(t) + '</text>'; }); s += '</g>';
+  });
+  return s + '</svg>';
+}
+const nd = (id, cx, y, w, h, t, k) => ({ id, cx, y, w, h, t, k });
+const FLOWS = {
+  loop: () => flowSvg('loop', 420, 500, [
+    nd('a', 150, 8, 250, 46, ['1  Game rules', 'start · legal moves · step · result'], 'rule'), nd('b', 150, 86, 250, 58, ['2  Self-play', 'the model plays itself,', 'thinking ahead with tree search'], 'ai'),
+    nd('c', 150, 176, 250, 46, ['3  Examples', 'position · search’s choice · who won'], 'data'), nd('d', 150, 254, 250, 46, ['4  Train the network', 'small random batches · Adam'], 'ai'),
+    nd('e', 150, 332, 250, 58, ['5  Check against fixed opponents', 'random · greedy · rollout search', '· perfect (tic-tac-toe)'], 'check'), nd('f', 150, 422, 250, 46, ['Save', 'model.npz · games.jsonl · report'], 'data')],
+    [{ a: 'a', b: 'b' }, { a: 'b', b: 'c' }, { a: 'c', b: 'd' }, { a: 'd', b: 'e' }, { a: 'e', b: 'f' }, { a: 'e', b: 'b', fa: 'r', fb: 'r', via: [[345, 361], [345, 115]], lab: 'repeat', lx: 380, ly: 240 }]),
+  search: () => flowSvg('search', 420, 590, [
+    nd('a', 150, 8, 250, 38, ['Current position'], 'data'), nd('b', 150, 74, 250, 50, ['Network guess', 'hunches P for each move · v = who is winning'], 'ai'),
+    nd('c', 150, 152, 250, 58, ['Walk down the imagined tree', 'pick the child with the best', 'Q + c · P · √N / (1 + n)'], 'rule'), nd('d', 150, 238, 250, 58, ['Reached a new position?', 'ask the network (or, if the game is over,', 'use the exact result)'], 'ai'),
+    nd('e', 150, 324, 250, 58, ['Walk back up', 'add the value to every step on the way,', 'flipping its sign each step'], 'data'), nd('f', 150, 410, 250, 40, ['Done N simulations?'], 'check'), nd('g', 150, 502, 250, 46, ['Play the most visited move'], 'check')],
+    [{ a: 'a', b: 'b' }, { a: 'b', b: 'c' }, { a: 'c', b: 'd' }, { a: 'd', b: 'e' }, { a: 'e', b: 'f' }, { a: 'f', b: 'g', lab: 'yes', lx: 166, ly: 482 }, { a: 'f', b: 'c', fa: 'r', fb: 'r', via: [[345, 430], [345, 181]], lab: 'no: one more', lx: 380, ly: 300 }]),
+  net: () => flowSvg('net', 420, 440, [
+    nd('a', 210, 8, 300, 40, ['Board as numbers (encode)'], 'data'), nd('b', 210, 76, 300, 46, ['Hidden layers', 'multiply · add · ReLU (cut negatives to 0)'], 'ai'),
+    nd('c', 110, 152, 190, 52, ['Policy head', 'a probability for every move'], 'ai'), nd('d', 310, 152, 190, 52, ['Value head', '−1 … +1  (who is winning)'], 'ai'),
+    nd('e', 110, 236, 190, 58, ['Loss 1', 'cross-entropy against the', 'move the search chose'], 'rule'), nd('f', 310, 236, 190, 58, ['Loss 2', 'squared error against', 'who really won'], 'rule'),
+    nd('g', 210, 330, 300, 56, ['Backpropagation, then Adam', 'change every number a little'], 'check')],
+    [{ a: 'a', b: 'b' }, { a: 'b', b: 'c', ax: 110 }, { a: 'b', b: 'd', ax: 310 }, { a: 'c', b: 'e' }, { a: 'd', b: 'f' }, { a: 'e', b: 'g', bx: 110 }, { a: 'f', b: 'g', bx: 310 },
+      { a: 'g', b: 'b', fa: 'l', fb: 'l', via: [[28, 358], [28, 99]], lab: 'next batch', lx: 28, ly: 232 }]),
+  page: () => flowSvg('page', 420, 500, [
+    nd('a', 210, 8, 320, 44, ['Your files (stay on your computer)', 'model.npz · games.jsonl'], 'data'), nd('b', 210, 84, 320, 62, ['Checks', 'floats only, sizes fit a game · every move', 'replayed through the real rules'], 'rule'),
+    nd('c', 210, 178, 320, 46, ['Python in your browser', 'Pyodide worker running rlg/web_api.py'], 'ai'),
+    nd('d', 70, 268, 112, 56, ['Watch', 'up to 16 boards'], 'ai'), nd('e', 210, 268, 112, 56, ['Play', 'search + network'], 'ai'), nd('f', 350, 268, 112, 56, ['Learn', 'games + self-play'], 'ai'),
+    nd('g', 210, 380, 320, 58, ['Download', 'updated model · updated games', '· report · zip'], 'check')],
+    [{ a: 'a', b: 'b' }, { a: 'b', b: 'c' }, { a: 'c', b: 'd', ax: 70, via: [[70, 245]] }, { a: 'c', b: 'e' }, { a: 'c', b: 'f', ax: 350, via: [[350, 245]] }, { a: 'f', b: 'g', ax: 350, bx: 350 }, { a: 'e', b: 'f', fa: 'r', fb: 'l' }]),
+  learn: () => flowSvg('learn', 420, 520, [
+    nd('a', 210, 8, 320, 40, ['Every position of every game'], 'data'), nd('b', 210, 78, 320, 40, ['Who won, from the mover’s point of view?'], 'rule'),
+    nd('c', 70, 150, 118, 92, ['Won', 'copy their move:', '40% on it, 60% on', 'what the net thought'], 'check'), nd('d', 210, 150, 118, 92, ['Drew', 'copy it half as', 'strongly'], 'data'), nd('e', 350, 150, 118, 92, ['Lost', 'keep the net’s own', 'opinion; do not copy', 'the move'], 'ai'),
+    nd('f', 210, 276, 320, 46, ['Value target for all three', '+1 win · 0 draw −1 loss'], 'data'), nd('g', 210, 352, 320, 46, ['Mix with self-play games', 'your own games count 3× (default)'], 'ai'),
+    nd('h', 210, 430, 320, 58, ['Train, then measure before and after', 'vs random · greedy · (perfect) · your original model'], 'check')],
+    [{ a: 'a', b: 'b' }, { a: 'b', b: 'c', ax: 70, via: [[70, 132]] }, { a: 'b', b: 'd', ax: 210 }, { a: 'b', b: 'e', ax: 350, via: [[350, 132]] },
+      { a: 'c', b: 'f', bx: 70, via: [[70, 258]] }, { a: 'd', b: 'f' }, { a: 'e', b: 'f', bx: 350, via: [[350, 258]] }, { a: 'f', b: 'g' }, { a: 'g', b: 'h' }]),
+  agent: () => flowSvg('agent', 420, 250, [
+    nd('a', 210, 8, 220, 50, ['Agent', 'the model: picks a move'], 'ai'), nd('b', 210, 190, 220, 50, ['World', 'the game: applies the rules'], 'rule')],
+    [{ a: 'a', b: 'b', fa: 'l', fb: 'l', via: [[60, 33], [60, 215]], lab: 'action (a move)', lx: 60, ly: 130 }, { a: 'b', b: 'a', fa: 'r', fb: 'r', via: [[360, 215], [360, 33]], lab: 'new position + reward', lx: 360, ly: 130 }]),
+  delay: () => { let s = '<svg viewBox="0 0 680 190" role="img" aria-label="A game of 14 moves where the reward only arrives after the last move"><defs><marker id="fadl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" class="fc-arrow"/></marker></defs>';
+    s += '<line x1="30" y1="95" x2="640" y2="95" class="fc-e" marker-end="url(#fadl)"/>';
+    for (let i = 0; i < 14; i++) { const x = 50 + i * 40, last = i === 13; s += '<circle class="fc-dot' + (last ? ' win' : '') + '" cx="' + x + '" cy="95" r="' + (last ? 13 : 10) + '"/><text class="fc-t" x="' + x + '" y="99" style="font-size:10px">' + (i + 1) + '</text>'; if (!last) s += '<text class="fc-q" x="' + x + '" y="68">?</text>'; }
+    s += '<text class="fc-t b" x="590" y="46" style="fill:var(--good)">WIN: reward +1</text><text class="fc-lab" x="300" y="140">14 moves, and no feedback at all until the very end</text><text class="fc-lab" x="300" y="160">Which moves were the good ones? That is the “credit assignment” problem.</text><text class="fc-small" x="300" y="180" style="text-anchor:middle">(an illustration, not measured data)</text>';
+    return s + '</svg>'; },
+  family: () => flowSvg('family', 600, 290, [
+    nd('r', 300, 6, 260, 40, ['Reinforcement learning'], 'rule'),
+    nd('mf', 150, 92, 270, 46, ['Model-free', 'learn from experience only'], 'ai'), nd('mb', 450, 92, 270, 46, ['Model-based', 'use a model of the rules'], 'data'),
+    nd('v', 58, 188, 110, 86, ['Value-based', 'Q-learning', 'DQN, SARSA', '“how good is', 'this move?”'], 'ai'), nd('p', 176, 188, 110, 86, ['Policy-based', 'REINFORCE', 'PPO', '“make good', 'moves likelier”'], 'ai'), nd('c', 294, 188, 110, 86, ['Actor-critic', 'A2C, A3C, SAC', '“actor moves,', 'critic scores”'], 'ai'),
+    nd('s', 424, 188, 118, 86, ['Search + network', 'MCTS, AlphaGo,', 'AlphaZero', '◀ this Arena'], 'check'), nd('m', 548, 188, 104, 86, ['Learned model', 'Dyna, MuZero', 'plan inside', 'its own copy'], 'data')],
+    [{ a: 'r', b: 'mf', ax: 230, bx: 150, via: [[230, 68], [150, 68]] }, { a: 'r', b: 'mb', ax: 370, bx: 450, via: [[370, 68], [450, 68]] },
+     { a: 'mf', b: 'v', ax: 100, bx: 58, via: [[100, 164], [58, 164]] }, { a: 'mf', b: 'p', ax: 150, bx: 176, via: [[150, 164], [176, 164]] }, { a: 'mf', b: 'c', ax: 200, bx: 294, via: [[200, 164], [294, 164]] },
+     { a: 'mb', b: 's', ax: 410, bx: 424, via: [[410, 164], [424, 164]] }, { a: 'mb', b: 'm', ax: 490, bx: 548, via: [[490, 164], [548, 164]] }]),
+  diff: () => flowSvg('diff', 600, 450, [
+    nd('a', 100, 8, 176, 74, ['Self-play games', 'the model plays itself', 'with tree search', 'policy target = search'], 'check'), nd('b', 300, 8, 176, 74, ['Games in your file', 'policy target =', 'copy winners (40%)', 'skip weak players'], 'data'), nd('c', 500, 8, 176, 74, ['Games you play', 'same rule as the file,', 'but counted 3×', '(setting)'], 'data'),
+    nd('d', 300, 118, 560, 46, ['Examples: position · policy target · value target (who won)'], 'check'),
+    nd('e', 300, 198, 380, 58, ['One small network', 'policy head (move odds) + value head (who is winning)'], 'check'), nd('f', 300, 290, 380, 46, ['Train a few rounds', 'small random batches · Adam · symmetries'], 'check'),
+    nd('g', 300, 370, 560, 58, ['Measure before and after', 'vs random · greedy · (perfect) · your original model', 'then download the updated model + games'], 'check')],
+    [{ a: 'a', b: 'd', ax: 100, bx: 100 }, { a: 'b', b: 'd', ax: 300, bx: 300 }, { a: 'c', b: 'd', ax: 500, bx: 500 }, { a: 'd', b: 'e' }, { a: 'e', b: 'f' }, { a: 'f', b: 'g' }]),
+  targets: () => { const rows = [['Mover won', .4], ['Mover drew', .2], ['Mover lost', 0]], X = 150, Wd = 420; let s = '<svg viewBox="0 0 680 200" role="img" aria-label="Policy target split for won, drawn and lost games">';
+    s += '<text class="fc-tl b" x="10" y="20">Policy target for a move taken from a file game</text>';
+    rows.forEach((r, i) => { const y = 40 + i * 44, a = Wd * r[1]; s += '<text class="fc-tl" x="10" y="' + (y + 20) + '">' + r[0] + '</text>'; if (a) s += '<rect class="fc-bar-a" x="' + X + '" y="' + y + '" width="' + a + '" height="30" rx="4"/><text class="fc-t b" x="' + (X + a / 2) + '" y="' + (y + 20) + '" style="fill:#000">' + Math.round(r[1] * 100) + '%</text>'; s += '<rect class="fc-bar-b" x="' + (X + a) + '" y="' + y + '" width="' + (Wd - a) + '" height="30" rx="4"/><text class="fc-t b" x="' + (X + a + (Wd - a) / 2) + '" y="' + (y + 20) + '" style="fill:#000">' + Math.round((1 - r[1]) * 100) + '%</text>'; });
+    s += '<rect class="fc-bar-a" x="150" y="176" width="14" height="12" rx="2"/><text class="fc-lab" x="170" y="187" style="text-anchor:start">the move that was played</text><rect class="fc-bar-b" x="360" y="176" width="14" height="12" rx="2"/><text class="fc-lab" x="380" y="187" style="text-anchor:start">what the network already thought</text>';
+    return s + '</svg>'; },
+  results: () => { const g = [['Connect 4 mini', [1, .95, .7]], ['Connect 4', [1, .93, .9]], ['Othello 6×6', [1, .94, 1]]], names = ['vs random', 'vs greedy', 'vs plain search'], cls = ['fc-bar-c', 'fc-bar-b', 'fc-bar-a'], X = 150, Wd = 360; let s = '<svg viewBox="0 0 680 290" role="img" aria-label="Score of three trained models against three fixed opponents">';
+    s += '<text class="fc-tl b" x="10" y="20">Score of the trained model (1.0 = won everything, 0.5 = even)</text>';
+    g.forEach((r, i) => { const y0 = 36 + i * 74; s += '<text class="fc-tl b" x="10" y="' + (y0 + 36) + '">' + r[0] + '</text>'; r[1].forEach((v, k) => { const y = y0 + k * 22; s += '<rect class="' + cls[k] + '" x="' + X + '" y="' + y + '" width="' + (Wd * v) + '" height="17" rx="3"/><text class="fc-small" x="' + (X + Wd * v + 6) + '" y="' + (y + 13) + '">' + v.toFixed(2) + ' ' + names[k] + '</text>'; }); });
+    s += '<line x1="' + (X + Wd * .5) + '" y1="30" x2="' + (X + Wd * .5) + '" y2="260" stroke="var(--muted)" stroke-dasharray="4 4"/><text class="fc-small" x="' + (X + Wd * .5) + '" y="276" style="text-anchor:middle">0.5 = even</text>';
+    return s + '</svg>'; }
+};
+function drawFlows() { document.querySelectorAll('[data-flow]').forEach(el => { if (!el.firstChild && FLOWS[el.dataset.flow]) el.innerHTML = FLOWS[el.dataset.flow](); }); }
+
+/* ---------- tabs ---------- */
+const TABS = ['games', 'play', 'learn', 'rl', 'code', 'ideas'];
+function route() {
+  const h = (location.hash || '#games').slice(1), t = TABS.includes(h) ? h : 'games';
+  TABS.forEach(n => { $('tab-' + n).classList.toggle('on', n === t); const a = $('nav-' + n); if (n === t) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  if (t === 'games') { last = performance.now(); layout(); } if (t === 'code' || t === 'rl') drawFlows(); if (t === 'play' && FS.hasModel && !PL.pos) newGame(true);
+}
+window.addEventListener('hashchange', route);
+setPlaying(true); route(); layout(); updateStatus(); requestAnimationFrame(loop);
+window.__arena = { S, PL, E, FS, clean, call, callJ, startEngine, drawBoard, geom };
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

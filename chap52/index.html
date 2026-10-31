@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 52 · Conquest</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16365a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Conquest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:700px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:2.6em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:640px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:1/1;border-radius:10px;touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted);min-height:1.2em}
+.dicerow{display:flex;align-items:center;justify-content:center;gap:14px}
+#die{font-size:68px;line-height:1;width:92px;height:92px;display:flex;align-items:center;justify-content:center;background:#fff;color:#222;border-radius:18px;border:5px solid #888;box-shadow:0 3px 8px rgba(0,0,0,.35);user-select:none;cursor:pointer}
+#die.roll{animation:dshake .18s linear infinite}
+@keyframes dshake{0%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-4px)}100%{transform:rotate(-8deg) translateY(0)}}
+#rollBtn{font-size:18px;padding:12px 22px}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}
+@media (max-width:480px){.tbar .btn.sm{padding:6px 8px;font-size:13px}#die{width:76px;height:76px;font-size:54px}}
+.urcv{aspect-ratio:640/250}
+.urdice{display:flex;gap:10px;align-items:center;min-height:56px}
+.td{font-size:44px;line-height:48px;width:48px;text-align:center;color:#6b7280;opacity:.55;transition:transform .15s;user-select:none}
+.td.on{color:#f0b429;opacity:1;text-shadow:0 0 6px rgba(240,180,41,.55)}
+.td.spin{animation:dshake .18s linear infinite;opacity:.9;color:#aab}
+.dicerow{flex-wrap:wrap}
+@media (max-width:480px){.td{font-size:36px;width:40px;line-height:40px}}
+.cqcv{aspect-ratio:640/500;cursor:pointer}
+#score .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel2);border-radius:20px;padding:3px 10px;font-size:12.5px}
+#score .chip.me{outline:2px solid var(--accent)} #score .chip.dead{opacity:.4;text-decoration:line-through}
+#score .dot,#legend .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+#legend{font-size:12px;color:var(--muted)} #legend span{display:inline-flex;align-items:center;gap:4px;margin:0 6px}
+
+.tboardwrap.zoomed{overflow:auto;-webkit-overflow-scrolling:touch;border-radius:10px;max-height:78vh}
+.tboardwrap.zoomed .cv{width:210%;max-width:none;touch-action:pan-x pan-y}
+#score .chip.cur{box-shadow:0 0 0 2px var(--accent-light)}
+#legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 8px}
+#legend .lg{display:inline-flex;align-items:center;gap:5px;margin:0;border:1px solid var(--line);border-radius:6px;padding:1px 6px;background:var(--panel2);font-size:11.5px}
+#legend .lg i{width:10px;height:10px;border-radius:2px;display:inline-block}#legend .lg small{opacity:.8}
+#legend .lg.full{border-color:var(--accent);font-weight:700}
+.pn{min-width:5.2em;text-align:center;font-size:15px;color:var(--accent-light)}
+#mvR{width:min(78%,360px);accent-color:#f0b429;height:34px}
+.mvbig b{font-size:32px;line-height:1.1;color:#f0b429}#ovMove{gap:2px;padding:6px 10px}#ovMove h3{font-size:15px;margin:0}#ovMove .tbar{gap:4px}.mvrange{display:flex;justify-content:space-between;width:min(78%,360px);margin:0 auto;font-size:12px;color:#ccd}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Conquest</h2>
+  <p>Chapter 52 · A conquest strategy game on a map of Europe in 1914. Take territories with dice, hold whole power blocs for bonus armies, and choose how many armies to place, against up to five computer generals</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small>PLAYER</small><b id="s1">You</b></div>
+    <div class="tstat"><small>PHASE</small><b id="s2">Place</b></div>
+    <div class="tstat"><small>TO PLACE</small><b id="s3">0</b></div>
+    <div class="tstat"><small>ROUND</small><b id="s4">1</b></div>
+  </div>
+  <div class="tmsg" id="msg">Place your armies</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv cqcv" aria-label="Map of Europe in 1914"></canvas>
+    <div class="ov" id="ovMove"><h3 id="mvH">Move how many armies?</h3><div class="mvbig"><b id="mvN">1</b></div><input type="range" id="mvR" min="1" max="10" value="10" aria-label="Number of armies"><div class="mvrange"><span id="mvLo">1</span><span id="mvHi">10</span></div><div class="tbar"><button class="btn sm" data-act="amtmin" type="button">Fewest</button><button class="btn sm" data-act="amthalf" type="button">Half</button><button class="btn sm" data-act="amtmax" type="button">All</button><button class="btn sm primary" data-act="amtok" type="button">Move ✔</button></div></div>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+  </div>
+  <div class="rec" id="tinfo"> </div>
+  <div class="rec" id="battle"> </div>
+  <div class="tbar" id="score"></div>
+  <div class="tbar" id="placeBar" style="display:none"><span class="kl">Armies per tap:</span><button class="btn sm" data-act="pm" type="button" aria-label="One fewer">−</button><b id="pN" class="pn">3</b><button class="btn sm" data-act="pp" type="button" aria-label="One more">+</button><button class="btn sm" id="pOne" data-act="pone" type="button">1</button><button class="btn sm" id="pAll" data-act="pall" type="button">All</button></div>
+  <div class="tbar" id="actBar">
+    <button class="btn primary" id="bAuto" data-act="auto" type="button">Auto-place</button>
+    <button class="btn primary" id="bRoll" data-act="roll" type="button">⚔ Attack once</button>
+    <button class="btn primary" id="bBlitz" data-act="blitz" type="button">⚡ Blitz</button>
+    <button class="btn" id="bEndAtk" data-act="endatk" type="button">End attack ➜</button>
+    <button class="btn" id="bEndTurn" data-act="endturn" type="button">End turn ✔</button>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" id="zoomBtn" data-act="zoom" type="button">🔍 Zoom in</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+  </div>
+  <div class="tbar"><span class="kl">Players:</span><span id="npBar"></span></div>
+  <div class="tbar"><span class="kl">Computers:</span><span id="lvBar"></span></div>
+  <div class="tbar"><span class="kl">Game length:</span><span id="lenBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div class="tbar" id="legend"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 How to play Conquest: Europe 1914</h2>
+    <p>You are <b style="color:#3b82f6">blue</b>; the computers are red, green, gold, violet and orange (you choose 2 to 6 players, 6 is the default). Take over the whole map. The 50 territories belong to 12 <b>power blocs</b> (the thick dark lines mark them, the names are written on the map and in the key under it). Hold <b>every</b> territory of a bloc and you get bonus armies each turn.</p>
+    <h3>Setting up</h3>
+    <ul>
+      <li>The territories are dealt out evenly, one army on each. Then everyone places their remaining starting armies, three at a time in turn. <b>You choose how many armies each tap places</b> (the − and + buttons, 1 or All), or press Auto-place.</li>
+    </ul>
+    <h3>Your turn: three steps</h3>
+    <ul>
+      <li><b>1. Reinforce.</b> You get armies equal to your territories ÷ 3 (rounded down, at least 3), plus the bonus of each bloc you hold completely. Tap your territories to place them, as many at a time as you set.</li>
+      <li><b>2. Attack</b> (as often as you like, or not at all). Tap one of your territories with 2 or more armies, then an <b>enemy neighbour</b> (a shared border, or a dashed sea route). The attacker rolls up to <b>3 dice</b> (always one army stays behind), the defender up to <b>2</b>. Compare the highest dice, then the next: the higher die wins, <b>ties go to the defender</b>. Each loss costs one army. <b>Blitz</b> keeps rolling until you win or can’t go on.</li>
+      <li>When the last defender dies you take the territory and <b>move in</b>: a slider lets you choose how many armies (at least as many as dice you rolled).</li>
+      <li><b>3. Fortify.</b> Once, move any number of armies from one of your territories to another that you can reach <b>through your own territories</b>. At least one stays behind. This ends your turn.</li>
+    </ul>
+    <h3>The pictures and the scenery</h3>
+    <ul>
+      <li>The army picture grows with the stack: one soldier (1 to 3), two soldiers (4 to 8), a cannon and a soldier (9 to 15), a cannon and two soldiers (16 or more). The number is always shown.</li>
+      <li>Mountains, forests, rivers and lakes are only decoration: they do not change the rules. Use <b>Zoom in</b> to look closely and scroll the map with your finger.</li>
+    </ul>
+    <h3>Winning</h3>
+    <ul>
+      <li>A player with no territories is out. Win by being the last one standing.</li>
+      <li><b>Short game</b> stops after round 15 and the player with the most territories (then most armies) wins. A full game stops after round 100 the same way.</li>
+    </ul>
+    <h3>Tips</h3>
+    <ul>
+      <li>Small blocs with few entrances (Switzerland, the British Isles, Iberia) are easy to hold; the big ones pay more (Russian Empire +7) but have long borders.</li>
+      <li>The map follows today’s coastlines and borders, grouped into the powers of 1914, so it is only roughly historical. It is a game, not a history lesson.</li>
+      <li>This version has no cards. The computers are decent but not clever; Hard picks its fights by the odds and by which blocs it can complete.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">🗺️ Conquest is my own game in the family of dice-and-territory conquest games (Risk is a trademark, so the rules text, names and pictures here are original; the dice rule of three attack dice against two, ties to the defender, is the classic one and its odds are checked in the code). The map is drawn from Natural Earth country shapes (public domain, via the world-atlas package), shrunk into a small bitmap and grouped into the powers of 1914, so borders follow today’s lines and are only roughly historical. Mountains, forests, rivers and lakes are hand-placed decoration. Soldiers, cannons, sounds, rules code and the computer players are my own. No cards in this version.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Conquest map projection: a Lambert conic projection (the usual look of a map of Europe), scaled to a 640 x 500 picture.
+   cqProj(lon, lat) gives [x, y] in picture pixels. Both the map data tool and the game use it. */
+'use strict';
+const CQ_W = 640, CQ_H = 500;
+const cqProj = (() => {
+  const d = Math.PI / 180, p1 = 40 * d, p2 = 62 * d, p0 = 52 * d, l0 = 16 * d, K = 877;
+  const n = Math.log(Math.cos(p1) / Math.cos(p2)) / Math.log(Math.tan(Math.PI / 4 + p2 / 2) / Math.tan(Math.PI / 4 + p1 / 2));
+  const F = Math.cos(p1) * Math.pow(Math.tan(Math.PI / 4 + p1 / 2), n) / n, rho = p => F / Math.pow(Math.tan(Math.PI / 4 + p / 2), n), r0 = rho(p0);
+  return (lon, lat) => { const r = rho(lat * d), t = n * (lon * d - l0); return [320 + K * (r * Math.sin(t) + .005), 250 - K * (r0 - r * Math.cos(t))]; };
+})();
+if (typeof module !== 'undefined') module.exports = { CQ_W, CQ_H, cqProj };
+
+/* generated by tools/mkmap.js: run-length bitmap, 320 x 250 cells of 2 px. Per row: class char (0 sea, 1..c blocs, d other land) + 2 base-36 digits of run length */
+const CQ_LAND_W = 320, CQ_LAND_H = 250, CQ_LAND = '011d01002d0s02hc02004c14b0z004b05002b1z011d0v02ec02005c01001c15b0y004b26013d0u02jc18b0x005b26015d0s02ic18b0y004b27016d0q02jc18b08002b0n004b28017d0p02kc17b09002b0l004b29017d0p02jc01001c15b0c005b01001b0d005b29017d0o02jc18b0d00ob29018d0k02mc19b0d00mb2a019d0i02mc1ab0e00kb2b01bd03004d0202sc1cb0g00ib2a04bc1db0h00hb2a04bc1eb0h00hb2904ac1gb0g00jb27049c1hb0g00jb27049c1ib0e008b03008b2804bc1gb0f003b01003b07004b28048c1ib0h006b2j047c1jb0h006b2j047c0v008c0gb0i007b2h047c0v00ac0fb0h008b01001b2e046c0w00ac0fb0h00bb2d046c0v00bc0fb0i002b01008b2c046c0u00dc0fb0l006b2d047c0t00ac01002c0gb0l004b2e044c0w00bc0ib33041c0y00bc0jb33043c0w00bc0lb31042c0y00ac0lb31041c0z009c0mb31040c10009c0lb3203zc11008c0mb3203yc11009c0nb3103yc11008c0pb30029d0101nc04001c0w008c0sb2y028d0301mc04001c0v008c0ub2x03sc07001c0w008c0wb2w03qc01002c06001c0v009c0wb2w03rc1200bc0wb2w03pc14007c01001c0yb2w03nc04001c0z00bc0xb2x03mc1500ac0yb2x03pc1100bc0xb2y03kc1500bc0yb2y03hc1800bc0xb2z03gc1800dc0wb2z03fc1800ec0wb2z03ec1a00dc0vb3003ec04001c1500dc0vb3003fc1800fc0tb3103fc1800fc0sb3203ec1900fc0sb3203ec1800gc0rb3302p10100pc04001c02001c0z00gc0qb3402p10100oc1800gc0qb3402p10100oc1900fc0pb3503ec1900fc0p002b3303ec1900fc0n004b3303dc1a00fc0j00ab02001b2y03dc04002c1400hc0g00fb2x03ec02001c1900fc0c00fb3003dc03001c1900fc01001c0800gb3102g10100wc02001c1c004d02009c01001c0500fb3302110201ac01002c1c00hc0100ib3401z104005102013c1g00zb3401z10300610800xc1h00pb05002b3601z10200510900xc1h00nb3g02610800yc02001c1d00mb3i024108013c0i001c0t00lb3k020102002107014c0h002c0s001c0100jb3l01w101002102002108012c0j003c0s00kb3l020101002107013c0g006c0s00gb02002b3l02110e00yc0f007c0q00ib02003b3k02310f00wc0d008c0p00mb01001b3k02210h00wc0b009c0n00lb04002b3j02110h00zc0800ac0m00lb04003b02001b3g01z10i010c0700cc0l00lb03007b3g01z10300110e013c0100fc0l00lb01009b3g01z10200110e01kc0l00lb01009b3g02210d01mc0k00vb3g02110d01nc0k00vb3g02010c01j601005c0k007c0200db02007b3g01x10100210100310901g603006c0j006c0300bb05006b3g02010100210801i603006c0j006c0300bb06005b3g01n10300110200610200210701i604006c0j006c0300ab08004b3g01n10600610100310a01a608008c0h007c0200bb09002b3h01l10b00710b019602001605008c0h007c0100cb3s01l10c00510d017603001605008c0h00kb3s01e10300510b00410e019607009c0g001c0100hb3t01e10500110d00310g01660900ac0g00ib3rd0201e10j00310g01560c008c0e001c0100ib3rd0201f10j00410e01560c007c0f001c0100ib3rd0201d10k00a10901560900bc0d00lb3qd0301c10l00910a01560900ac0e00lb3qd0301d10i00b10a015609007603c0900rb3od0401e10f008d0100410a015608006601001603001c0600tb3od0401g10d007d0100510a015607005607001c0600tb3nd0501e10f00d10c014605001604001606002c0600tb3nd0501d10g00f10a015604001604002604003c0600ub3md0501c10h00e10c014604001604002605003c0100yb3ld0601c10200110d00f10c013604003603003603013b3ld0601a10i00f10d01260600860100c60100rb3kd0701810k00710200510d01450260150100460100160100260100zb3pd0701810k00710500210d01450500560300rb01007b3rd0601710k00810l01350500vb06006b3sd0501810i00810l01350700d50200eb07006b3ld03b04d0501810h00b10k01350800850200150200cb0a004b3md05b02d0501810b00510100b10k01350900650500cb41d0c01a10400m10k013509003508009b44d0c01z10l01150100150a00150b004b47d0c01x10m00w50400250pb4ad0c01t10v00l60300250500250o003b48d0c01t10w00i60750xb49d0c01u10v00h60950wb4ad0b01x10s00e60c50wb4bd0a01y10r00e60b50xb4bd0a01z10q00d60c50xb4bd0a02010100310k00e60b50xb4cd0a01w10300310l00e60b50yb4cd0a01u10q00110100f60c50yb4bd0a01u10q00g60d50zb4bd0901s10r00g60d510b4ed0601r10t00e60e510b4ed04b0201o10a00410k00a602001609514b4fd01b0401p10100510300610200110200110c00b60b514b4k01w10100b10100510600860g514b4k02n20460h514b4k02m20560h514b4k02m20560g515b4k02m20860d516b4j02l20960d516b4j02l20a60c516b4j02420300d20c60c512801502b4j02420300820i60b512802501802b4h02420300720j60b50z80ab4f02520400520j60320160650y80fb4c01p20400120200820700120o60750w80hb4c01o20900720x60650u80jb03801b4801p20900620y60650s80lb01804b4601p20e00120z60550t80qb4501o21h60250u80tb4201p21j50t80ub4101q21i50t80vb2u001b1501s21i50s80ub02802b07803b2e003b1501u21j50p80zb02809b2b003b1601v21k50p81ab26005b1701w21j50q819b25005b1801x21h50s818b24006b1801x21g50u816b24005b1a01y21f50u816b0m902b1e007b1a01y21f50u816b0l904b1c00ab1801y21e50t819b0j905b1a00eb1601y21e50s81bb0f909b1800db1801y21e50q81f909b0390bb1600db1901z21c50r81e90pb1400eb1901z21d50470250l81c90qb1300fb1902021870120270950j81b90sb0l002b0f00fb1902221670e80150b80450181a90vb0g003b0h00fb1902221570f80250280350180850181a90vb0e006b0h00db1a02121570f81r90xb0d009b01006b07007b01002b1d02121470h81q90xb0d00fb09004b04001b1d02121370j81o90yb0d00eb0c001b05003b1b02121270n80340581d90yb0c00eb0i006b1902221170m40a81b90zb0c00db0f00eb14d0102021370120270j40b81a90zb0b00db0f00kb0xd0302021670840170440170340h81690zb0900jb0a00nb0id07b05d0400w30301021770740270440470140i813911b0800lb0600rb07d02b01d02b02d0cb01d0500r30100330500z21870540470240n812913b0800mb0400ub02d0s00p30c00y21740b70140n80w919b06902b0100lb0400xd0r00p30f00v21740z80v91bb0390500kb04013d0m00p30j00q21940z80s91l00mb01017d0j00p30l00o21940z80r91m01vd0i00q30m00l21a40v00440180r91h00190201xd0h00q30o00j21940t00780s91h020d0h00q30t00d21940t00780t91h021d0g00p30w00b21940t00780400280p91f022d0f00o31000721b40t00780300180p91g022d06a01d0800o31200521a40u00780200380o91f023d05a04d0600o31521c40u00a80100280o91f022d02a0ad0300o31721a40t00e80o91f022a0dd0200n31721c40800240i00e80n91g021a0fd0100n31921d40400540g00e80n91g020a0gd0100n31a21c40300840e00g80l91g01za0hd0100n31b20q00120j40300a40e00f80n91e01ya0j00n31e20l00520g00g40d00e80n91c01za0k00m31g20330120e00a20b00i40e00e80l91c01za0l00m31m20b00d20800j40f00e80l91b014a0100oa0r00l31o20900f20600k40h00d80k91b012a04004a0100ha0s00k31r20700h20100n40i00d80h91d00xa0f00ea0u00k31r20701640h00h80d91d00ua0j001a1600j31v20330120101540i00f80200180991e00ua1r00j32000y20100640i00f80100380891e00sa1t00i32000z20100740h00k80691g00qa1u00h32100x20300840h00f80100480591h00oa1v00g32200v20500840h00m80391h00na1w00f32200w20500940g00n80291ca03901a0200la1x00e32000z20500a40g00o91aa0800ka1y00d31z01120500c40f00o918a0a00ja1y00d31u01620400d40g00p916a0b00ga2000d31r01920400e40g00p916a0e002a2a00e31p01a20400f40h00n917a2p00d31q01a20300h40m00j914a0e001a2b00g31l01d20200i40l00j913a0900aa2800f31l01z40j00k913a0700ba2900f31k02140i00k913a07009a2b00e31j01h40300k40j00i90w005902a0600aa2b00e31i01h40400p40g00g90s00aa03001a02004a01004a2d00e31h01e40900o40i00e90r00390100aa01003a01002a2i00d31i01e40900p40j00c90p00a901004a2pd0100d31h00k30100530100p40800r40i00b90q00ea2pd0100c31i00i30300530200o40800r40k00990j001908009a01002a2nd0300c31i00g30700t40800u40i00890j00390400ea2ld0500c31i00i30400u40700v40b00340600690j004901002901006902005a2id0800f31g00i30200v40700v40b00640300690j005901009901005a2hd0900h31f00730201540700w40900840300790i00ka03001a2cd0a00o31700830101640700z40600840200990h00ka01003a2bd0b00o31501h40701040400a40100a90h00j902002a2ad0c00p31201i40801040400j90100190i00h904001a28d0e00q31001j40701140500l90i00h903002a25d0g00q31001j40701240600j90g00290100ma1xd0n00p31001k40401540700j90f00oa1xd0o00q30z01l40201640700l90g00la1vd0q00q30u02z40600o90900390200f901002a01002a1pd02a01d0s00q30s03140600m90d00390400b901002a1n002a02d0w00q30600a30b03240300q90e00290300b901001a1n003a02d0w00r30400e30703240400q90h00190200ga1d001a04003a04d0v01e30103340400r90500190100290800190100ia1a009a04d0v04i40400n90100790200690600190200ga1900aa03d0w00pd0503n40400o90200490700390600490100b902001a1800ba03d0w00pd0503740100b40700u90b00490200590100da1800ca02d0w00od0603340700540600140300v90c00490100ka0n003a0g00dd0y00nd0703340h00340100s90200290c00d90100da0j009a0b00ed0y00md0903240h01190d00oa04001a0f00ba0700gd0y00md0a011d04008d03002d0201h40g01390800290100ta0g00ca0400id0y00ld0c00wd0s00ad0101440d01490700e90100190100a901004a02005a0900zd0x00kd0i00pd0w006d04003d0200ad04001d0100k40b01490800sa0100aa08010d0w00jd0o00ed04001d0y001d0e007d0800l40a014908013a0500rd0100bd0w00id0p00cd20004d0100h40801490200190600v901010d0200cd0w00hd0s008d22002d0300k40601490100290500u90200yd0300dd0w00fd0x002d2900l40501990100290100t90300vd0700dd0v00ad3c00o40301990100x90100wd0700dd0v004d3i03td0700ed0w002d3i02590101od0700fd0wd3k03ud0600gd0wd3k02w90100yd0400hd0wd3k04gd0wd3k04gd0wd3m00m40101m903022d0wd3n02790e00190201od0xd3n02790h01od0x';
+if (typeof module !== 'undefined') module.exports = { CQ_LAND_W, CQ_LAND_H, CQ_LAND };
+
+/* Conquest map: Europe in 1914, 50 territories in 12 power blocs. The land comes from a real coastline bitmap (cqland.js); each bloc is cut
+   into territories by "nearest seed wins" (with a gentle wobble so the borders look natural). Two territories are neighbours when their
+   pixels touch or face each other across a narrow strait, plus a few longer sea routes. No drawing here; game.js paints it. */
+'use strict';
+const CQP = (typeof module !== 'undefined') ? require('./cqproj.js') : { CQ_W, CQ_H, cqProj };
+const CQL = (typeof module !== 'undefined') ? require('./cqland.js') : { CQ_LAND_W, CQ_LAND_H, CQ_LAND };
+// name, bonus, colour, label position [lon, lat]
+const CQ_REGIONS = [
+  { name: 'British Isles', bonus: 3, col: '#c0392b', lab: [-9.6, 56.0] }, { name: 'France', bonus: 5, col: '#2e86de', lab: [2.0, 46.1] },
+  { name: 'Iberia', bonus: 3, col: '#e1a100', lab: [-5.8, 42.3] }, { name: 'Italy', bonus: 4, col: '#27ae60', lab: [10.3, 40.0] },
+  { name: 'German Empire', short: 'Germany', bonus: 6, col: '#7f8c8d', lab: [10.9, 51.95] }, { name: 'Low Countries & Denmark', short: 'Low Countries', bonus: 3, col: '#e67e22', lab: [4.9, 54.8] },
+  { name: 'Switzerland', bonus: 2, col: '#e84393', lab: null }, { name: 'Austria-Hungary', bonus: 6, col: '#8e44ad', lab: [18.7, 46.0] },
+  { name: 'Balkan States', bonus: 5, col: '#16a085', lab: [23.2, 37.9] }, { name: 'Ottoman Empire', bonus: 4, col: '#d35400', lab: [36.2, 36.5] },
+  { name: 'Russian Empire', bonus: 7, col: '#34495e', lab: [34.5, 52.8] }, { name: 'Scandinavia', bonus: 4, col: '#1abc9c', lab: [15.6, 60.4] }
+];
+// name, region, lon, lat of the seed (where the army picture sits)
+const CQ_T = [
+  ['Scotland', 0, -4.2, 56.7], ['Ireland', 0, -8.0, 53.2], ['Northern England', 0, -1.9, 54.0], ['Southern England', 0, -1.1, 51.7],
+  ['Brittany', 1, -2.9, 48.1], ['Paris', 1, 2.5, 48.9], ['Lorraine', 1, 5.7, 48.6], ['Aquitaine', 1, -0.2, 44.5], ['Provence', 1, 4.8, 43.9],
+  ['Portugal', 2, -8.0, 39.6], ['Castile', 2, -4.1, 40.3], ['Aragon', 2, -0.4, 41.6], ['Andalusia', 2, -4.6, 37.5],
+  ['Piedmont', 3, 7.8, 45.1], ['Venetia', 3, 11.8, 45.4], ['Rome', 3, 12.6, 42.2], ['Naples', 3, 16.0, 40.6], ['Sicily', 3, 14.1, 37.5],
+  ['Rhineland', 4, 7.2, 50.9], ['Hanover', 4, 9.9, 53.1], ['Bavaria', 4, 11.3, 48.7], ['Saxony', 4, 13.3, 51.2], ['Brandenburg', 4, 13.2, 52.7],
+  ['Holland', 5, 5.3, 52.4], ['Belgium', 5, 4.6, 50.6], ['Denmark', 5, 9.4, 56.0],
+  ['Switzerland', 6, 8.2, 46.8],
+  ['Bohemia', 7, 15.2, 49.9], ['Austria', 7, 14.0, 47.5], ['Hungary', 7, 19.5, 47.2], ['Carpathia', 7, 20.6, 49.1], ['Dalmatia', 7, 16.9, 44.6],
+  ['Serbia', 8, 20.9, 44.0], ['Romania', 8, 25.0, 45.8], ['Bulgaria', 8, 25.6, 42.6], ['Macedonia', 8, 21.2, 41.3], ['Greece', 8, 22.3, 39.3],
+  ['Thrace', 9, 27.8, 41.3], ['West Anatolia', 9, 30.5, 39.0], ['East Anatolia', 9, 36.8, 39.4],
+  ['Poland', 10, 19.8, 52.0], ['Baltic', 10, 24.5, 56.6], ['Belarus', 10, 28.0, 53.5], ['Ukraine', 10, 31.0, 49.4], ['Moscow', 10, 38.0, 55.8], ['Archangel', 10, 38.5, 63.0],
+  ['Norway', 11, 8.2, 61.4], ['Götaland', 11, 14.5, 58.0], ['Norrland', 11, 16.8, 64.0], ['Finland', 11, 26.5, 63.5]
+];
+const CQ_N = CQ_T.length;
+// routes across wider water (narrow straits are found automatically from the bitmap)
+const CQ_SEA = [['Ireland', 'Scotland'], ['Ireland', 'Northern England'], ['Scotland', 'Norway', [-1.8, 57.7], [5.3, 60.4]], ['Northern England', 'Denmark', [-0.1, 54.5], [8.4, 55.5]],
+  ['Naples', 'Macedonia', [18.3, 40.1], [19.5, 40.6]], ['Venetia', 'Dalmatia', [12.4, 45.2], [14.0, 45.0]], ['Ukraine', 'East Anatolia', [34.3, 45.4], [35.6, 41.8]],
+  ['Finland', 'Baltic', [24.9, 60.2], [24.7, 59.4]], ['Götaland', 'Baltic', [16.5, 57.5], [21.0, 56.6]]];
+const cqId = name => CQ_T.findIndex(t => t[0] === name);
+const CQ_XY = CQ_T.map(t => CQP.cqProj(t[2], t[3]));      // seed positions in picture pixels
+const CQ_LABXY = CQ_REGIONS.map(r => r.lab ? CQP.cqProj(r.lab[0], r.lab[1]) : null);
+const regSeeds = CQ_REGIONS.map((_, r) => CQ_T.map((t, i) => i).filter(i => CQ_T[i][1] === r));
+
+let _land = null;
+function cqLand() { // decode the run-length bitmap into Uint8Array(320*250)
+  if (_land) return _land; const a = new Uint8Array(CQL.CQ_LAND_W * CQL.CQ_LAND_H), s = CQL.CQ_LAND; let i = 0;
+  for (let p = 0; p < s.length; p += 3) { const c = parseInt(s[p], 36), n = parseInt(s.substr(p + 1, 2), 36); a.fill(c, i, i + n); i += n; }
+  return (_land = a);
+}
+function cqClass(x, y) { // 0 sea, 1..12 power bloc, 13 other land; smooth edges through bilinear weights of the 4 nearest cells
+  const L = cqLand(), GW = CQL.CQ_LAND_W, GH = CQL.CQ_LAND_H, u = x / 2 - .5, v = y / 2 - .5, x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0;
+  const at = (cx, cy) => L[Math.min(GH - 1, Math.max(0, cy)) * GW + Math.min(GW - 1, Math.max(0, cx))];
+  const ids = [at(x0, y0), at(x0 + 1, y0), at(x0, y0 + 1), at(x0 + 1, y0 + 1)], w = [(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy, fx * fy];
+  let land = 0, best = 0, bw = 0;
+  for (let k = 0; k < 4; k++) if (ids[k] > 0) { land += w[k]; let s = 0; for (let j = 0; j < 4; j++) if (ids[j] === ids[k]) s += w[j]; if (s > bw) { bw = s; best = ids[k]; } }
+  return land >= .5 ? best : 0;
+}
+function cqTerrOfPoint(x, y, cls) { // territory id for a point on land of bloc `cls` (nearest seed in a wobbly space)
+  const wx = x + 3.5 * Math.sin(y * .09 + 1.3) + 2 * Math.sin(y * .21 + x * .04), wy = y + 3.5 * Math.sin(x * .08) + 2 * Math.sin(x * .19 + y * .05), ss = regSeeds[cls - 1];
+  let best = ss[0], bd = 1e9; for (let k = 0; k < ss.length; k++) { const i = ss[k], dx = wx - CQ_XY[i][0], dy = wy - CQ_XY[i][1], d = dx * dx + dy * dy; if (d < bd) { bd = d; best = i; } }
+  return best;
+}
+// territory id, -1 sea, -2 land that is not part of the game
+function cqCell(x, y) { const c = cqClass(x, y); return c === 0 ? -1 : c === 13 ? -2 : cqTerrOfPoint(x, y, c); }
+
+let _grid = null;
+function cqGrid() { // { id: Int16Array(640*500) per pixel, adj: neighbour lists, sea: [{a, b, x1, y1, x2, y2}] links over water }
+  if (_grid) return _grid; const W = CQP.CQ_W, H = CQP.CQ_H, id = new Int16Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) id[y * W + x] = cqCell(x + .5, y + .5);
+  const adjS = CQ_T.map(() => new Set()), key = (a, b) => Math.min(a, b) * 64 + Math.max(a, b), touch = new Set(), seaBest = new Map();
+  const link = (a, b) => { if (a >= 0 && b >= 0 && a !== b) { adjS[a].add(b); adjS[b].add(a); return true; } return false; };
+  for (let y = 0; y < H - 1; y++) for (let x = 0; x < W - 1; x++) { const a = id[y * W + x]; if (a < 0) continue; for (const b of [id[y * W + x + 1], id[(y + 1) * W + x], id[(y + 1) * W + x + 1], x > 0 ? id[(y + 1) * W + x - 1] : -1]) if (link(a, b)) touch.add(key(a, b)); }
+  const R = 9, step = 3; // narrow straits: land facing other land across at most R pixels of water
+  for (let y = 1; y < H - 1; y += 2) for (let x = 1; x < W - 1; x += 2) {
+    const a = id[y * W + x]; if (a < 0) continue; if (id[y * W + x - 1] >= 0 && id[y * W + x + 1] >= 0 && id[(y - 1) * W + x] >= 0 && id[(y + 1) * W + x] >= 0) continue;
+    for (let dy = -R; dy <= R; dy += step) for (let dx = -R; dx <= R; dx += step) {
+      const X = x + dx, Y = y + dy, d2 = dx * dx + dy * dy; if (X < 0 || Y < 0 || X >= W || Y >= H || d2 > R * R) continue; const b = id[Y * W + X];
+      if (link(a, b) && !touch.has(key(a, b))) { const k = key(a, b), o = seaBest.get(k); if (!o || d2 < o.d) seaBest.set(k, a < b ? { d: d2, a, b, x1: x, y1: y, x2: X, y2: Y } : { d: d2, a: b, b: a, x1: X, y1: Y, x2: x, y2: y }); }
+    }
+  }
+  for (const [na, nb, p1, p2] of CQ_SEA) {
+    const a = cqId(na), b = cqId(nb); link(a, b); if (touch.has(key(a, b)) || seaBest.has(key(a, b))) continue;
+    const A = p1 ? CQP.cqProj(p1[0], p1[1]) : CQ_XY[a], B = p2 ? CQP.cqProj(p2[0], p2[1]) : CQ_XY[b]; seaBest.set(key(a, b), { d: 0, a, b, x1: A[0], y1: A[1], x2: B[0], y2: B[1] });
+  }
+  return (_grid = { id, adj: adjS.map(s => Array.from(s).sort((x, y) => x - y)), sea: Array.from(seaBest.values()) });
+}
+const cqAdj = () => cqGrid().adj;
+function cqTerrAt(x, y) { // territory under a point, or the nearest seed within 16 pixels (so the sea next to a small land still counts), or -1
+  const g = cqGrid(), px = Math.floor(x), py = Math.floor(y);
+  if (px >= 0 && py >= 0 && px < CQP.CQ_W && py < CQP.CQ_H && g.id[py * CQP.CQ_W + px] >= 0) return g.id[py * CQP.CQ_W + px];
+  let best = -1, bd = 16 * 16; for (let i = 0; i < CQ_N; i++) { const dx = x - CQ_XY[i][0], dy = y - CQ_XY[i][1], d = dx * dx + dy * dy; if (d < bd) { bd = d; best = i; } } return best;
+}
+if (typeof module !== 'undefined') module.exports = { CQ_T, CQ_N, CQ_REGIONS, CQ_SEA, CQ_XY, CQ_LABXY, CQ_W: CQP.CQ_W, CQ_H: CQP.CQ_H, cqGrid, cqAdj, cqTerrAt, cqId, cqClass, cqCell, cqLand, cqProj: CQP.cqProj };
+
+/* Conquest scenery: where the mountains, forests, rivers and lakes are (longitude, latitude). Pure data; game.js paints it onto the map.
+   Rough and hand-placed, for looks only: they do not change the rules. */
+'use strict';
+const CQ_MOUNTS = [ // ridge lines: mountain symbols are scattered along each
+  [[6.5, 44.2], [7.2, 45.6], [8.5, 46.2], [10, 46.5], [11.5, 46.6], [13.2, 46.6], [14.8, 46.5]], [[-1.8, 43.1], [0, 42.7], [1.5, 42.6], [3, 42.4]],
+  [[18.8, 49.4], [20.5, 49.3], [22.5, 49.0], [24, 48.3], [25.2, 47.2], [25.5, 46], [24.5, 45.5], [23, 45.4], [22, 45.2]], [[6, 59.5], [7.5, 61.5], [9.5, 62.8], [12.5, 64.5], [14.5, 66], [16, 67]],
+  [[8.8, 44.4], [10.5, 44.1], [12, 43.2], [13.5, 42.2], [15, 41.2], [16, 40], [16.2, 38.6]], [[15, 44.5], [17, 43.5], [19, 42.5], [20.5, 41.5]], [[22.5, 43.2], [25, 42.8], [27.5, 42.8]], [[23.5, 41.7], [25.5, 41.4]],
+  [[20.8, 40.5], [21.3, 39.3], [22, 38.5]], [[2.5, 45.8], [3.3, 44.8], [3.5, 44.2]], [[14.5, 50.8], [16.5, 50.6], [18, 50.2]], [[28.5, 37.2], [31, 37], [33, 36.8], [35.5, 37.2], [38, 37.5]],
+  [[33, 41.4], [36, 41], [39, 40.8]], [[-6.5, 38.2], [-3.5, 37.0]], [[-7, 43], [-4.5, 43], [-2.5, 43]], [[-2.5, 41.5], [-1, 40.6]], [[-5.5, 57.3], [-4.2, 56.8], [-3.5, 57]], [[-2.2, 54.7], [-2, 53.6]], [[-4, 52.8], [-3.5, 52.0]],
+  [[7.2, 47.6], [7.8, 48.3], [8.2, 49.0]]
+];
+const CQ_FORESTS = [ // [lon, lat, radius in degrees of latitude]
+  [8.2, 48.2, .5], [13, 49.2, .7], [5.5, 50, .6], [7, 48.2, .35], [10.8, 50.8, .5], [26, 52, 1.2], [30, 62, 2.4], [34, 59, 1.8], [37, 60.8, 2.2], [40, 57, 1.3], [33, 56.5, 1], [15, 61, 1.8], [13, 59, .9], [22, 65.6, 1.8],
+  [26, 63, 2], [-1, 44.2, .9], [24, 48, .8], [17.5, 44.2, .9], [21, 53.8, .8], [29, 54.5, 1], [-3, 56.7, .5], [-1.3, 50.9, .3], [12, 47.3, .4], [14, 53, .5], [20.5, 47.5, .4], [23.5, 59, .6]
+];
+const CQ_RIVERS = [
+  [[8.4, 47.6], [7.6, 47.6], [7.7, 48.5], [8.4, 49.6], [7.6, 50.3], [6.9, 51.2], [6.1, 51.9], [4.8, 52.0], [4.1, 52.0]],
+  [[8.5, 48.0], [10.0, 48.4], [12.1, 48.9], [14, 48.3], [16.4, 48.2], [18.9, 47.5], [19.1, 46.4], [19.8, 45.3], [21.4, 44.7], [22.6, 44.5], [25, 43.8], [27.0, 44.1], [28.4, 45.2], [29.7, 45.2]],
+  [[4.7, 47.8], [3.3, 48.4], [2.4, 48.8], [1.2, 49.2], [0.1, 49.45]], [[4.0, 45.4], [3.5, 46.5], [2.5, 47.4], [1.2, 47.5], [-0.5, 47.35], [-2.2, 47.3]], [[0.8, 43.0], [1.4, 43.6], [0.6, 44.3], [-0.5, 44.8], [-1.1, 45.5]],
+  [[7, 46.3], [5.9, 46.2], [5.0, 45.2], [4.8, 44.2], [4.7, 43.5]], [[14.4, 50.3], [14.0, 51.0], [12.5, 51.9], [11.2, 52.8], [9.8, 53.5], [9.0, 53.9]], [[17.5, 50.1], [16.9, 51.0], [14.6, 52.5], [14.4, 53.6], [14.2, 54.0]],
+  [[19.0, 49.8], [20.7, 50.3], [21.8, 51.6], [21.0, 52.4], [19.5, 52.9], [18.6, 53.5], [18.9, 54.3]], [[-1.8, 40.5], [-3.5, 40.2], [-6, 39.5], [-8, 39.2], [-9.2, 38.7]], [[-4, 43], [-2.5, 42.4], [-0.9, 41.6], [0.5, 41.0], [0.9, 40.7]],
+  [[7.2, 44.7], [8.8, 45.0], [10.4, 45.1], [12.3, 44.95]], [[31.5, 54.7], [30.6, 52.3], [30.5, 50.4], [32.2, 49.1], [35, 48.3], [34.8, 47.0], [32.5, 46.6]], [[30, 56], [28, 56.2], [24, 57], [24.1, 57.1]],
+  [[26, 53.5], [24, 54], [22, 55.1]], [[-2, 51.7], [-0.5, 51.5], [0.5, 51.5]], [[-8.0, 53.9], [-8.5, 52.7], [-9.2, 52.6]], [[24.5, 49], [27, 48.5], [29, 46.5], [30.2, 46.2]], [[24, 48], [21, 47.5], [20.2, 46.3]],
+  [[14.5, 46.1], [16, 45.8], [18, 45.1], [20.4, 44.8]], [[34, 57], [36, 57.5], [38, 56.7], [40.5, 55.8]], [[38, 51], [39, 48.5], [39.2, 47.2]], [[22, 63], [21, 64.5], [21.5, 65.7]], [[14, 64.5], [16.5, 63.8], [18, 63.3], [17.3, 62.6]]
+];
+const CQ_LAKES = [ // [lon, lat, half-width, half-height (degrees), tilt in radians]
+  [31.5, 60.8, 1.5, .8, .3], [35.5, 61.8, .5, 1.2, .1], [27.5, 58.5, .45, .8, 0], [13.2, 58.9, .65, .45, .2], [14.6, 58.3, .22, .7, .1], [17.2, 59.5, .8, .2, 0], [28.5, 61.5, .9, .4, .6], [26, 62.5, .7, .35, .5], [25.5, 61.5, .25, .55, 0],
+  [6.5, 46.45, .5, .15, .3], [9.35, 47.6, .3, .15, 0], [8.6, 45.95, .12, .4, .2], [10.7, 45.65, .13, .4, 0], [17.7, 46.8, .55, .1, .3], [-6.4, 54.6, .2, .15, 0], [-4.4, 57.3, .08, .35, .5], [19.3, 42.1, .25, .12, 0],
+  [20.8, 41.0, .12, .2, 0], [10.9, 60.8, .1, .4, 0], [14.8, 60.8, .3, .25, 0], [27, 64.3, .5, .3, 0], [29.5, 62.8, .6, .3, .2], [37, 57.8, .3, .2, 0]
+];
+if (typeof module !== 'undefined') module.exports = { CQ_MOUNTS, CQ_FORESTS, CQ_RIVERS, CQ_LAKES };
+
+/* Conquest: rules and computer players for a Risk-style conquest game on a map of Europe in 1914. No drawing.
+   state = { np, owner[50], arm[50], turn, phase: 'setup'|'reinforce'|'attack'|'fortify'|'over', pool, setup[np], round, conq, alive[np], winner, moveIn, rules }  */
+'use strict';
+const CQM = (typeof module !== 'undefined') ? require('./cqmap.js') : { CQ_T, CQ_N, CQ_REGIONS, cqAdj };
+const CQ_START = { 2: 46, 3: 38, 4: 32, 5: 28, 6: 24 };
+const CQ_SHORT_ROUNDS = 15, CQ_LONG_ROUNDS = 100;
+const cqRegionOf = t => CQM.CQ_T[t][1];
+let _regTerr = null;
+const cqRegTerr = () => _regTerr || (_regTerr = CQM.CQ_REGIONS.map((_, r) => CQM.CQ_T.map((x, i) => i).filter(i => CQM.CQ_T[i][1] === r)));
+
+/* ---------- dice ---------- */
+function cqDiceTable() { // P(attacker loses k, defender loses m) for na attack dice (1..3) against nd defence dice (1..2); returns table[na][nd] = {al, dl, p}[]
+  const t = {};
+  for (let na = 1; na <= 3; na++) for (let nd = 1; nd <= 2; nd++) {
+    const out = {}; const A = Math.pow(6, na), D = Math.pow(6, nd);
+    for (let i = 0; i < A; i++) for (let j = 0; j < D; j++) {
+      const a = [], d = []; let x = i; for (let k = 0; k < na; k++) { a.push(x % 6 + 1); x = Math.floor(x / 6); } x = j; for (let k = 0; k < nd; k++) { d.push(x % 6 + 1); x = Math.floor(x / 6); }
+      a.sort((p, q) => q - p); d.sort((p, q) => q - p); let al = 0, dl = 0; for (let k = 0; k < Math.min(na, nd); k++) { if (a[k] > d[k]) dl++; else al++; }
+      const key = al + ',' + dl; out[key] = (out[key] || 0) + 1 / (A * D);
+    }
+    t[na + ',' + nd] = Object.keys(out).map(k => ({ al: +k.split(',')[0], dl: +k.split(',')[1], p: out[k] }));
+  }
+  return t;
+}
+const DT = cqDiceTable();
+const winMemo = new Map();
+function cqWinP(a, d) { // chance an attacker with `a` spare armies conquers a territory held by `d` (fighting to the end)
+  if (d <= 0) return 1; if (a <= 0) return 0; const key = a * 100 + d; const hit = winMemo.get(key); if (hit !== undefined) return hit;
+  const na = Math.min(3, a), nd = Math.min(2, d); let p = 0; for (const o of DT[na + ',' + nd]) p += o.p * cqWinP(a - o.al, d - o.dl);
+  winMemo.set(key, p); return p;
+}
+const cqRoll = (n, rng) => { const r = []; for (let i = 0; i < n; i++) r.push(1 + Math.floor((rng || Math.random)() * 6)); return r.sort((a, b) => b - a); };
+
+/* ---------- state ---------- */
+const terrOf = (s, p) => { const r = []; for (let i = 0; i < CQM.CQ_N; i++) if (s.owner[i] === p) r.push(i); return r; };
+function cqReinforcements(s, p) {
+  const mine = terrOf(s, p); let n = Math.max(3, Math.floor(mine.length / 3));
+  cqRegTerr().forEach((ts, r) => { if (ts.every(t => s.owner[t] === p)) n += CQM.CQ_REGIONS[r].bonus; });
+  return n;
+}
+function cqNew(np, o) {
+  o = o || {}; const rng = o.rng || Math.random, N = CQM.CQ_N;
+  const s = { np, owner: new Array(N).fill(-1), arm: new Array(N).fill(1), turn: 0, phase: 'setup', pool: 0, setup: [], round: 1, conq: false, alive: new Array(np).fill(true), winner: -1, moveIn: null, rules: { short: !!o.short }, rng, battles: 0 };
+  const order = Array.from({ length: N }, (_, i) => i); for (let i = N - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  order.forEach((t, k) => { s.owner[t] = k % np; });
+  for (let p = 0; p < np; p++) s.setup.push(CQ_START[np] - terrOf(s, p).length);
+  s.turn = 0; s.pool = Math.min(3, s.setup[0]); return s;
+}
+const cqClone = s => Object.assign({}, s, { owner: s.owner.slice(), arm: s.arm.slice(), setup: s.setup.slice(), alive: s.alive.slice(), moveIn: s.moveIn ? Object.assign({}, s.moveIn) : null });
+const nextAlive = (s, p) => { for (let k = 1; k <= s.np; k++) { const q = (p + k) % s.np; if (s.alive[q]) return q; } return p; };
+function startTurn(s) { s.phase = 'reinforce'; s.pool = cqReinforcements(s, s.turn); s.conq = false; }
+function cqPlace(s, t, n) { // place n armies (default 1) on your own territory during setup or reinforcement
+  n = Math.min(n || 1, s.pool); if ((s.phase !== 'setup' && s.phase !== 'reinforce') || s.owner[t] !== s.turn || n < 1) return false;
+  s.arm[t] += n; s.pool -= n;
+  if (s.phase === 'setup') {
+    s.setup[s.turn] -= n;
+    if (s.pool === 0) { // next player with armies left to place
+      let q = s.turn, found = false; for (let k = 1; k <= s.np; k++) { const c = (s.turn + k) % s.np; if (s.setup[c] > 0) { q = c; found = true; break; } }
+      if (!found) { s.turn = 0; startTurn(s); } else { s.turn = q; s.pool = Math.min(3, s.setup[q]); }
+    }
+  } else if (s.pool === 0) s.phase = 'attack';
+  return true;
+}
+function cqEndReinforce(s) { if (s.phase === 'reinforce' && s.pool === 0) s.phase = 'attack'; }
+const cqCanAttack = (s, f, t) => s.phase === 'attack' && !s.moveIn && s.owner[f] === s.turn && s.owner[t] !== s.turn && s.owner[t] >= 0 && s.arm[f] >= 2 && CQM.cqAdj()[f].includes(t);
+function cqAttackList(s) { const r = []; if (s.phase !== 'attack' || s.moveIn) return r; for (let f = 0; f < CQM.CQ_N; f++) if (s.owner[f] === s.turn && s.arm[f] >= 2) for (const t of CQM.cqAdj()[f]) if (s.owner[t] !== s.turn) r.push([f, t]); return r; }
+function cqAttack(s, f, t, rng) { // one round of dice. Returns { a, d, al, dl, conquered, eliminated } or null if illegal
+  if (!cqCanAttack(s, f, t)) return null; rng = rng || s.rng;
+  const na = Math.min(3, s.arm[f] - 1), nd = Math.min(2, s.arm[t]), a = cqRoll(na, rng), d = cqRoll(nd, rng); let al = 0, dl = 0;
+  for (let k = 0; k < Math.min(na, nd); k++) { if (a[k] > d[k]) dl++; else al++; }
+  s.arm[f] -= al; s.arm[t] -= dl; s.battles++; const res = { a, d, al, dl, conquered: false, eliminated: -1, from: f, to: t, na };
+  if (s.arm[t] <= 0) {
+    const def = s.owner[t]; s.owner[t] = s.turn; s.arm[t] = 0; s.conq = true; res.conquered = true;
+    s.moveIn = { from: f, to: t, min: Math.min(na, s.arm[f] - 1), max: s.arm[f] - 1 };
+    if (!terrOf(s, def).length) { s.alive[def] = false; res.eliminated = def; if (s.alive.filter(x => x).length === 1) { s.phase = 'over'; s.winner = s.turn; cqMoveIn(s, s.moveIn.max); } }
+  }
+  return res;
+}
+function cqMoveIn(s, n) { const m = s.moveIn; if (!m) return false; n = Math.max(m.min, Math.min(m.max, n)); s.arm[m.from] -= n; s.arm[m.to] = n; s.moveIn = null; return true; }
+function cqEndAttack(s) { if (s.phase === 'attack' && !s.moveIn) s.phase = 'fortify'; }
+function cqConnected(s, f, t) { // path through your own territories
+  if (s.owner[f] !== s.owner[t]) return false; const seen = new Set([f]), q = [f];
+  while (q.length) { const x = q.pop(); if (x === t) return true; for (const y of CQM.cqAdj()[x]) if (!seen.has(y) && s.owner[y] === s.owner[f]) { seen.add(y); q.push(y); } } return false;
+}
+const cqCanFortify = (s, f, t) => s.phase === 'fortify' && f !== t && s.owner[f] === s.turn && s.owner[t] === s.turn && s.arm[f] >= 2 && cqConnected(s, f, t);
+function cqFortify(s, f, t, n) { if (!cqCanFortify(s, f, t)) return false; n = Math.max(1, Math.min(n, s.arm[f] - 1)); s.arm[f] -= n; s.arm[t] += n; cqEndTurn(s); return true; }
+function cqScore(s, p) { return terrOf(s, p).length * 100 + terrOf(s, p).reduce((a, t) => a + s.arm[t], 0); }
+function cqEndTurn(s) {
+  if (s.phase === 'over' || s.moveIn) return; const prev = s.turn; s.turn = nextAlive(s, s.turn); if (s.turn <= prev) s.round++;
+  if (s.round > (s.rules.short ? CQ_SHORT_ROUNDS : CQ_LONG_ROUNDS)) { s.phase = 'over'; let best = -1, bs = -1; for (let p = 0; p < s.np; p++) if (s.alive[p]) { const v = cqScore(s, p); if (v > bs) { bs = v; best = p; } } s.winner = best; return; }
+  startTurn(s);
+}
+
+/* ---------- computer players ---------- */
+const enemyNb = (s, t) => CQM.cqAdj()[t].filter(x => s.owner[x] !== s.owner[t]);
+function regionValue(s, p, t) { // how much does owning/taking t matter for p's region bonuses
+  const r = cqRegionOf(t), ts = cqRegTerr()[r], mine = ts.filter(x => s.owner[x] === p).length, bonus = CQM.CQ_REGIONS[r].bonus;
+  let v = 0; if (s.owner[t] !== p) { if (mine === ts.length - 1) v += bonus * 1.2; else v += mine / ts.length * bonus * .5; const o = s.owner[t]; if (o >= 0 && ts.every(x => s.owner[x] === o)) v += bonus * 1.0; } return v;
+}
+function cqAiPlace(s, level) { // the territory to put the next army on
+  const p = s.turn, mine = terrOf(s, p), rnd = level === 'easy' ? 6 : level === 'normal' ? 1.5 : .3; let best = mine[0], bs = -1e9;
+  for (const t of mine) {
+    const en = enemyNb(s, t); let sc;
+    if (!en.length) sc = -8 + Math.random() * rnd;
+    else {
+      const weakest = Math.min(...en.map(e => s.arm[e])), threat = Math.max(...en.map(e => s.arm[e])), rv = Math.max(...en.map(e => regionValue(s, p, e)));
+      sc = (s.arm[t] - weakest) * 1.0 + Math.max(0, threat - s.arm[t]) * .6 + rv * (level === 'easy' ? .3 : 1) + Math.random() * rnd;
+      if (level === 'hard') sc += cqWinP(s.arm[t], weakest) * 3;
+    }
+    if (sc > bs) { bs = sc; best = t; }
+  }
+  return best;
+}
+function cqAiAttack(s, level) { // next [from, to] or null to stop attacking
+  const p = s.turn, list = cqAttackList(s); if (!list.length || s.battles > 4000) return null;
+  const thr = level === 'easy' ? .8 : level === 'normal' ? .55 : .46; let best = null, bs = -1e9;
+  for (const [f, t] of list) {
+    const a = s.arm[f] - 1, d = s.arm[t], pw = cqWinP(a, d); if (pw < thr) continue;
+    let val = 1 + regionValue(s, p, t); const o = s.owner[t]; if (terrOf(s, o).length === 1) val += 3;
+    if (level !== 'easy' && enemyNb(s, f).length === 1 && a - d < 2) val -= 0.8;     // do not strip a lone border
+    const sc = pw * val + (a - d) * .08; if (sc > bs) { bs = sc; best = [f, t]; }
+  }
+  if (best && level === 'easy' && Math.random() < .25) return null;
+  return best;
+}
+function cqAiMoveIn(s) { const m = s.moveIn, ef = enemyNb(s, m.from).length, et = enemyNb(s, m.to).length; if (et && !ef) return m.max; if (!et && ef) return m.min; if (!et && !ef) return m.max; return Math.max(m.min, Math.floor(m.max * .6)); }
+function cqAiFortify(s, level) { // { f, t, n } or null
+  if (level === 'easy' && Math.random() < .5) return null; const p = s.turn, mine = terrOf(s, p);
+  const need = t => { const en = enemyNb(s, t); return en.length ? Math.max(...en.map(e => s.arm[e])) - s.arm[t] + en.length * .3 : -99; };
+  let best = null, bs = 0;
+  for (const f of mine) {
+    if (s.arm[f] < 2) continue; const fn = enemyNb(s, f).length; if (fn && need(f) > -1) continue;
+    for (const t of mine) { if (t === f || !cqConnected(s, f, t)) continue; const g = need(t) - (fn ? need(f) : -3); if (g > bs) { bs = g; best = { f, t, n: s.arm[f] - 1 }; } }
+  }
+  return best;
+}
+function cqAiTurn(s, level) { // plays a whole computer turn (used by the checks and by the one-shot hint); the screen runs the same steps one at a time
+  while (s.phase === 'reinforce') { cqPlace(s, cqAiPlace(s, level), 1); } 
+  while (s.phase === 'attack') { const a = cqAiAttack(s, level); if (!a) break; const r = cqAttack(s, a[0], a[1]); if (r && r.conquered && s.phase !== 'over') cqMoveIn(s, cqAiMoveIn(s)); }
+  if (s.phase === 'attack') cqEndAttack(s);
+  if (s.phase === 'fortify') { const f = cqAiFortify(s, level); if (f) cqFortify(s, f.f, f.t, f.n); else cqEndTurn(s); }
+}
+if (typeof module !== 'undefined') module.exports = { cqNew, cqClone, cqPlace, cqEndReinforce, cqAttack, cqMoveIn, cqEndAttack, cqEndTurn, cqFortify, cqCanFortify, cqCanAttack, cqAttackList, cqConnected, cqReinforcements, cqWinP, cqRoll, cqDiceTable, cqAiPlace, cqAiAttack, cqAiMoveIn, cqAiFortify, cqAiTurn, cqScore, terrOf, enemyNb, CQ_START, CQ_SHORT_ROUNDS, CQ_LONG_ROUNDS };
+
+/* Conquest: Europe 1914. cqmap.js has the map (a real coastline bitmap cut into territories), conq.js the rules and the computer players
+   (both checked on their own); this file paints the map, runs the taps, the army pictures, the computers' step-by-step turns and the game flow. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.conquest.v2', { dark: true, sound: true, np: 6, short: false, level: 'normal', step: 3, speed: 'normal', rec: [0, 0] }), st = S0.st;
+if (!Array.isArray(st.rec) || st.rec.length !== 2) st.rec = [0, 0];
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd', 'ovMove']);
+settings([
+  { id: 'speed', label: 'Computer speed', type: 'select', options: [['slow', 'Slow'], ['normal', 'Normal'], ['fast', 'Fast']], def: 'normal' },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { S0.save(); });
+
+const W = CQ_W, H = CQ_H, SC = 2, BW = W * SC, BH = H * SC, cv = $('cv'), C = KIT.canvas(cv, W, H, 2), ctx = C.ctx;
+const COLS = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#a855f7', '#f97316'], RGB = COLS.map(c => [1, 3, 5].map(k => parseInt(c.substr(k, 2), 16))), NAMES = ['You', 'Red', 'Green', 'Gold', 'Violet', 'Orange'];
+const DELAY = { slow: [650, 60], normal: [260, 30], fast: [110, 15] };
+const adj = cqAdj(), grid = cqGrid();
+let S, sel = -1, tgt = -1, busy = false, token = 0, TS = 1, timer = 0, pendingAmt = null, hintObj = null, hintT = 0, floats = [], flashT = {}, deadShown = false, lastBattle = '', ready = false;
+
+/* ---------- painting the map once: sea, land, scenery, borders ---------- */
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const rngSeed = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const idm = new Int8Array(BW * BH), bb = CQ_T.map(() => ({ x0: 1e9, y0: 1e9, x1: -1, y1: -1 })); let terrain, tintCv, tintG, tintImg, tintData, decor, lines, scene, sceneG; const painted = new Array(CQ_N).fill(-9);
+function bakeIds() {
+  for (let y = 0; y < BH; y++) for (let x = 0; x < BW; x++) { const v = cqCell((x + .5) / SC, (y + .5) / SC); idm[y * BW + x] = v; if (v >= 0) { const b = bb[v]; if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y; } }
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
+function bakeTerrain() {
+  terrain = mk(BW, BH); const tg = terrain.getContext('2d'), rnd = rngSeed(7);
+  const sea = tg.createLinearGradient(0, 0, 0, BH); sea.addColorStop(0, '#2c6797'); sea.addColorStop(.55, '#1f5686'); sea.addColorStop(1, '#16436d'); tg.fillStyle = sea; tg.fillRect(0, 0, BW, BH);
+  tg.strokeStyle = 'rgba(255,255,255,.07)'; tg.lineWidth = 2; tg.lineCap = 'round'; for (let k = 0; k < 340; k++) { const x = rnd() * BW, y = rnd() * BH; tg.beginPath(); tg.moveTo(x, y); tg.quadraticCurveTo(x + 9, y - 5, x + 18, y); tg.quadraticCurveTo(x + 27, y + 5, x + 36, y); tg.stroke(); }
+  const lm = mk(BW, BH), lg = lm.getContext('2d'), li = lg.createImageData(BW, BH), l32 = new Uint32Array(li.data.buffer); for (let i = 0; i < BW * BH; i++) if (idm[i] !== -1) l32[i] = 0xffffffff; lg.putImageData(li, 0, 0); bakeTerrain.lm = lm;
+  tg.save(); tg.shadowColor = 'rgba(150,215,240,.55)'; tg.shadowBlur = 26; tg.drawImage(lm, 0, 0); tg.restore();
+  // land colours: green lowlands, straw coloured south and east, grey-green north, with two layers of soft noise
+  const nx = 48, ny = 38, mkLat = (cx, cy) => { const a = new Float32Array((cx + 2) * (cy + 2)); for (let i = 0; i < a.length; i++) a[i] = rnd(); return a; };
+  const L1 = mkLat(Math.ceil(BW / nx), Math.ceil(BH / nx)), L1w = Math.ceil(BW / nx) + 2, L2 = mkLat(Math.ceil(BW / 13), Math.ceil(BH / 13)), L2w = Math.ceil(BW / 13) + 2;
+  const vn = (L, w, x, y, p) => { const fx = x / p, fy = y / p, ix = Math.floor(fx), iy = Math.floor(fy); let tx = fx - ix, ty = fy - iy; tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty); const a = L[iy * w + ix], b = L[iy * w + ix + 1], c = L[(iy + 1) * w + ix], d = L[(iy + 1) * w + ix + 1]; return lerp(lerp(a, b, tx), lerp(c, d, tx), ty); };
+  const G = [128, 178, 100], Sd = [206, 188, 120], Nn = [136, 168, 142], OT = [140, 134, 116], img = tg.createImageData(BW, BH), d32 = new Uint32Array(img.data.buffer);
+  for (let y = 0; y < BH; y++) for (let x = 0; x < BW; x++) {
+    const id = idm[y * BW + x]; if (id === -1) continue; const mx = x / SC, my = y / SC, n = (vn(L1, L1w, x, y, nx) * .6 + vn(L2, L2w, x, y, 13) * .4 - .5) * 44;
+    let r, g, b;
+    if (id === -2) { r = OT[0] + n * .6 - 14; g = OT[1] + n * .6 - 14; b = OT[2] + n * .6 - 12; }
+    else { const dry = clamp((my - 250) / 190, 0, 1) * .75 + clamp((mx - 430) / 150, 0, 1) * clamp((my - 220) / 160, 0, 1) * .5, north = clamp((150 - my) / 150, 0, 1) * .6;
+      r = lerp(lerp(G[0], Sd[0], dry), Nn[0], north) + n; g = lerp(lerp(G[1], Sd[1], dry), Nn[1], north) + n; b = lerp(lerp(G[2], Sd[2], dry), Nn[2], north) + n; }
+    d32[y * BW + x] = (255 << 24) | (clamp(b, 0, 255) << 16) | (clamp(g, 0, 255) << 8) | clamp(r, 0, 255);
+  }
+  const lt = mk(BW, BH); lt.getContext('2d').putImageData(img, 0, 0); tg.drawImage(lt, 0, 0);
+}
+function bakeDecor() {
+  decor = mk(BW, BH); const dg = decor.getContext('2d'), rnd = rngSeed(11), P = (lo, la) => { const p = cqProj(lo, la); return [p[0] * SC, p[1] * SC]; }, landAt = (x, y) => { const v = idm[clamp(Math.round(y), 0, BH - 1) * BW + clamp(Math.round(x), 0, BW - 1)]; return v >= 0; };
+  // forests: little fir trees
+  const trees = []; for (const [lo, la, r] of CQ_FORESTS) { const [cx, cy] = P(lo, la), R = r * 15.3 * SC, n = Math.round(R * R * Math.PI / (SC * SC * 52)); for (let k = 0; k < n; k++) { const a = rnd() * 7, d = Math.sqrt(rnd()) * R, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d * .85; if (landAt(x, y)) trees.push([x, y, 1 + rnd() * .5]); } }
+  // mountains: symbols scattered along ridge lines
+  const mts = []; for (const ridge of CQ_MOUNTS) { const pts = ridge.map(([lo, la]) => P(lo, la)); for (let i = 1; i < pts.length; i++) { const [x1, y1] = pts[i - 1], [x2, y2] = pts[i], L = Math.hypot(x2 - x1, y2 - y1), n = Math.max(1, Math.round(L / (7 * SC))); for (let k = 0; k < n; k++) { const t = (k + rnd()) / n, x = lerp(x1, x2, t) + (rnd() - .5) * 9 * SC, y = lerp(y1, y2, t) + (rnd() - .5) * 9 * SC; if (landAt(x, y)) mts.push([x, y, 4.5 + rnd() * 3.8]); } } }
+  const all = trees.map(t => ['t', ...t]).concat(mts.map(m => ['m', ...m])).sort((a, b) => a[2] - b[2]);
+  const rv = mk(BW, BH), rg = rv.getContext('2d'); rg.lineCap = 'round'; rg.lineJoin = 'round';
+  const path = pts => { rg.beginPath(); rg.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length - 1; i++) rg.quadraticCurveTo(pts[i][0], pts[i][1], (pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2); const e = pts[pts.length - 1]; rg.lineTo(e[0], e[1]); };
+  const rivs = CQ_RIVERS.map(r => r.map(([lo, la]) => P(lo, la))); rg.strokeStyle = 'rgba(48,104,150,.7)'; rg.lineWidth = 4.2; for (const p of rivs) { path(p); rg.stroke(); } rg.strokeStyle = '#86c3ec'; rg.lineWidth = 2.4; for (const p of rivs) { path(p); rg.stroke(); }
+  for (const [lo, la, rx, ry, tilt] of CQ_LAKES) { const [x, y] = P(lo, la); rg.save(); rg.translate(x, y); rg.rotate(tilt); rg.beginPath(); rg.ellipse(0, 0, rx * 15.3 * SC * .6, ry * 15.3 * SC, 0, 0, 7); rg.fillStyle = '#6db4e4'; rg.strokeStyle = '#2f6b99'; rg.lineWidth = 2.2; rg.fill(); rg.stroke(); rg.restore(); }
+  rg.globalCompositeOperation = 'destination-in'; rg.drawImage(bakeTerrain.lm, 0, 0); dg.drawImage(rv, 0, 0);
+  for (const [k, x, y, s] of all) {
+    if (k === 't') { const h = 6 * s * SC / 2, w = 3.6 * s * SC / 2; dg.fillStyle = 'rgba(0,0,0,.18)'; dg.beginPath(); dg.ellipse(x + 1, y + h * .55, w * .9, h * .22, 0, 0, 7); dg.fill(); dg.fillStyle = '#2d6a3a'; dg.beginPath(); dg.moveTo(x, y - h); dg.lineTo(x + w, y + h * .6); dg.lineTo(x - w, y + h * .6); dg.closePath(); dg.fill(); dg.fillStyle = '#4c9a58'; dg.beginPath(); dg.moveTo(x, y - h); dg.lineTo(x - w, y + h * .6); dg.lineTo(x - w * .1, y + h * .6); dg.closePath(); dg.fill(); }
+    else { const u = s * SC / 2 * 1.55; dg.fillStyle = 'rgba(0,0,0,.2)'; dg.beginPath(); dg.ellipse(x + u * .35, y + u * .62, u * 1.1, u * .22, 0, 0, 7); dg.fill();
+      dg.fillStyle = '#9a8872'; dg.beginPath(); dg.moveTo(x - u, y + u * .6); dg.lineTo(x, y - u); dg.lineTo(x + u, y + u * .6); dg.closePath(); dg.fill(); dg.fillStyle = '#6c5d4b'; dg.beginPath(); dg.moveTo(x, y - u); dg.lineTo(x + u, y + u * .6); dg.lineTo(x + u * .1, y + u * .6); dg.closePath(); dg.fill();
+      dg.fillStyle = '#f4f6f9'; dg.beginPath(); dg.moveTo(x, y - u); dg.lineTo(x + u * .36, y - u * .28); dg.lineTo(x + u * .1, y - u * .45); dg.lineTo(x - u * .12, y - u * .22); dg.lineTo(x - u * .36, y - u * .28); dg.closePath(); dg.fill(); dg.strokeStyle = 'rgba(50,40,30,.7)'; dg.lineWidth = 1; dg.beginPath(); dg.moveTo(x - u, y + u * .6); dg.lineTo(x, y - u); dg.lineTo(x + u, y + u * .6); dg.stroke(); }
+  }
+}
+function bakeLines() {
+  lines = mk(BW, BH); const g = lines.getContext('2d'), img = g.createImageData(BW, BH), d = new Uint32Array(img.data.buffer);
+  const px = (x, y, c) => { if (x >= 0 && y >= 0 && x < BW && y < BH) d[y * BW + x] = c; }, RB = 0xf0301c10 >>> 0, TH = 0x99ffffff >>> 0, CO = 0xf0402a14 >>> 0; // ABGR
+  const bloc = id => id >= 0 ? CQ_T[id][1] : -9;
+  for (let y = 0; y < BH - 1; y++) for (let x = 0; x < BW - 1; x++) {
+    const a = idm[y * BW + x];
+    for (const [nx, ny] of [[x + 1, y], [x, y + 1]]) {
+      const b = idm[ny * BW + nx]; if (a === b) continue;
+      if (a === -1 || b === -1) { const lx = a === -1 ? nx : x, ly = a === -1 ? ny : y; px(lx, ly, CO); px(lx + (nx > x ? (a === -1 ? 1 : -1) : 0), ly + (ny > y ? (a === -1 ? 1 : -1) : 0), 0x80402a14); continue; }
+      if (a >= 0 && b >= 0 && bloc(a) === bloc(b)) { px(x, y, TH); px(nx, ny, TH); }
+      else { for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) { px(x + ox, y + oy, RB); px(nx + ox, ny + oy, RB); } }
+    }
+  }
+  g.putImageData(img, 0, 0);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.save(); g.scale(SC, SC); if ('letterSpacing' in g) g.letterSpacing = '1.5px';
+  CQ_REGIONS.forEach((r, i) => { if (!CQ_LABXY[i]) return; const [x, y] = CQ_LABXY[i]; g.font = 'bold 9px Georgia, serif'; g.lineJoin = 'round'; g.lineWidth = 3.2; g.strokeStyle = 'rgba(255,255,255,.75)'; g.fillStyle = r.col; const t = (r.short || r.name).toUpperCase(); g.strokeText(t, x, y); g.fillText(t, x, y); });
+  g.restore();
+}
+function paintTint(list) {
+  for (const t of list) {
+    const b = bb[t], o = S.owner[t], c = o >= 0 ? ((150 << 24) | (RGB[o][2] << 16) | (RGB[o][1] << 8) | RGB[o][0]) : 0;
+    for (let y = b.y0; y <= b.y1; y++) for (let x = b.x0; x <= b.x1; x++) if (idm[y * BW + x] === t) tintData[y * BW + x] = c;
+    painted[t] = o;
+  }
+}
+function syncScene() {
+  const ch = []; for (let t = 0; t < CQ_N; t++) if (painted[t] !== S.owner[t]) ch.push(t); if (!ch.length) return;
+  paintTint(ch); tintG.putImageData(tintImg, 0, 0);
+  sceneG.drawImage(terrain, 0, 0); sceneG.drawImage(tintCv, 0, 0); sceneG.drawImage(decor, 0, 0); sceneG.drawImage(lines, 0, 0);
+}
+function build() {
+  bakeIds(); bakeTerrain(); bakeDecor(); bakeLines();
+  tintCv = mk(BW, BH); tintG = tintCv.getContext('2d'); tintImg = tintG.createImageData(BW, BH); tintData = new Uint32Array(tintImg.data.buffer); scene = mk(BW, BH); sceneG = scene.getContext('2d'); ready = true;
+}
+const masks = new Map(), MC = { w: [255, 255, 255], r: [255, 70, 70], g: [90, 255, 140], b: [70, 160, 255] };
+function maskOf(t, k) {
+  const key = t * 4 + 'wrgb'.indexOf(k); let m = masks.get(key); if (m) return m; const b = bb[t], w = b.x1 - b.x0 + 1, h = b.y1 - b.y0 + 1, c = mk(w, h), g = c.getContext('2d'), im = g.createImageData(w, h), d = new Uint32Array(im.data.buffer), col = (255 << 24) | (MC[k][2] << 16) | (MC[k][1] << 8) | MC[k][0];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (idm[(y + b.y0) * BW + x + b.x0] === t) d[y * w + x] = col; g.putImageData(im, 0, 0); m = { c, x: b.x0 / SC, y: b.y0 / SC, w: w / SC, h: h / SC }; masks.set(key, m); return m;
+}
+const tintDraw = (g, ts, k, a) => { g.globalAlpha = a; for (const t of ts) { const m = maskOf(t, k); g.drawImage(m.c, m.x, m.y, m.w, m.h); } g.globalAlpha = 1; };
+
+/* ---------- army pictures: soldiers, and cannons for big stacks ---------- */
+function soldier(g, x, y, s, col) {
+  g.save(); g.translate(x, y); g.scale(s, s); g.lineJoin = 'round';
+  g.fillStyle = '#2b2b33'; g.fillRect(-4, 5, 3, 5); g.fillRect(1, 5, 3, 5);
+  g.fillStyle = col; g.strokeStyle = '#0d121c'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-5, -2); g.lineTo(5, -2); g.lineTo(5.6, 6); g.lineTo(-5.6, 6); g.closePath(); g.fill(); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-4, -1.5); g.lineTo(4, 5.5); g.stroke();
+  g.fillStyle = '#f0c8a0'; g.strokeStyle = '#0d121c'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, -5.6, 3.2, 0, 7); g.fill(); g.stroke();
+  g.fillStyle = '#69737f'; g.beginPath(); g.arc(0, -6.2, 3.9, Math.PI, 0); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(-5, -6.1); g.lineTo(5, -6.1); g.stroke();
+  g.strokeStyle = '#5a3d1e'; g.lineWidth = 1.9; g.beginPath(); g.moveTo(6.4, 8); g.lineTo(8.6, -9); g.stroke(); g.strokeStyle = '#d6dde6'; g.lineWidth = 1; g.beginPath(); g.moveTo(8.6, -9); g.lineTo(8.9, -12.5); g.stroke();
+  g.restore();
+}
+function cannon(g, x, y, s, col) {
+  g.save(); g.translate(x, y); g.scale(s, s); g.lineJoin = 'round'; g.strokeStyle = '#0d121c'; g.lineWidth = 1.3;
+  g.fillStyle = '#4a4f58'; g.save(); g.rotate(-.38); g.beginPath(); g.rect(-3, -4.3, 17, 4.6); g.fill(); g.stroke(); g.fillStyle = '#2f333a'; g.beginPath(); g.rect(11.5, -5, 3.2, 6.2); g.fill(); g.stroke(); g.restore();
+  g.fillStyle = col; g.beginPath(); g.moveTo(-8, 1); g.lineTo(0, -1); g.lineTo(2, 4); g.lineTo(-8, 5); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = '#7b5632'; g.beginPath(); g.arc(-1, 5.5, 5.2, 0, 7); g.fill(); g.stroke(); g.strokeStyle = '#d9b27c'; g.lineWidth = 1; for (let k = 0; k < 4; k++) { const a = k * Math.PI / 4; g.beginPath(); g.moveTo(-1 + Math.cos(a) * 4.6, 5.5 + Math.sin(a) * 4.6); g.lineTo(-1 - Math.cos(a) * 4.6, 5.5 - Math.sin(a) * 4.6); g.stroke(); }
+  g.restore();
+}
+function badge(g, x, y, o, n, sel) {
+  const col = COLS[o]; if (sel) { g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(x, y + 1, 21, 17, 0, 0, 7); g.fill(); }
+  g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(x, y + 8, 16, 5, 0, 0, 7); g.fill();
+  if (n >= 16) { cannon(g, x - 9, y - 1, .95, col); soldier(g, x + 3, y - 5, .85, col); soldier(g, x + 12, y - 3, .78, col); }
+  else if (n >= 9) { cannon(g, x - 6, y - 2, 1, col); soldier(g, x + 9, y - 4, .9, col); }
+  else if (n >= 4) { soldier(g, x - 6, y - 3, .88, col); soldier(g, x + 6, y - 4, .94, col); }
+  else soldier(g, x, y - 4, 1, col);
+  const txt = String(n); g.font = 'bold 12.5px sans-serif'; const w = Math.max(17, g.measureText(txt).width + 9), py = y + 9;
+  g.fillStyle = 'rgba(8,14,26,.92)'; g.strokeStyle = col; g.lineWidth = 1.7; g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, py - 7.5, w, 15, 7.5) : g.rect(x - w / 2, py - 7.5, w, 15); g.fill(); g.stroke();
+  g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, x, py + .5);
+}
+
+/* ---------- flow ---------- */
+const human = () => S.turn === 0 && S.alive[0] && S.phase !== 'over';
+const say = t => { $('msg').textContent = t; };
+const schedule = (ms, f) => { clearTimeout(timer); const t = token; timer = setTimeout(() => { if (t === token) f(); }, ms * TS); };
+const tname = t => CQ_T[t][0], rname = t => CQ_REGIONS[CQ_T[t][1]].name;
+function newGame() {
+  token++; clearTimeout(timer); O.hide('ovEnd'); O.hide('ovMove'); S = cqNew(st.np, { short: st.short }); sel = tgt = -1; busy = false; hintObj = null; floats = []; flashT = {}; deadShown = false; lastBattle = ''; pendingAmt = null;
+  $('battle').textContent = ' '; $('tinfo').textContent = 'Tap any territory to see who holds it and its region bonus.'; bars(); hud(); rec(); drive();
+}
+function drive() {
+  if (S.phase === 'over') { hud(); return endGame(); }
+  if (!S.alive[0] && !deadShown) { deadShown = true; st.rec[1]++; S0.save(); rec(); $('endH').textContent = 'You were eliminated'; $('endP').textContent = 'Close this to watch the computers finish, or start a new game.'; O.show('ovEnd'); }
+  busy = !human(); hud();
+  if (busy) { schedule(S.phase === 'attack' || S.phase === 'fortify' ? DELAY[st.speed][0] : DELAY[st.speed][1], cpuStep); return; }
+  prompt();
+}
+const nPlace = () => st.step === 'all' ? S.pool : Math.max(1, Math.min(S.pool, +st.step || 1));
+function prompt() {
+  const p = S.phase, n = nPlace();
+  if (p === 'setup') say('Setup: place your ' + S.pool + ' armies (' + (st.step === 'all' ? 'all at once' : n + ' per tap') + '). Tap your territories, or press Auto-place.');
+  else if (p === 'reinforce') say('Your turn: place ' + S.pool + ' armies (' + (st.step === 'all' ? 'all at once' : n + ' per tap') + '). Tap your territories.');
+  else if (p === 'attack') say(sel < 0 ? 'Attack: tap one of your territories with 2 or more armies, then an enemy neighbour. Or end your attack.' : info());
+  else if (p === 'fortify') say(sel < 0 ? 'Fortify: tap a territory with spare armies, then one of yours it can reach. Or end your turn.' : 'Now tap the territory to move them to (through your own land), or end your turn.');
+}
+function info() { if (sel < 0) return ''; let m = tname(sel) + ' (' + S.arm[sel] + ' armies). '; if (tgt >= 0) m += 'Target: ' + tname(tgt) + ' (' + NAMES[S.owner[tgt]] + ', ' + S.arm[tgt] + '). Tap it again or press Attack.'; else m += 'Tap an enemy neighbour to attack.'; return m; }
+function tinfo(t) {
+  if (t < 0) return; const r = CQ_T[t][1], R = CQ_REGIONS[r], mine = S.owner.filter((o, i) => CQ_T[i][1] === r && o === 0).length, tot = CQ_T.filter(x => x[1] === r).length;
+  $('tinfo').textContent = tname(t) + ' · ' + NAMES[S.owner[t]] + ', ' + S.arm[t] + ' armies · ' + R.name + ' (+' + R.bonus + ' for holding all ' + tot + '; you hold ' + mine + ')';
+}
+function cpuStep() {
+  if (S.phase === 'over') return endGame(); const p = S.turn, lv = st.level, nm = NAMES[p];
+  if (S.phase === 'setup' || S.phase === 'reinforce') {
+    const t = cqAiPlace(S, lv); cqPlace(S, t, 1); flashT[t] = performance.now() + 250; say(nm + (S.phase === 'setup' ? ' is placing starting armies…' : ' reinforces…'));
+  } else if (S.phase === 'attack') {
+    const a = cqAiAttack(S, lv);
+    if (!a) { cqEndAttack(S); say(nm + ' finishes attacking.'); }
+    else { const r = cqAttack(S, a[0], a[1]); if (r) { showBattle(r); say(nm + ' attacks ' + tname(a[1]) + ' from ' + tname(a[0]) + '.'); if (r.conquered && S.phase !== 'over') cqMoveIn(S, cqAiMoveIn(S)); } }
+  } else if (S.phase === 'fortify') {
+    const f = cqAiFortify(S, lv); if (f) { say(nm + ' moves ' + f.n + ' armies from ' + tname(f.f) + ' to ' + tname(f.t) + '.'); cqFortify(S, f.f, f.t, f.n); } else cqEndTurn(S);
+  }
+  drive();
+}
+function showBattle(r) {
+  const who = S.turn === 0 ? 'You' : NAMES[S.turn];
+  lastBattle = who + ' rolled ' + r.a.join(' ') + ' against ' + r.d.join(' ') + (r.conquered ? ' and took ' + tname(r.to) + '!' : ': attacker loses ' + r.al + ', defender loses ' + r.dl + '.');
+  if (r.conquered && r.eliminated >= 0) lastBattle += ' ' + NAMES[r.eliminated] + (r.eliminated === 0 ? ' are' : ' is') + ' out of the game!';
+  $('battle').textContent = lastBattle;
+  const fx = CQ_XY[r.from], tx = CQ_XY[r.to], now = performance.now();
+  if (r.al) floats.push({ x: fx[0], y: fx[1] - 20, text: '−' + r.al, col: '#fff', t0: now }); if (r.dl) floats.push({ x: tx[0], y: tx[1] - 20, text: '−' + r.dl, col: '#ffd0d0', t0: now });
+  flashT[r.to] = now + 260; if (r.conquered) { A.beep(520, .08, 'triangle', .13); A.beep(780, .1, 'triangle', .13, .08); } else A.beep(r.dl >= r.al ? 300 : 200, .07, 'square', .08);
+}
+function doAttack(blitz) {
+  if (!human() || S.phase !== 'attack' || sel < 0 || tgt < 0 || S.moveIn || pendingAmt) return; const f = sel, t = tgt;
+  if (!cqCanAttack(S, f, t)) { sel = tgt = -1; return prompt(); }
+  const r = cqAttack(S, f, t); showBattle(r); hud();
+  if (S.phase === 'over') return drive();
+  if (r.conquered) {
+    const m = S.moveIn; tgt = -1;
+    const finish = n => { cqMoveIn(S, n); sel = S.arm[f] >= 2 ? f : (S.arm[t] >= 2 ? t : -1); tgt = -1; hud(); busy = false; say(lastBattle + ' Keep attacking or end your attack.'); };
+    if (m.min === m.max) return finish(m.min);
+    return askAmount('Move how many armies into ' + tname(t) + '?', m.min, m.max, finish);
+  }
+  if (S.arm[f] < 2) { sel = tgt = -1; say(lastBattle + ' That territory has no armies left to attack with.'); return; }
+  say(lastBattle + ' ' + (blitz ? '' : 'Attack again?'));
+  if (blitz) { busy = true; const k = token; setTimeout(() => { if (k === token) { busy = false; doAttack(true); } }, 160 * TS); }
+}
+function askAmount(title, min, max, cb) {
+  busy = true; const r = $('mvR'); $('mvH').textContent = title; r.min = min; r.max = max; r.value = max; $('mvN').textContent = max; $('mvLo').textContent = min; $('mvHi').textContent = max; pendingAmt = cb; O.show('ovMove');
+}
+function endGame() {
+  if (S.phase !== 'over') return; hud(); const w = S.winner, you = w === 0, cnt = Array.from({ length: S.np }, (_, p) => terrOf(S, p).length);
+  if (!S.recorded) { S.recorded = true; if (S.alive[0] || you) { st.rec[you ? 0 : 1]++; S0.save(); } }
+  const limit = S.alive.filter(x => x).length > 1;
+  $('endH').textContent = you ? 'You win! 🎉' : (deadShown ? NAMES[w] + ' wins' : 'The ' + NAMES[w].toLowerCase() + ' general wins'); $('endP').textContent = (limit ? 'Round limit reached: most territories (then armies) wins. ' : '') + 'Territories: ' + cnt.map((c, p) => NAMES[p].toLowerCase() + ' ' + c).join(', ') + '. ' + S.round + ' rounds.';
+  say($('endH').textContent); rec(); A.beep(880, .3, 'sine', .15); A.beep(1100, .3, 'sine', .15, .15); setTimeout(() => O.show('ovEnd'), 600 * TS);
+}
+function hint() {
+  if (!human() || busy) return; hintT = performance.now() + 3500; const p = S.phase;
+  if (p === 'setup' || p === 'reinforce') { const t = cqAiPlace(S, 'hard'); hintObj = [t]; say('Hint: the blue glow shows a good place for armies (' + tname(t) + ').'); }
+  else if (p === 'attack') { const a = cqAiAttack(S, 'hard'); if (a) { hintObj = a; say('Hint: attack ' + tname(a[1]) + ' from ' + tname(a[0]) + '.'); } else { hintObj = null; say('Hint: no good attack. Consider ending your attack.'); } }
+  else { const f = cqAiFortify(S, 'hard'); if (f) { hintObj = [f.f, f.t]; say('Hint: move armies from ' + tname(f.f) + ' to ' + tname(f.t) + '.'); } else { hintObj = null; say('Hint: nothing useful to move. End your turn.'); } }
+}
+
+/* ---------- screen bits ---------- */
+function hud() {
+  if (!S) return; const p = S.turn, ph = S.phase;
+  $('s1').textContent = ph === 'over' ? 'Over' : p === 0 ? 'You' : NAMES[p] + ' 🤖'; $('s1').style.color = ph === 'over' ? '' : COLS[p];
+  $('s2').textContent = { setup: 'Setup', reinforce: 'Place', attack: 'Attack', fortify: 'Fortify', over: 'Over' }[ph]; $('s3').textContent = (ph === 'setup' || ph === 'reinforce') ? S.pool : '–'; $('s4').textContent = S.round + (S.rules.short ? '/' + CQ_SHORT_ROUNDS : '');
+  const h = human() && !busy, show = (id, v, dis) => { $(id).style.display = v ? '' : 'none'; $(id).disabled = !!dis; }, placing = h && (ph === 'setup' || ph === 'reinforce');
+  show('bAuto', placing); show('bRoll', h && ph === 'attack', tgt < 0); show('bBlitz', h && ph === 'attack', tgt < 0); show('bEndAtk', h && ph === 'attack'); show('bEndTurn', h && ph === 'fortify');
+  $('placeBar').style.display = placing ? '' : 'none'; if (placing) { $('pN').textContent = st.step === 'all' ? 'All (' + S.pool + ')' : nPlace() + ' of ' + S.pool; $('pOne').classList.toggle('on', st.step !== 'all' && nPlace() === 1); $('pAll').classList.toggle('on', st.step === 'all'); }
+  $('score').innerHTML = Array.from({ length: S.np }, (_, q) => '<span class="chip' + (q === 0 ? ' me' : '') + (S.alive[q] ? '' : ' dead') + (q === S.turn && ph !== 'over' ? ' cur' : '') + '"><span class="dot" style="background:' + COLS[q] + '"></span>' + NAMES[q] + ' ' + terrOf(S, q).length + ' · ' + terrOf(S, q).reduce((a, t) => a + S.arm[t], 0) + '</span>').join('');
+  $('legend').innerHTML = CQ_REGIONS.map((r, i) => { const tot = CQ_T.filter(x => x[1] === i).length, mine = S.owner.filter((o, k) => CQ_T[k][1] === i && o === 0).length; return '<span class="lg' + (mine === tot ? ' full' : '') + '"><i style="background:' + r.col + '"></i>' + r.name + ' +' + r.bonus + ' <small>' + mine + '/' + tot + '</small></span>'; }).join('');
+}
+function rec() { $('recLine').textContent = 'You: ' + st.rec[0] + ' wins, ' + st.rec[1] + ' losses'; }
+function bars() {
+  const mkb = (id, arr, cur, act) => { $(id).innerHTML = arr.map(([k, t]) => '<button class="btn sm' + (String(cur) === String(k) ? ' on' : '') + '" data-act="' + act + '" data-k="' + k + '" type="button">' + t + '</button>').join(''); };
+  mkb('npBar', [[2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6']], st.np, 'np'); mkb('lvBar', [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']], st.level, 'lv'); mkb('lenBar', [['0', 'Full (100 rounds)'], ['1', 'Short (15 rounds)']], st.short ? 1 : 0, 'len');
+}
+
+/* ---------- input ---------- */
+function tap(t) {
+  if (!S || !ready) return; tinfo(t); if (!human() || busy || pendingAmt) return; const p = S.phase;
+  if (t < 0) { sel = tgt = -1; return prompt(); }
+  if (p === 'setup' || p === 'reinforce') {
+    if (S.owner[t] !== 0) return say('Place armies on your own territories (blue).');
+    cqPlace(S, t, nPlace()); flashT[t] = performance.now() + 250; A.beep(420, .04, 'sine', .1); drive(); tinfo(t); return;
+  }
+  if (p === 'attack') {
+    if (S.owner[t] === 0) { if (S.arm[t] < 2) return say(tname(t) + ' has only one army: it needs 2 to attack from.'); sel = sel === t ? -1 : t; tgt = -1; hud(); return sel < 0 ? prompt() : say(info()); }
+    if (sel >= 0 && cqCanAttack(S, sel, t)) { if (tgt === t) return doAttack(false); tgt = t; hud(); return say(info()); }
+    return say(sel < 0 ? 'Tap one of your own territories (blue) first.' : tname(t) + ' is not next to ' + tname(sel) + '.');
+  }
+  if (p === 'fortify') {
+    if (sel >= 0 && t !== sel && cqCanFortify(S, sel, t)) { const f = sel, mx = S.arm[f] - 1; return askAmount('Move how many armies to ' + tname(t) + '?', 1, mx, n => { cqFortify(S, f, t, n); sel = tgt = -1; say('You moved ' + n + ' armies.'); drive(); }); }
+    if (S.owner[t] === 0 && S.arm[t] >= 2) { sel = t; hud(); return say(tname(t) + ' selected (' + S.arm[t] + ' armies). Tap where to move them.'); }
+    return say(S.owner[t] === 0 ? 'Needs 2 or more armies to move from.' : 'You can only move armies between your own territories that connect.');
+  }
+}
+let down = null;
+cv.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+cv.addEventListener('pointercancel', () => { down = null; });
+cv.addEventListener('pointerup', e => { if (!down) return; const d = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null; if (d < 10) { const q = C.pos(e); tap(cqTerrAt(q.x, q.y)); } });
+$('mvR').addEventListener('input', () => { $('mvN').textContent = $('mvR').value; });
+const setSlider = v => { const r = $('mvR'); r.value = clamp(v, +r.min, +r.max); $('mvN').textContent = r.value; };
+const stepNow = () => st.step === 'all' ? S.pool : nPlace();
+ui.actions(document.body, {
+  restart: newGame, closeov: () => O.hide('ovEnd'), hint,
+  auto: () => { if (!human() || busy) return; while ((S.phase === 'setup' || S.phase === 'reinforce') && S.turn === 0 && S.pool > 0) cqPlace(S, cqAiPlace(S, 'normal'), 1); drive(); },
+  roll: () => doAttack(false), blitz: () => doAttack(true),
+  endatk: () => { if (!human() || busy || S.moveIn) return; cqEndAttack(S); sel = tgt = -1; drive(); },
+  endturn: () => { if (!human() || busy) return; cqEndTurn(S); sel = tgt = -1; drive(); },
+  pm: () => { st.step = Math.max(1, stepNow() - 1); S0.save(); hud(); prompt(); }, pp: () => { st.step = Math.min(S.pool, stepNow() + 1); S0.save(); hud(); prompt(); },
+  pone: () => { st.step = 1; S0.save(); hud(); prompt(); }, pall: () => { st.step = 'all'; S0.save(); hud(); prompt(); },
+  amtmin: () => setSlider(+$('mvR').min), amthalf: () => setSlider(Math.ceil((+$('mvR').min + +$('mvR').max) / 2)), amtmax: () => setSlider(+$('mvR').max),
+  amtok: () => { const n = +$('mvR').value; O.hide('ovMove'); const cb = pendingAmt; pendingAmt = null; busy = false; if (cb) cb(n); },
+  zoom: () => { const on = $('wrap').classList.toggle('zoomed'); $('zoomBtn').textContent = on ? '🔍 Zoom out' : '🔍 Zoom in'; },
+  np: b => { st.np = +b.dataset.k; S0.save(); newGame(); }, lv: b => { st.level = b.dataset.k; S0.save(); bars(); }, len: b => { st.short = b.dataset.k === '1'; S0.save(); newGame(); }
+});
+
+/* ---------- drawing ---------- */
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0); if (!S || !ready) return; const t = performance.now();
+  syncScene(); g.drawImage(scene, 0, 0, W, H);
+  g.setLineDash([5, 5]); g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 1.8; g.lineCap = 'round'; for (const l of grid.sea) { g.beginPath(); g.moveTo(l.x1, l.y1); g.lineTo(l.x2, l.y2); g.stroke(); } g.setLineDash([]);
+  const pulse = .5 + .5 * Math.sin(t / 200);
+  if (human() && !busy) {
+    if (S.phase === 'attack' && sel >= 0) tintDraw(g, adj[sel].filter(x => S.owner[x] !== 0), 'r', .28 + .2 * pulse);
+    if (S.phase === 'fortify' && sel >= 0) tintDraw(g, CQ_T.map((_, i) => i).filter(x => x !== sel && cqCanFortify(S, sel, x)), 'g', .26 + .16 * pulse);
+  }
+  if (sel >= 0) tintDraw(g, [sel], 'w', .5); if (tgt >= 0) tintDraw(g, [tgt], 'r', .6);
+  if (hintObj && hintT > t) tintDraw(g, hintObj, 'b', .4 + .3 * pulse);
+  for (const k in flashT) if (+k >= 0 && flashT[k] > t) tintDraw(g, [+k], 'w', (flashT[k] - t) / 260 * .7);
+  for (let i = 0; i < CQ_N; i++) badge(g, CQ_XY[i][0], CQ_XY[i][1], S.owner[i], S.arm[i], i === sel);
+  floats = floats.filter(f => t - f.t0 < 1100); for (const f of floats) { g.globalAlpha = 1 - (t - f.t0) / 1100; g.fillStyle = f.col; g.strokeStyle = '#000'; g.lineWidth = 3; g.font = 'bold 18px sans-serif'; g.textAlign = 'center'; const yy = f.y - (t - f.t0) / 30; g.strokeText(f.text, f.x, yy); g.fillText(f.text, f.x, yy); g.globalAlpha = 1; }
+  g.strokeStyle = S.phase === 'over' ? 'rgba(0,0,0,0)' : COLS[S.turn]; g.lineWidth = 5; g.strokeRect(2.5, 2.5, W - 5, H - 5);
+}
+build();
+KIT.loop(() => { }, draw).start();
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+newGame();
+KIT.hook({
+  get S() { return S; }, get st() { return st; }, get sel() { return sel; }, get tgt() { return tgt; }, get busy() { return busy; }, get human() { return human(); }, get ready() { return ready; },
+  ts: x => { TS = x; }, newGame, edit: fn => { fn(S); sel = tgt = -1; hud(); drive(); },
+  xy: t => { const r = cv.getBoundingClientRect(); return [r.left + CQ_XY[t][0] / W * r.width, r.top + CQ_XY[t][1] / H * r.height]; }, id: cqId
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>

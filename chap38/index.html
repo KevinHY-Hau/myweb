@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chapter 38 · Shogi 将棋</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5a3a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shogi">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Fallback copy of the site variables, so the page still looks right without ../style.css */
+:root{
+  --bg:#0d1117; --fg:#e6edf3; --accent:#f59e0b; --accent-light:#fbbf24; --border:#181C22;
+  --font:"Inter","Segoe UI",sans-serif;
+  --panel:rgba(255,255,255,.05); --panel2:rgba(255,255,255,.08);
+  --muted:#8b98a9; --line:rgba(255,255,255,.1); --shadow:0 4px 20px rgba(0,0,0,.2);
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fa; --fg:#1f2328; --accent-light:#b45309; --border:#d8dee4;
+  --panel:rgba(0,0,0,.035); --panel2:rgba(0,0,0,.07); --muted:#59636e; --line:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);line-height:1.6;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:2rem;transition:background .25s,color .25s}
+@media(max-width:600px){body{padding:1rem}}
+header{text-align:center;margin-bottom:1.5rem}
+header h1{font-size:2.4rem;color:var(--accent);margin-bottom:.25rem}
+header h2.ch{font-size:1.6rem;color:var(--accent);margin-bottom:.25rem}
+header p{color:var(--accent-light);font-weight:500}
+.tools{margin-top:.8rem}
+main{width:100%;max-width:var(--main-w,560px);background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:1.2rem;box-shadow:var(--shadow);text-align:left}
+@media(max-width:600px){main{padding:.8rem}}
+footer{width:100%;max-width:1100px;margin-top:auto;padding:1.5rem 0 0;font-size:.9rem;color:var(--muted);border-top:1px solid var(--border);text-align:center}
+footer a{color:var(--accent-light)}
+.copyright{font-size:.8rem;opacity:.7;margin:.5rem 0}
+.credit{font-size:.82rem;opacity:.85;max-width:760px;margin:.6rem auto}
+.btn{appearance:none;display:inline-block;border:1px solid var(--line);background:var(--panel2);color:var(--fg);padding:.5rem 1rem;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-2px)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.primary{background:var(--accent);color:#000;border-color:transparent}
+.btn.sm{padding:.3rem .7rem;font-size:14px}
+.hint{margin-top:.8rem;font-size:.9rem;color:var(--muted);text-align:center}
+/* overlay card: put inside a position:relative game area */
+.ov{position:absolute;inset:0;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(238,228,218,.72);z-index:5;text-align:center;opacity:0;pointer-events:none;transition:opacity .3s}
+:root[data-theme="dark"] .ov{background:rgba(13,17,23,.78)}
+.ov.show{opacity:1;pointer-events:auto}
+.ov h3{font-size:clamp(28px,8vw,46px);color:var(--accent);margin:0}
+.ov p{margin:0;color:var(--fg)}
+/* settings panel rows (KIT.settings) */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.25rem 0;font-size:14px}
+.set-row input[type=range]{width:55%}
+/* toast */
+.kit-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:.5rem 1rem;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:50;backdrop-filter:blur(6px)}
+.kit-toast.show{opacity:1;transform:translateX(-50%)}
+/* the site's body fade-in leaves a transform behind (breaks fixed/fullscreen children): use opacity only */
+body{animation:kitFade .8s ease-in forwards}
+@keyframes kitFade{from{opacity:0}to{opacity:1}}
+
+/* installed-app mode (opened from the home screen): game first, site chrome out of the way */
+html.app{overscroll-behavior:none}
+html.app body{padding-top:calc(.6rem + env(safe-area-inset-top));padding-bottom:calc(.6rem + env(safe-area-inset-bottom));padding-left:calc(.8rem + env(safe-area-inset-left));padding-right:calc(.8rem + env(safe-area-inset-right))}
+html.app header{margin-bottom:.6rem}
+html.app header h1,html.app header p,html.app header br{display:none}
+html.app header h2.ch{font-size:1.1rem;margin:0}
+html.app footer p:not(.credit){display:none}
+html.app footer{border-top:0;padding-top:.5rem}
+html{-webkit-tap-highlight-color:transparent}
+button,.btn{touch-action:manipulation}
+
+:root{--main-w:660px}
+.twrap{display:flex;flex-direction:column;gap:8px}
+.thead{display:flex;gap:6px}
+.tstat{flex:1;text-align:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:3px 4px;min-width:0}
+.tstat small{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.tstat b{font-size:15px;color:var(--accent-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tmsg{min-height:1.4em;font-weight:700;font-size:14px;text-align:center}
+.tboardwrap{position:relative;width:100%;max-width:560px;margin:0 auto}
+.cv{display:block;width:100%;height:auto;aspect-ratio:560/660;border-radius:12px;touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:pointer}
+.tbar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}.tbar .kl{color:var(--muted);font-size:13px}
+.tbar .btn.on{background:var(--accent);color:#000;border-color:transparent}
+.rec{text-align:center;font-size:12.5px;color:var(--muted)}
+.rules{margin-top:14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.55;text-align:left}
+.rules h2{margin:0 0 6px;font-size:18px;color:var(--accent-light)}
+.rules h3{margin:12px 0 4px;font-size:15px;color:var(--accent-light)}
+.rules p{margin:4px 0}.rules ul{margin:4px 0;padding-left:20px}.rules li{margin:3px 0}.rules .small{font-size:12px;color:var(--muted)}
+.rt{border-collapse:collapse;width:100%;margin:6px 0;font-size:13.5px}
+.rt th,.rt td{border:1px solid var(--line);padding:4px 7px;text-align:left;vertical-align:middle}
+.rt th{background:rgba(255,255,255,.06);color:var(--muted);font-size:12px;white-space:nowrap}
+.rt td:first-child{width:72px;padding:3px;text-align:center}.mv{width:68px;height:68px;display:block;margin:0 auto}.rt{table-layout:fixed;font-size:12.5px}.rt td,.rt th{overflow-wrap:anywhere}.rt th:nth-child(1){width:72px}.rt th:nth-child(2),.rt td:nth-child(2){width:34%}
+.kj{font-size:20px;font-weight:700;color:var(--accent-light)}.kj.red{color:#e5534b}
+
+</style>
+</head>
+<body>
+<header>
+  <h1>Kevin HY Hau - Hello World 👋 </h1><br>
+  <h2 class="ch">Shogi 将棋</h2>
+  <p>Chapter 38 · Japanese chess: captured pieces change sides and can be dropped back on the board. Play the computer or a friend</p>
+  <div class="tools"><button class="btn" id="themeBtn" type="button" title="Switch light / dark">🌙 Dark</button></div>
+</header>
+<main>
+<div class="twrap">
+  <div class="thead">
+    <div class="tstat"><small id="l1">TURN</small><b id="s1">You</b></div>
+    <div class="tstat"><small id="l2">SENTE ☗</small><b id="s2">–</b></div>
+    <div class="tstat"><small id="l3">GOTE ☖</small><b id="s3">–</b></div>
+    <div class="tstat"><small id="l4">MOVES</small><b id="s4">0</b></div>
+  </div>
+  <div class="tmsg" id="msg">Your move</div>
+  <div class="tboardwrap" id="wrap">
+    <canvas id="cv" class="cv" aria-label="Shogi board"></canvas>
+    <div class="ov" id="ovEnd"><h3 id="endH">You win!</h3><p id="endP"></p><div class="tbar"><button class="btn primary" data-act="restart" type="button">Play again</button><button class="btn" data-act="closeov" type="button">Close</button></div></div>
+    <div class="ov" id="ovPromo"><h3>Promote?</h3><div class="tbar" id="promoBtns"></div></div>
+  </div>
+  <div class="tbar">
+    <button class="btn sm" data-act="restart" type="button">🔄 New game</button>
+    <button class="btn sm" data-act="undo" type="button">↩ Undo</button>
+    <button class="btn sm" data-act="hint" type="button">💡 Hint</button>
+  </div>
+  <div class="tbar"><span class="kl">Play:</span><span id="oppBar"></span></div>
+  <div class="rec" id="recLine"></div>
+  <div id="panel" class="tpanel"></div>
+  <div id="iosHint" class="hint" style="display:none">📲 To install: tap Share, then “Add to Home Screen”.</div>
+  <button class="btn sm" id="installBtn" style="display:none;margin:.5rem auto" type="button">Install app</button>
+
+  <section class="rules" id="rules">
+    <h2>📖 Rules of Shogi (将棋)</h2>
+    <p><b>Goal.</b> <b>Checkmate</b> the enemy king: attack it so that it cannot escape, be blocked or have the attacker captured. Sente (先手, Black ☗) is at the bottom and moves first; Gote (後手, White ☖) is at the top. The pieces are flat wooden tiles that point toward the enemy, so you can tell the sides apart by the direction, not by colour.</p>
+    <h3>The pieces (20 each)</h3>
+    <p>1 king, 1 rook, 1 bishop, 2 golds, 2 silvers, 2 knights, 2 lances and 9 pawns. The board is 9 x 9. Pieces never move through others, except the knight, which jumps.</p>
+    <table class="rt"><tr><th>Move</th><th>Piece</th><th>How it moves</th></tr><tr><td><canvas class="mv" data-pc="1" width="90" height="90"></canvas></td><td><b>Pawn</b><br><span class="kj">歩</span><br><span class="small">promotes: Tokin と</span></td><td>Moves <b>1 square straight forward</b>. It captures the same way (there is no sideways capture).</td></tr><tr><td><canvas class="mv" data-pc="2" width="90" height="90"></canvas></td><td><b>Lance</b><br><span class="kj">香</span><br><span class="small">promotes: Gold-mover 杏</span></td><td>Slides <b>any distance straight forward</b>. Cannot go backward.</td></tr><tr><td><canvas class="mv" data-pc="3" width="90" height="90"></canvas></td><td><b>Knight</b><br><span class="kj">桂</span><br><span class="small">promotes: Gold-mover 圭</span></td><td>Jumps <b>2 forward and 1 sideways</b> (two possible squares). It leaps over pieces and cannot go backward.</td></tr><tr><td><canvas class="mv" data-pc="4" width="90" height="90"></canvas></td><td><b>Silver</b><br><span class="kj">銀</span><br><span class="small">promotes: Gold-mover 全</span></td><td>Moves 1 square <b>forward</b>, <b>diagonally forward</b> or <b>diagonally backward</b>.</td></tr><tr><td><canvas class="mv" data-pc="5" width="90" height="90"></canvas></td><td><b>Gold</b><br><span class="kj">金</span><br><span class="small">promotes: Cannot promote</span></td><td>Moves 1 square forward, sideways, diagonally forward or straight back (not diagonally backward).</td></tr><tr><td><canvas class="mv" data-pc="6" width="90" height="90"></canvas></td><td><b>Bishop</b><br><span class="kj">角</span><br><span class="small">promotes: Horse 馬 (also 1 step orthogonally)</span></td><td>Slides <b>any distance diagonally</b>.</td></tr><tr><td><canvas class="mv" data-pc="7" width="90" height="90"></canvas></td><td><b>Rook</b><br><span class="kj">飛</span><br><span class="small">promotes: Dragon 龍 (also 1 step diagonally)</span></td><td>Slides <b>any distance straight</b> (forward, backward, sideways).</td></tr><tr><td><canvas class="mv" data-pc="8" width="90" height="90"></canvas></td><td><b>King</b><br><span class="kj">玉 / 王</span><br><span class="small">promotes: Cannot promote</span></td><td>Moves 1 square in any direction.</td></tr><tr><th colspan="3">Promoted pieces (shown in red)</th></tr><tr><td><canvas class="mv" data-pc="9" width="90" height="90"></canvas></td><td><b>Tokin / promoted lance, knight, silver</b><br><span class="kj red">と 杏 圭 全</span></td><td>All move <b>exactly like a gold</b>.</td></tr><tr><td><canvas class="mv" data-pc="14" width="90" height="90"></canvas></td><td><b>Horse</b><br><span class="kj red">馬</span></td><td>A bishop that can also step <b>1 square forward, back or sideways</b>.</td></tr><tr><td><canvas class="mv" data-pc="15" width="90" height="90"></canvas></td><td><b>Dragon</b><br><span class="kj red">龍</span></td><td>A rook that can also step <b>1 square diagonally</b>.</td></tr></table>
+    <p class="small">Diagrams: the piece sits in the middle and points up. Green squares are single steps, green with an arrow is a slide as far as you like.</p>
+    <h3>Moving and capturing</h3>
+    <ul>
+      <li>On your turn do <b>one</b> of two things: move a piece, or <b>drop</b> a captured piece (below). You cannot pass.</li>
+      <li>To capture, move onto an enemy piece. It is removed from the board and goes to <b>your hand</b>.</li>
+      <li>Capturing is never compulsory, but you must always get your king out of check.</li>
+    </ul>
+    <h3>Promotion (成り)</h3>
+    <ul>
+      <li>The three rows nearest the enemy are the <b>promotion zone</b>. When a piece <b>moves into, within, or out of</b> the zone you may <b>promote</b> it (flip it over). Pawns, lances, knights and silvers become gold-movers; the bishop becomes a horse and the rook a dragon. Golds and kings do not promote.</li>
+      <li>Promotion is optional, <b>except</b> when a piece would otherwise have no move: a pawn or lance on the last row, or a knight on the last two rows <b>must</b> promote.</li>
+      <li>Promotion is permanent, until the piece is captured. A captured piece goes to the captor's hand as its <b>original, unpromoted</b> type.</li>
+    </ul>
+    <h3>Drops (打ち)</h3>
+    <ul>
+      <li>Instead of moving, you can place a piece from your hand on <b>any empty square</b>, facing forward and unpromoted. It can give check or capture on the next move. This is why shogi games rarely end in a lone king.</li>
+      <li><b>You may not drop</b> a pawn or lance on the last row, or a knight on the last two rows (it would have no move).</li>
+      <li><b>Nifu (二歩):</b> you may not drop a pawn in a file where you already have an unpromoted pawn. (A promoted pawn, a tokin, does not count.)</li>
+      <li><b>Uchifuzume (打ち歩詰め):</b> you may not give checkmate by <b>dropping a pawn</b>. (You may give checkmate by <i>moving</i> a pawn, or by dropping any other piece.)</li>
+    </ul>
+    <h3>Check and the end of the game</h3>
+    <ul>
+      <li>A king under attack is in <b>check</b>. You must answer it: move the king, capture the attacker, or block (by moving or dropping a piece in between). You may never make a move that leaves your own king in check.</li>
+      <li><b>Checkmate</b> wins. If a side has no legal move at all, it loses.</li>
+      <li><b>Repetition (千日手):</b> if the same position with the same side to move occurs four times, the game is a draw. (This game does not apply the extra rule that the side giving perpetual check loses.)</li>
+      <li>A game lasting 500 moves is called a draw. Not included: the “impasse” (入玉) point-counting rule.</li>
+    </ul>
+    <h3>Reading the notation</h3>
+    <p>The last move is shown like <b>☗７六歩</b>: ☗ = Sente (☖ = Gote), then the file (column, numbered 9 to 1 from Sente's left to right), then the rank (row, 一 to 九 from the top), then the piece. 成 means it promoted, 打 means it was dropped.</p>
+    <h3>How to use this game</h3>
+    <ul>
+      <li>Tap one of your pieces; its destinations appear (green = move, red = capture). Tap a square to move. If you can promote, a small question appears. To drop, tap a piece in <b>your hand</b> (the row of 7 tiles under the board) and then an empty square.</li>
+      <li>Settings: computer level, which side you play, piece labels (kanji or English letters), and a helper that rings the pieces you can move.</li>
+      <li><b>Hint</b> shows a good move. <b>Undo</b> takes back your move and the computer's reply.</li>
+    </ul>
+  </section>
+</div>
+
+</main>
+<footer>
+  <p>🚀 Built and deployed by <strong>Kevin Hon Yin Hau</strong> </p>
+  <p>
+    <a href="https://www.linkedin.com/in/kevin-hon-yin-h-799a1413/">Linkedin</a>
+    <br>
+    <a href="../index.html">Home</a>
+  </p>
+  <p class="credit">♟️ Shogi (将棋), the full game: promotion, drops, no two pawns in a file, no pawn-drop checkmate, check and checkmate. The move generator was checked against the published move counts for the opening. The computer thinks ahead with a search (minimax with alpha-beta). It is a friendly opponent, not a strong engine. Drawings, sounds, rules and code are my own.</p>
+  <p class="copyright">© 2026 Kevin HY Hau. All rights reserved.</p>
+</footer>
+<script>
+/* KIT core: namespace + tiny helpers. Everything else hangs off window.KIT. */
+(function (g) {
+  const KIT = g.KIT = g.KIT || {};
+  KIT.$ = id => document.getElementById(id);
+  KIT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  KIT.lerp = (a, b, t) => a + (b - a) * t;
+  /* setText: touch the DOM only when the text really changed */
+  KIT.setText = (el, v) => { v = String(v); if (el._t !== v) { el._t = v; el.textContent = v; } };
+  /* el('div', {class:'x'}, 'text') */
+  KIT.el = (tag, attrs, html) => { const e = document.createElement(tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; };
+})(window);
+
+/* KIT.store: safe localStorage. Never throws. Merges saved data over defaults.
+   const S = KIT.store('kevinhyhau.ch15.v1', {best:0});  S.st.best = 5;  S.save(); */
+(function () {
+  KIT.store = function (key, defaults) {
+    const st = JSON.parse(JSON.stringify(defaults || {}));
+    try { Object.assign(st, JSON.parse(localStorage.getItem(key) || '{}')); } catch (e) {}
+    const save = () => { try { localStorage.setItem(key, JSON.stringify(st)); } catch (e) {} };
+    const reset = () => { try { localStorage.removeItem(key); } catch (e) {} };
+    return { st, save, reset };
+  };
+})();
+
+/* KIT.rng: seeded random numbers (mulberry32). Same seed = same sequence. */
+(function () {
+  const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  KIT.rng = {
+    mulberry, hash,
+    fromString: s => mulberry(hash(String(s))),
+    /* daily(): everyone gets the same generator on the same (UTC) date */
+    dailySeed: (salt) => hash((salt || '') + new Date().toISOString().slice(0, 10)),
+    daily: salt => mulberry(KIT.rng.dailySeed(salt)),
+    int: (r, n) => Math.floor(r() * n),
+    pick: (r, arr) => arr[Math.floor(r() * arr.length)],
+    shuffle: (r, arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  };
+})();
+
+/* KIT.loop: requestAnimationFrame loop with a capped time step and auto-pause when the tab is hidden.
+   const L = KIT.loop((dt, t) => update(dt), dt => draw());  L.start();  L.paused = true; */
+(function () {
+  KIT.loop = function (update, draw, maxDt) {
+    maxDt = maxDt || 0.05; let last = 0, raf = 0, t = 0;
+    const L = { paused: false, running: false,
+      start() { if (L.running) return; L.running = true; last = performance.now(); raf = requestAnimationFrame(tick); },
+      stop() { L.running = false; cancelAnimationFrame(raf); } };
+    function tick(now) {
+      if (!L.running) return;
+      const dt = Math.min(maxDt, (now - last) / 1000); last = now;
+      if (!L.paused) { t += dt; update && update(dt, t); }
+      draw && draw(dt, t);
+      raf = requestAnimationFrame(tick);
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { L.paused = true; L.onHide && L.onHide(); } else { L.paused = false; last = performance.now(); } });   // coming back to the tab must un-freeze the loop (games keep their own pause state)
+    return L;
+  };
+})();
+
+/* KIT.canvas: fixed logical size on any screen + sharp on retina. KIT.cache: paint once, draw many times. */
+(function () {
+  /* const C = KIT.canvas(el, 960, 540);  C.ctx draws in 960x540 units whatever the real size is. Call C.fit() on resize. */
+  KIT.canvas = function (cv, W, H, maxDpr) {
+    const ctx = cv.getContext('2d'), C = { ctx, W, H, dpr: 1, fit };
+    function fit() {
+      const r = cv.getBoundingClientRect(); C.dpr = Math.min(maxDpr || 2, window.devicePixelRatio || 1);
+      cv.width = Math.round(r.width * C.dpr); cv.height = Math.round(r.height * C.dpr);
+      ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    }
+    fit(); window.addEventListener('resize', fit);
+    /* convert a pointer event to logical coordinates */
+    C.pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
+    return C;
+  };
+  /* const bg = KIT.cache(960, 540, ctx => paintBackground(ctx));  then ctx.drawImage(bg, 0, 0) each frame */
+  KIT.cache = function (w, h, paint) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h); return c;
+  };
+})();
+
+/* KIT.sfx: synthesised sounds, no files. AudioContext starts on the first tap (browsers require that).
+   const A = KIT.sfx(() => S.st.sound);   A.beep(440, .1, 'square', .15);  A.noise(.2, .2);  A.slide(800, 200, .3) */
+(function () {
+  KIT.sfx = function (isOn) {
+    let ac = null; const on = () => (isOn ? isOn() : true);
+    const get = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, get, { once: true }));
+    const A = {
+      get ctx() { return ac; },
+      beep(f, d, type, vol, when) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime + (when || 0), o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sine'; o.frequency.value = f; g.gain.setValueAtTime(vol == null ? .15 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      slide(f1, f2, d, type, vol) { if (!on()) return; const c = get(); if (!c) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + d); g.gain.setValueAtTime(vol == null ? .12 : vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .02); },
+      noise(d, vol) { if (!on()) return; const c = get(); if (!c) return; const n = Math.floor(c.sampleRate * d), b = c.createBuffer(1, n, c.sampleRate), x = b.getChannelData(0);
+        for (let i = 0; i < n; i++) x[i] = (Math.random() * 2 - 1) * (1 - i / n); const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; g.gain.value = vol == null ? .2 : vol; s.connect(g).connect(c.destination); s.start(); }
+    };
+    return A;
+  };
+})();
+
+/* KIT.settings: one schema describes the whole settings panel, the saved data and the Randomise button.
+   schema item: {id, label, type:'range'|'check'|'select', min, max, step, options:[[value,label]], def, show:(st)=>bool}
+   const P = KIT.settings(schema, S.st, $('panel'), () => { S.save(); apply(); });  P.randomise(); P.refresh(); */
+(function () {
+  KIT.settings = function (schema, st, host, onChange) {
+    const rows = {};
+    schema.forEach(s => { if (st[s.id] === undefined) st[s.id] = s.def; });
+    /* clamp everything against the schema so bad saved data can't break the game */
+    function sanitise() { schema.forEach(s => {
+      if (s.type === 'range') st[s.id] = KIT.clamp(+st[s.id] || 0, s.min, s.max);
+      else if (s.type === 'check') st[s.id] = !!st[s.id];
+      else if (s.type === 'select' && !s.options.some(o => o[0] === st[s.id])) st[s.id] = s.def; }); }
+    sanitise();
+    schema.forEach(s => {
+      const row = KIT.el('label', { class: 'set-row' }); let inp;
+      row.appendChild(KIT.el('span', { class: 'set-name' }, s.label));
+      if (s.type === 'range') { inp = KIT.el('input', { type: 'range', min: s.min, max: s.max, step: s.step || 1 }); }
+      else if (s.type === 'check') { inp = KIT.el('input', { type: 'checkbox' }); }
+      else { inp = KIT.el('select', {}, s.options.map(o => `<option value="${o[0]}">${o[1]}</option>`).join('')); }
+      inp.addEventListener('input', () => { st[s.id] = s.type === 'check' ? inp.checked : s.type === 'range' ? +inp.value : inp.value; refresh(); onChange && onChange(s.id); });
+      row.appendChild(inp); host.appendChild(row); rows[s.id] = { row, inp, s };
+    });
+    function refresh() { sanitise(); schema.forEach(s => { const r = rows[s.id]; if (s.type === 'check') r.inp.checked = st[s.id]; else r.inp.value = st[s.id];
+      r.row.style.display = !s.show || s.show(st) ? '' : 'none'; }); }
+    function randomise(r) { r = r || Math.random; schema.forEach(s => { if (s.noRandom) return;
+      if (s.type === 'range') { const k = Math.round(r() * ((s.max - s.min) / (s.step || 1))); st[s.id] = s.min + k * (s.step || 1); }
+      else if (s.type === 'check') st[s.id] = r() < .5; else st[s.id] = s.options[Math.floor(r() * s.options.length)][0]; }); refresh(); onChange && onChange('*'); }
+    refresh();
+    return { refresh, randomise, reset() { schema.forEach(s => st[s.id] = s.def); refresh(); onChange && onChange('*'); } };
+  };
+})();
+
+/* KIT.ui: theme switch, toast, overlay cards, delegated button actions. */
+(function () {
+  const $ = KIT.$;
+  KIT.ui = {
+    /* theme(btn, st, save): st.dark true/false, toggled by a button */
+    theme(btn, st, save) {
+      const apply = () => { document.documentElement.dataset.theme = st.dark === false ? 'light' : 'dark'; btn.textContent = st.dark === false ? '☀️ Light' : '🌙 Dark'; };
+      btn.onclick = () => { st.dark = st.dark === false; apply(); save && save(); }; apply();
+    },
+    /* toast('Saved') - small message that fades away */
+    toast(msg, ms) {
+      let t = $('kitToast'); if (!t) { t = KIT.el('div', { id: 'kitToast', class: 'kit-toast' }); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), ms || 1800);
+    },
+    /* overlays(ids): show/hide cards that use class .ov  ->  O.show('ovWin'), O.hide('ovWin'), O.hideAll(), O.open('ovWin') */
+    overlays(ids) {
+      const O = { show(id) { $(id).classList.add('show'); }, hide(id) { $(id).classList.remove('show'); }, open: id => $(id).classList.contains('show'),
+        hideAll() { ids.forEach(i => $(i).classList.remove('show')); } };
+      return O;
+    },
+    /* actions(root, {again(){...}, home(){...}}): one click handler for every [data-act] button */
+    actions(root, table) {
+      root.addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b && table[b.dataset.act]) table[b.dataset.act](b, e); });
+    }
+  };
+})();
+
+/* KIT.input: keyboard table, swipe, and the test hook. */
+(function () {
+  KIT.input = {
+    /* keys({ArrowLeft:0, a:0}, v => move(v))  - one table, arrows and WASD share code. Ignores Ctrl/Cmd/Alt combos. */
+    keys(table, fn) {
+      window.addEventListener('keydown', e => { if (e.ctrlKey || e.metaKey || e.altKey) return; const k = e.key in table ? e.key : e.key.toLowerCase();
+        if (k in table) { e.preventDefault(); fn(table[k], e); } });
+    },
+    /* swipe(el, dir => ..., 24) - dir: 0 left, 1 up, 2 right, 3 down. Add CSS touch-action:none to el. */
+    swipe(el, fn, min) {
+      let sx = 0, sy = 0, down = false; min = min || 24;
+      el.addEventListener('pointerdown', e => { down = true; sx = e.clientX; sy = e.clientY; });
+      window.addEventListener('pointerup', e => { if (!down) return; down = false; const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < min) return; fn(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : (dy < 0 ? 1 : 3)); });
+      el.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    },
+    /* pointer(el, {down(p,e), move(p,e), up(p,e)}) with positions in element pixels (or pass canvas helper C.pos) */
+    pointer(el, h, toPos) {
+      toPos = toPos || (e => { const r = el.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; });
+      el.addEventListener('pointerdown', e => h.down && h.down(toPos(e), e));
+      el.addEventListener('pointermove', e => h.move && h.move(toPos(e), e));
+      window.addEventListener('pointerup', e => h.up && h.up(toPos(e), e));
+    }
+  };
+  /* test hook: KIT.hook({move, newGame, get score(){...}}) -> window.__g  (bots and Playwright use this) */
+  KIT.hook = obj => { window.__g = obj; return obj; };
+})();
+
+/* KIT.pwa: make a page behave like an installed app.
+   KIT.pwa.register('sw.js')   offline support (needs https or localhost)
+   KIT.pwa.hint(el)            shows el on iPhone/iPad Safari when not installed ("Share, Add to Home Screen")
+   KIT.pwa.installButton(btn)  shows btn on Android/Chrome when the browser offers to install
+   When opened from the home screen the <html> gets class "app" (CSS hides the site header there). */
+(function () {
+  const ua = navigator.userAgent || '';
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  if (standalone) document.documentElement.classList.add('app');
+  let deferred = null;
+  KIT.pwa = {
+    ios, app: standalone,
+    register(url) { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register(url || 'sw.js').catch(() => {})); },
+    hint(el) { if (el && ios && !standalone) el.style.display = ''; },
+    installButton(btn) {
+      if (!btn) return;
+      window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; btn.style.display = ''; });
+      btn.addEventListener('click', () => { if (!deferred) return; deferred.prompt(); deferred = null; btn.style.display = 'none'; });
+      window.addEventListener('appinstalled', () => { btn.style.display = 'none'; });
+    }
+  };
+})();
+
+</script>
+<script>
+/* Shogi: the rules and the computer player, with no drawing so it can be tested on its own (tools/perft.js and tools/rulecheck.js).
+   Board: 9 x 9, square index = row * 9 + col. Side 1 ("Sente", Black) starts at the bottom and moves first; side -1 ("Gote", White) starts at the top.
+   A piece on the board is side * type. Types: 1 pawn, 2 lance, 3 knight, 4 silver, 5 gold, 6 bishop, 7 rook, 8 king.
+   Promoted pieces are the base type + 8: 9 tokin, 10 promoted lance, 11 promoted knight, 12 promoted silver, 14 horse (promoted bishop), 15 dragon (promoted rook).
+   Captured pieces go to the capturer's hand as their base type. A move is one integer: from | to << 7 | promote << 14 | droppedType << 15. */
+const SG_NAMES = ['', 'Pawn', 'Lance', 'Knight', 'Silver', 'Gold', 'Bishop', 'Rook', 'King', 'Tokin', 'Promoted Lance', 'Promoted Knight', 'Promoted Silver', '', 'Horse', 'Dragon'];
+const SG_KJ = ['', '歩', '香', '桂', '銀', '金', '角', '飛', '玉', 'と', '杏', '圭', '全', '', '馬', '龍'], SG_ABBR = ['', 'P', 'L', 'N', 'S', 'G', 'B', 'R', 'K', '+P', '+L', '+N', '+S', '', '+B', '+R'];
+const SG_ORTH = [[-1, 0], [1, 0], [0, -1], [0, 1]], SG_DIAG = [[-1, -1], [-1, 1], [1, -1], [1, 1]], SG_GOLD = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, 0]];
+const SG_STEPS = [], SG_SLIDES = [], SG_STEPT = [], SG_SLIDET = [];            // moves for side 1 (forward = row - 1); the other side is the same turned round
+(function () {
+  const st = { 1: [[-1, 0]], 4: [[-1, -1], [-1, 0], [-1, 1], [1, -1], [1, 1]], 5: SG_GOLD, 8: SG_ORTH.concat(SG_DIAG), 9: SG_GOLD, 10: SG_GOLD, 11: SG_GOLD, 12: SG_GOLD, 14: SG_ORTH, 15: SG_DIAG };
+  const sl = { 2: [[-1, 0]], 6: SG_DIAG, 7: SG_ORTH, 14: SG_DIAG, 15: SG_ORTH };
+  for (let t = 0; t < 16; t++) { SG_STEPS[t] = st[t] || []; SG_SLIDES[t] = sl[t] || []; SG_STEPT[t] = new Uint8Array(9); SG_SLIDET[t] = new Uint8Array(9); for (const [a, b] of SG_STEPS[t]) SG_STEPT[t][(a + 1) * 3 + b + 1] = 1; for (const [a, b] of SG_SLIDES[t]) SG_SLIDET[t][(a + 1) * 3 + b + 1] = 1; }
+})();
+const sgSign = p => p > 0 ? 1 : p < 0 ? -1 : 0, sgBase = t => t > 8 ? t - 8 : t, sgHi = s => s > 0 ? 0 : 1;
+function sgNew() {
+  const b = new Int8Array(81), back = [2, 3, 4, 5, 8, 5, 4, 3, 2];
+  for (let c = 0; c < 9; c++) { b[c] = -back[c]; b[72 + c] = back[c]; b[18 + c] = -1; b[54 + c] = 1; }
+  b[1 * 9 + 7] = -6; b[1 * 9 + 1] = -7; b[7 * 9 + 1] = 6; b[7 * 9 + 7] = 7;
+  return { b, h: [new Int8Array(8), new Int8Array(8)], turn: 1, kp: [76, 4], ply: 0 };
+}
+const sgClone = S => ({ b: S.b.slice(), h: [S.h[0].slice(), S.h[1].slice()], turn: S.turn, kp: S.kp.slice(), ply: S.ply });
+const sgKey = S => S.turn + S.b.join('') + S.h[0].join('') + S.h[1].join('');
+/* is square sq attacked by side `by`? looks outward from sq along the 8 directions, and for knights */
+function sgAttacked(S, sq, by) {
+  const b = S.b, r = (sq / 9) | 0, c = sq % 9;
+  for (let d = 0; d < 8; d++) {
+    const dr = d < 4 ? SG_ORTH[d][0] : SG_DIAG[d - 4][0], dc = d < 4 ? SG_ORTH[d][1] : SG_DIAG[d - 4][1]; let rr = r + dr, cc = c + dc, k = 1;
+    while (rr >= 0 && rr < 9 && cc >= 0 && cc < 9) {
+      const p = b[rr * 9 + cc];
+      if (p) { if (sgSign(p) === by) { const t = p > 0 ? p : -p, idx = (-dr * by + 1) * 3 + (-dc * by + 1); if ((k === 1 && SG_STEPT[t][idx]) || SG_SLIDET[t][idx]) return true; } break; }
+      rr += dr; cc += dc; k++;
+    }
+  }
+  const ar = r + 2 * by; if (ar >= 0 && ar < 9) { if (c > 0 && b[ar * 9 + c - 1] === by * 3) return true; if (c < 8 && b[ar * 9 + c + 1] === by * 3) return true; }
+  return false;
+}
+const sgInCheck = (S, side) => sgAttacked(S, S.kp[sgHi(side)], -side);
+/* pseudo-legal moves (may leave the own king in check); caps: only captures */
+function sgGen(S, out, caps) {
+  const b = S.b, s = S.turn, hand = S.h[sgHi(s)];
+  for (let sq = 0; sq < 81; sq++) {
+    const p = b[sq]; if (!p || sgSign(p) !== s) continue; const t = p > 0 ? p : -p, r = (sq / 9) | 0, c = sq % 9, inz = s > 0 ? r <= 2 : r >= 6;
+    const add = (r2, c2) => {
+      const to = r2 * 9 + c2, q = b[to]; if (q && sgSign(q) === s) return false; if (caps && !q) return !q;
+      const toz = s > 0 ? r2 <= 2 : r2 >= 6, can = (t === 1 || t === 2 || t === 3 || t === 4 || t === 6 || t === 7) && (inz || toz);
+      const last = s > 0 ? r2 === 0 : r2 === 8, last2 = s > 0 ? r2 <= 1 : r2 >= 7, must = ((t === 1 || t === 2) && last) || (t === 3 && last2);
+      if (can) out.push(sq | to << 7 | 1 << 14); if (!must) out.push(sq | to << 7); return !q;
+    };
+    if (t === 3) { const r2 = r + 2 * -s; if (r2 >= 0 && r2 < 9) { if (c > 0) add(r2, c - 1); if (c < 8) add(r2, c + 1); } continue; }
+    for (const v of SG_STEPS[t]) { const r2 = r + v[0] * s, c2 = c + v[1] * s; if (r2 >= 0 && r2 < 9 && c2 >= 0 && c2 < 9) add(r2, c2); }
+    for (const v of SG_SLIDES[t]) { let r2 = r + v[0] * s, c2 = c + v[1] * s; while (r2 >= 0 && r2 < 9 && c2 >= 0 && c2 < 9) { if (!add(r2, c2)) break; r2 += v[0] * s; c2 += v[1] * s; } }
+  }
+  if (caps) return out;
+  for (let d = 1; d <= 7; d++) {
+    if (!hand[d]) continue; let pawnFiles = null;
+    if (d === 1) { pawnFiles = new Uint8Array(9); for (let q = 0; q < 81; q++) if (b[q] === s) pawnFiles[q % 9] = 1; }
+    for (let to = 0; to < 81; to++) {
+      if (b[to]) continue; const r = (to / 9) | 0, last = s > 0 ? r === 0 : r === 8, last2 = s > 0 ? r <= 1 : r >= 7;
+      if ((d === 1 || d === 2) && last) continue; if (d === 3 && last2) continue; if (d === 1 && pawnFiles[to % 9]) continue; out.push(to << 7 | d << 15);
+    }
+  }
+  return out;
+}
+function sgMake(S, m) {
+  const f = m & 127, t = (m >> 7) & 127, pr = (m >> 14) & 1, dp = (m >> 15) & 15, s = S.turn, b = S.b; let cap = 0;
+  if (dp) { b[t] = s * dp; S.h[sgHi(s)][dp]--; }
+  else { let p = b[f]; cap = b[t]; b[f] = 0; if (pr) p += s * 8; b[t] = p; if (p === 8 || p === -8) S.kp[sgHi(s)] = t; if (cap) S.h[sgHi(s)][sgBase(cap > 0 ? cap : -cap)]++; }
+  S.turn = -s; S.ply++; return cap;
+}
+function sgUnmake(S, m, cap) {
+  const f = m & 127, t = (m >> 7) & 127, pr = (m >> 14) & 1, dp = (m >> 15) & 15, s = -S.turn, b = S.b; S.turn = s; S.ply--;
+  if (dp) { b[t] = 0; S.h[sgHi(s)][dp]++; }
+  else { let p = b[t]; if (pr) p -= s * 8; b[f] = p; b[t] = cap; if (p === 8 || p === -8) S.kp[sgHi(s)] = f; if (cap) S.h[sgHi(s)][sgBase(cap > 0 ? cap : -cap)]--; }
+}
+function sgHasLegal(S) {
+  const mv = sgGen(S, []), s = S.turn; for (const m of mv) { const cap = sgMake(S, m), bad = sgAttacked(S, S.kp[sgHi(s)], -s); sgUnmake(S, m, cap); if (!bad) return true; } return false;
+}
+/* all legal moves: the king may not be left in check, and a pawn may not be dropped to give checkmate */
+function sgLegal(S) {
+  const s = S.turn, out = []; for (const m of sgGen(S, [])) {
+    const cap = sgMake(S, m); let ok = !sgAttacked(S, S.kp[sgHi(s)], s * -1 === -s ? -s : -s);
+    if (ok && ((m >> 15) & 15) === 1 && sgAttacked(S, S.kp[sgHi(-s)], s)) ok = sgHasLegal(S);       // pawn drop that gives check: the other side must have an answer
+    sgUnmake(S, m, cap); if (ok) out.push(m);
+  } return out;
+}
+function sgPerft(S, d) { if (d === 0) return 1; const mv = sgLegal(S); if (d === 1) return mv.length; let n = 0; for (const m of mv) { const cap = sgMake(S, m); n += sgPerft(S, d - 1); sgUnmake(S, m, cap); } return n; }
+const sgDecode = m => ({ f: m & 127, t: (m >> 7) & 127, pr: (m >> 14) & 1, drop: (m >> 15) & 15 });
+
+/* ---------- the computer player ---------- */
+const SG_V = [0, 100, 300, 320, 450, 520, 800, 950, 0, 560, 540, 540, 530, 0, 1050, 1250];
+function sgEval(S) {                         // from the point of view of the side to move
+  const b = S.b; let s = 0;
+  for (let sq = 0; sq < 81; sq++) {
+    const p = b[sq]; if (!p) continue; const t = p > 0 ? p : -p, sg = p > 0 ? 1 : -1, r = (sq / 9) | 0, adv = sg > 0 ? 8 - r : r; let v = SG_V[t];
+    if (t === 1) v += adv * 6; else if (t === 4 || t === 3 || t === 2) v += adv * 3; else if (t === 6 || t === 7) v += 4;
+    s += sg * v;
+  }
+  for (let k = 0; k < 2; k++) {                // king safety: friends close to the king
+    const sg = k ? -1 : 1, ksq = S.kp[k], kr = (ksq / 9) | 0, kc = ksq % 9; let g = 0;
+    for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) { const r = kr + dr, c = kc + dc; if (r < 0 || r > 8 || c < 0 || c > 8) continue; const p = b[r * 9 + c]; if (p * sg > 0) { const t = p * sg; if (t === 5 || t === 4 || t === 9 || t === 12 || t === 11 || t === 10) g++; } }
+    s += sg * Math.min(g, 4) * 22;
+    for (let d = 1; d <= 7; d++) s += sg * S.h[k][d] * (SG_V[d] * 1.08);
+  }
+  return s * S.turn;
+}
+/* opt: {ms, maxDepth, exact} -> {move, score, depth, moves, scores} (moves are the legal moves at the root) */
+function sgSearch(S0, opt) {
+  const S = sgClone(S0), t0 = performance.now(); let nodes = 0, timeout = false;
+  const val = m => { const f = m & 127, t = (m >> 7) & 127, dp = (m >> 15) & 15; let v = 0; const q = S.b[t]; if (q) v += 10 * SG_V[q > 0 ? q : -q] - (dp ? 0 : SG_V[Math.abs(S.b[f])]) / 10 + 1000; if ((m >> 14) & 1) v += 400; return v; };
+  const order = mv => { const sc = new Map(); for (const m of mv) sc.set(m, val(m)); return mv.sort((x, y) => sc.get(y) - sc.get(x)); };
+  function q(alpha, beta, ply, qd) {
+    if ((++nodes & 255) === 0 && performance.now() - t0 > opt.ms) timeout = true; if (timeout) return 0;
+    const stand = sgEval(S); if (qd <= 0) return stand; if (stand >= beta) return stand; if (stand > alpha) alpha = stand; const s = S.turn;
+    for (const m of order(sgGen(S, [], true))) { const cap = sgMake(S, m); if (sgAttacked(S, S.kp[sgHi(s)], -s)) { sgUnmake(S, m, cap); continue; } const v = -q(-beta, -alpha, ply + 1, qd - 1); sgUnmake(S, m, cap); if (timeout) return 0; if (v >= beta) return v; if (v > alpha) alpha = v; }
+    return alpha;
+  }
+  function nm(d, alpha, beta, ply) {
+    if ((++nodes & 255) === 0 && performance.now() - t0 > opt.ms) timeout = true; if (timeout) return 0;
+    const s = S.turn, chk = sgAttacked(S, S.kp[sgHi(s)], -s); if (chk && ply < 12) d++; if (d <= 0) return q(alpha, beta, ply, 4);
+    let best = -1e9, legal = 0;
+    for (const m of order(sgGen(S, []))) {
+      const cap = sgMake(S, m); if (sgAttacked(S, S.kp[sgHi(s)], -s)) { sgUnmake(S, m, cap); continue; } legal++;
+      const v = -nm(d - 1, -beta, -alpha, ply + 1); sgUnmake(S, m, cap); if (timeout) return 0; if (v > best) best = v; if (best > alpha) alpha = best; if (alpha >= beta) break;
+    }
+    return legal ? best : -20000 + ply;
+  }
+  let root = sgLegal(S); if (!root.length) return null; root = order(root);
+  let best = { move: root[0], score: 0, depth: 0, moves: root.slice(), scores: root.map(() => 0) };
+  for (let d = 1; d <= opt.maxDepth; d++) {
+    let alpha = -1e9, bm = null; const scores = [];
+    for (const m of root) {
+      const cap = sgMake(S, m), v = -nm(d - 1, -1e9, opt.exact ? 1e9 : -alpha, 1); sgUnmake(S, m, cap); if (timeout) break; scores.push(v);
+      if (!bm || v > bm.v) bm = { m, v }; if (v > alpha) alpha = v;
+    }
+    if (timeout) break; best = { move: bm.m, score: bm.v, depth: d, moves: root.slice(), scores: scores.slice() };
+    const ord = root.map((m, i) => [m, scores[i]]).sort((x, y) => y[1] - x[1]); root = ord.map(x => x[0]); if (Math.abs(bm.v) > 15000) break;
+  }
+  return best;
+}
+
+/* Shogi. rules.js has the rules and the computer player (checked against the published move counts); this file is the board, hands, input, animation and game flow.
+   A move is one integer: from | to << 7 | promote << 14 | droppedType << 15 (see sgDecode). Squares are row * 9 + col. */
+(() => {
+const { $, store, ui, sfx, settings } = KIT;
+const S0 = store('kevinhyhau.shogi.v1', { dark: true, sound: true, opp: 'cpu', side: 'sente', level: 'normal', labels: 'kanji', help: true, wins: 0, losses: 0, draws: 0 }), st = S0.st;
+ui.theme($('themeBtn'), st, S0.save);
+const A = sfx(() => st.sound), O = ui.overlays(['ovEnd', 'ovPromo']);
+let lastSide = st.side;
+settings([
+  { id: 'level', label: 'Computer level', type: 'select', options: [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard (thinks longer)']], def: 'normal' },
+  { id: 'side', label: 'I play', type: 'select', options: [['sente', 'Sente 先手 (bottom, moves first)'], ['gote', 'Gote 後手 (moves second)']], def: 'sente' },
+  { id: 'labels', label: 'Piece labels', type: 'select', options: [['kanji', 'Kanji (traditional)'], ['english', 'English letters (P L N S G B R K)'], ['both', 'Kanji + English letter']], def: 'kanji' },
+  { id: 'help', label: 'Ring the pieces that can move', type: 'check', def: true },
+  { id: 'sound', label: 'Sound', type: 'check', def: true }
+], st, $('panel'), () => { const ch = lastSide !== st.side; S0.save(); if (ch) newGame(); });
+
+const W = 560, H = 660, CS = 56, X0 = 28, Y0 = 78, TOPY = 6, BOTY = 590, STRIP = 64, HAND_ORDER = [7, 6, 5, 4, 3, 2, 1];
+const cv = $('cv'), C = KIT.canvas(cv, W, H, 2), ctx = C.ctx;
+const FONT = '"Noto Serif CJK JP","Noto Serif CJK TC","Hiragino Mincho ProN","Yu Mincho","MS Mincho","PingFang TC","Microsoft JhengHei",serif';
+let S = null, hist = [], keys = [], me = 1, LM = [], sel = null, anim = null, over = false, thinking = false, hintM = null, hintT = 0, last = null, tClock = 0, movesPlayed = 0, token = 0, note = '', pend = null, inChk = false;
+const flip = () => st.opp === 'cpu' && me === -1, bottomSide = () => flip() ? -1 : 1, sideName = s => s === 1 ? 'Sente' : 'Gote', sym = s => s === 1 ? '☗' : '☖';
+function sqXY(i) { const r = (i / 9) | 0, c = i % 9, f = flip(), dr = f ? 8 - r : r, dc = f ? 8 - c : c; return [X0 + (dc + .5) * CS, Y0 + (dr + .5) * CS]; }
+function xyToIdx(x, y) { const dc = Math.floor((x - X0) / CS), dr = Math.floor((y - Y0) / CS); if (dc < 0 || dr < 0 || dc > 8 || dr > 8) return -1; const f = flip(); return (f ? 8 - dr : dr) * 9 + (f ? 8 - dc : dc); }
+const stripY = side => (side === bottomSide() ? BOTY : TOPY) + STRIP / 2;
+const handXY = (side, d) => [X0 + 34 + HAND_ORDER.indexOf(d) * 62, stripY(side)];
+function xyToHand(x, y) { for (const side of [1, -1]) for (const d of HAND_ORDER) { const [hx, hy] = handXY(side, d); if (Math.abs(x - hx) < 29 && Math.abs(y - hy) < 31) return { side, d }; } return null; }
+const setMsg = t => { $('msg').textContent = t; };
+const FW = '１２３４５６７８９', RK = '一二三四五六七八九';
+function moveText(m, s, t) { const d = sgDecode(m), r = (d.t / 9) | 0, c = d.t % 9; return sym(s) + FW[8 - c] + RK[r] + SG_KJ[t] + (d.pr ? '成' : '') + (d.drop ? '打' : ''); }
+
+/* ---------- starting and ending ---------- */
+function newGame() {
+  token++; O.hideAll(); S = sgNew(); hist = []; keys = [sgKey(S)]; anim = null; over = false; thinking = false; hintM = null; last = null; sel = null; pend = null; movesPlayed = 0; note = ''; inChk = false;
+  me = st.opp === 'cpu' ? (st.side === 'gote' ? -1 : 1) : 0; lastSide = st.side; bars(); nextTurn();
+}
+const handCount = s => S.h[sgHi(s)].reduce((a, b) => a + b, 0);
+function hud() {
+  const cpu = st.opp === 'cpu';
+  $('l2').textContent = cpu ? (me === 1 ? 'YOU ☗ SENTE' : 'COMPUTER ☗ SENTE') : 'SENTE ☗'; $('l3').textContent = cpu ? (me === -1 ? 'YOU ☖ GOTE' : 'COMPUTER ☖ GOTE') : 'GOTE ☖';
+  $('s1').textContent = over ? 'Game over' : cpu ? (S.turn === me ? 'You' : 'Computer') : sideName(S.turn); $('s2').textContent = 'hand ' + handCount(1); $('s3').textContent = 'hand ' + handCount(-1); $('s4').textContent = movesPlayed;
+  $('recLine').textContent = cpu ? 'Record against the computer: ' + st.wins + ' won, ' + st.losses + ' lost, ' + st.draws + ' drawn' : 'Two players on one screen';
+}
+function bars() { $('oppBar').innerHTML = [['cpu', '🤖 vs computer'], ['two', '👥 2 players']].map(([k, t]) => '<button class="btn sm' + (st.opp === k ? ' on' : '') + '" data-act="opp" data-k="' + k + '" type="button">' + t + '</button>').join(''); }
+function nextTurn() {
+  hud(); if (over) return; LM = sgLegal(S); inChk = sgInCheck(S, S.turn); sel = null; pend = null;
+  if (!LM.length) return finish(-S.turn, inChk ? 'Checkmate! ' + sideName(S.turn) + ' cannot escape.' : sideName(S.turn) + ' has no legal move.');
+  if (keys.filter(k => k === keys[keys.length - 1]).length >= 4) return finish(0, 'The same position came up four times (千日手).');
+  if (S.ply >= 500) return finish(0, 'A very long game: called a draw.');
+  const pre = (note ? note + '  ' : '') + (inChk ? 'Check! ' : '');
+  if (st.opp === 'cpu' && S.turn !== me) { setMsg(pre + 'The computer is thinking…'); think(); }
+  else setMsg(pre + (st.opp === 'cpu' ? 'Your move' : sideName(S.turn) + ' to move'));
+}
+function finish(w, why) {
+  over = true; let h;
+  if (w === 0) { h = 'It\'s a draw'; if (st.opp === 'cpu') st.draws++; }
+  else if (st.opp === 'cpu') { h = w === me ? 'You win! 🎉' : 'The computer wins'; if (w === me) st.wins++; else st.losses++; }
+  else h = sideName(w) + ' wins! 🎉';
+  S0.save(); hud(); $('endH').textContent = h; $('endP').textContent = why; setMsg(h);
+  if (w !== 0 && (st.opp === 'two' || w === me)) { A.beep(660, .1, 'triangle', .12); A.beep(880, .1, 'triangle', .12, .1); A.beep(1320, .2, 'triangle', .12, .2); } else A.slide(400, 120, .5, 'sawtooth', .08);
+  setTimeout(() => { if (over) O.show('ovEnd'); }, 700);
+}
+
+/* ---------- playing a move ---------- */
+function playMove(m) {
+  token++; hintM = null; pend = null; O.hide('ovPromo'); const d = sgDecode(m), s = S.turn, type = d.drop || Math.abs(S.b[d.f]);
+  hist.push({ S: sgClone(S), last, mp: movesPlayed, note, nk: keys.length, inChk });
+  note = moveText(m, s, type) + ' (' + SG_NAMES[type] + (d.pr ? ' promoted' : '') + (d.drop ? ' dropped' : '') + (S.b[d.t] ? ', captured ' + SG_NAMES[Math.abs(S.b[d.t])] : '') + ')';
+  sel = null; anim = { m, d, piece: d.drop ? s * d.drop : S.b[d.f], from: d.drop ? handXY(s, d.drop) : sqXY(d.f), to: sqXY(d.t), t: 0, side: s };
+}
+function finishAnim() {
+  const m = anim.m, d = anim.d, cap = !!S.b[d.t]; sgMake(S, m); anim = null; last = { f: d.drop ? -1 : d.f, to: d.t }; movesPlayed++; keys.push(sgKey(S));
+  if (cap) { A.noise(.07, .14); A.beep(180, .08, 'square', .06); } else A.beep(d.drop ? 420 : 320, .06, 'triangle', .11); if (d.pr) A.beep(760, .1, 'triangle', .08, .08);
+  nextTurn();
+}
+function think() {
+  thinking = true; const my = token, lvl = st.level, snap = sgClone(S);
+  setTimeout(() => {
+    if (my !== token || over) { thinking = false; return; }
+    const opt = lvl === 'easy' ? { ms: 150, maxDepth: 2, exact: true } : lvl === 'normal' ? { ms: 800, maxDepth: 6 } : { ms: 2200, maxDepth: 12 };
+    const r = sgSearch(snap, opt); thinking = false; if (my !== token || over || !r) return; let m = r.move;
+    if (lvl === 'easy') { const best = Math.max(...r.scores), pool = r.moves.filter((_, i) => r.scores[i] >= best - 60); m = Math.random() < .2 ? r.moves[Math.floor(Math.random() * r.moves.length)] : pool[Math.floor(Math.random() * pool.length)]; }
+    playMove(m);
+  }, 350);
+}
+function undo() {
+  if (anim || !hist.length) return; token++; thinking = false; let j = hist.length - 1;
+  if (st.opp === 'cpu') { while (j >= 0 && hist[j].S.turn !== me) j--; if (j < 0) return; }
+  const h = hist[j]; hist.length = j; S = sgClone(h.S); last = h.last; movesPlayed = h.mp; note = h.note || ''; keys.length = h.nk; over = false; O.hideAll(); anim = null; sel = null; hintM = null; nextTurn();
+}
+function hint() {
+  if (over || anim || (st.opp === 'cpu' && S.turn !== me)) return; setMsg('Thinking of a hint…');
+  setTimeout(() => { const r = sgSearch(sgClone(S), { ms: 900, maxDepth: 8 }); if (!r) return; hintM = r.move; hintT = 3.5; setMsg('Hint: the blue ring shows the piece (or the hand piece) and where it goes.'); }, 30);
+}
+
+/* ---------- input ---------- */
+const canAct = () => !over && !anim && !thinking && !pend && (st.opp === 'two' || S.turn === me);
+const dests = () => { if (!sel) return []; return LM.filter(m => sel.k === 'sq' ? (m & 127) === sel.i && !((m >> 15) & 15) : ((m >> 15) & 15) === sel.d); };
+cv.addEventListener('pointerdown', e => {
+  if (!canAct()) return; const p = C.pos(e); hintM = null;
+  const hh = xyToHand(p.x, p.y);
+  if (hh) { if (hh.side === S.turn && LM.some(m => ((m >> 15) & 15) === hh.d)) { sel = { k: 'hand', d: hh.d }; A.beep(520, .03, 'sine', .05); } else if (hh.side === S.turn) setMsg('That piece cannot be dropped anywhere right now.'); return; }
+  const i = xyToIdx(p.x, p.y); if (i < 0) return;
+  if (sel) { const c = dests().filter(m => ((m >> 7) & 127) === i); if (c.length === 1) return playMove(c[0]); if (c.length === 2) return askPromote(c); }
+  const q = S.b[i]; if (q && Math.sign(q) === S.turn) { if (LM.some(m => (m & 127) === i && !((m >> 15) & 15))) { sel = { k: 'sq', i }; A.beep(520, .03, 'sine', .05); return; } setMsg('That piece has no legal move (it may be pinned or your king is in check).'); }
+  sel = null;
+});
+function askPromote(c) {
+  pend = c; const d = sgDecode(c[0]), t = Math.abs(S.b[d.f]), up = SG_KJ[t + 8] || SG_KJ[t], lab = st.labels;
+  const nm = k => lab === 'english' ? SG_ABBR[k] : SG_KJ[k];
+  $('promoBtns').innerHTML = '<button class="btn primary" data-act="promo" data-k="1" type="button">Promote ' + nm(t + 8) + '</button><button class="btn" data-act="promo" data-k="0" type="button">Keep ' + nm(t) + '</button>'; O.show('ovPromo');
+}
+window.addEventListener('keydown', e => { if (e.code === 'Escape') { sel = null; if (pend) { pend = null; O.hide('ovPromo'); } } else if (e.code === 'KeyU') undo(); });
+ui.actions(document.body, {
+  restart: newGame, undo, hint, closeov: () => O.hide('ovEnd'),
+  opp: b => { st.opp = b.dataset.k; S0.save(); newGame(); },
+  promo: b => { if (!pend) return; const want = +b.dataset.k, m = pend.find(x => ((x >> 14) & 1) === want); O.hide('ovPromo'); if (m != null) playMove(m); }
+});
+
+/* ---------- drawing ---------- */
+function tilePath(g, w, h) { g.beginPath(); g.moveTo(0, -h / 2); g.lineTo(w * .42, -h * .3); g.lineTo(w / 2, h / 2); g.lineTo(-w / 2, h / 2); g.lineTo(-w * .42, -h * .3); g.closePath(); }
+/* a tile centred on (x, y); pointing up if up is true; t is the piece type (1..15), s the side (for king: 玉 for Sente, 王 for Gote) */
+function drawTile(g, x, y, t, s, up, scale, alpha) {
+  const w = CS * .8 * scale, h = CS * .92 * scale; g.save(); g.translate(x, y); if (!up) g.rotate(Math.PI); if (alpha != null) g.globalAlpha = alpha;
+  tilePath(g, w, h); g.save(); g.translate(2, 3); g.fillStyle = 'rgba(0,0,0,.35)'; g.fill(); g.restore();
+  const gr = g.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2); gr.addColorStop(0, '#f4d98f'); gr.addColorStop(1, '#d9ae5b'); g.fillStyle = gr; tilePath(g, w, h); g.fill(); g.strokeStyle = '#7a5218'; g.lineWidth = 1.6; g.stroke();
+  const prom = t > 8, kj = t === 8 ? (s === 1 ? '玉' : '王') : SG_KJ[t], ab = t === 8 ? 'K' : SG_ABBR[t], col = prom ? '#c8201c' : '#1d1208'; g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const lab = st.labels;
+  if (lab === 'english') { g.font = 'bold ' + Math.round(h * (ab.length > 1 ? .4 : .52)) + 'px sans-serif'; g.fillText(ab, 0, h * .06); }
+  else if (lab === 'both') { g.font = 'bold ' + Math.round(h * .46) + 'px ' + FONT; g.fillText(kj, 0, h * .0); g.font = 'bold ' + Math.round(h * .22) + 'px sans-serif'; g.fillText(ab, 0, h * .34); }
+  else { g.font = 'bold ' + Math.round(h * .56) + 'px ' + FONT; g.fillText(kj, 0, h * .07); }
+  g.restore();
+}
+function draw() {
+  const g = ctx; g.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0); if (!S) return;
+  g.fillStyle = '#5a3a1a'; g.beginPath(); g.roundRect ? g.roundRect(0, 0, W, H, 16) : g.rect(0, 0, W, H); g.fill();
+  const bs = bottomSide(), pulse = .5 + .5 * Math.sin(tClock * 6);
+  for (const side of [bs, -bs]) {                                         // the two hands
+    const y0 = side === bs ? BOTY : TOPY; g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.roundRect ? g.roundRect(X0, y0, 9 * CS, STRIP, 10) : g.rect(X0, y0, 9 * CS, STRIP); g.fill();
+    const turnMark = S.turn === side && !over;
+    for (const d of HAND_ORDER) { const n = S.h[sgHi(side)][d], [hx, hy] = handXY(side, d), isSel = sel && sel.k === 'hand' && sel.d === d && side === S.turn; if (isSel) { g.fillStyle = 'rgba(255,210,63,.35)'; g.fillRect(hx - 29, hy - 31, 58, 62); }
+      drawTile(g, hx, hy, d, side, side === bs, .82, n ? 1 : .2);
+      if (n > 1 || (n === 1 && false)) { g.fillStyle = '#d33'; g.beginPath(); g.arc(hx + 19, hy - 22, 9, 0, 7); g.fill(); g.fillStyle = '#fff'; g.font = 'bold 12px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(n, hx + 19, hy - 21.5); } }
+    g.fillStyle = turnMark ? '#ffd23f' : 'rgba(255,255,255,.55)'; g.font = 'bold 12px sans-serif'; g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(sym(side) + ' ' + sideName(side) + (side === 1 ? ' 先手' : ' 後手'), X0 + 9 * CS - 8, y0 + 12);
+  }
+  g.fillStyle = '#e1b565'; g.fillRect(X0, Y0, 9 * CS, 9 * CS); g.strokeStyle = '#6b4416'; g.lineWidth = 1.2;
+  for (let k = 0; k <= 9; k++) { g.beginPath(); g.moveTo(X0 + k * CS, Y0); g.lineTo(X0 + k * CS, Y0 + 9 * CS); g.stroke(); g.beginPath(); g.moveTo(X0, Y0 + k * CS); g.lineTo(X0 + 9 * CS, Y0 + k * CS); g.stroke(); }
+  g.lineWidth = 2.2; g.strokeRect(X0, Y0, 9 * CS, 9 * CS); g.fillStyle = '#6b4416'; for (const a of [3, 6]) for (const b of [3, 6]) { g.beginPath(); g.arc(X0 + a * CS, Y0 + b * CS, 3.2, 0, 7); g.fill(); }
+  g.fillStyle = 'rgba(80,50,15,.8)'; g.font = '11px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; for (let k = 0; k < 9; k++) { const dc = flip() ? 8 - k : k; g.fillText(FW[8 - k], X0 + (dc + .5) * CS, Y0 - 7); }
+  g.textAlign = 'left'; for (let k = 0; k < 9; k++) { const dr = flip() ? 8 - k : k; g.fillText(RK[k], X0 + 9 * CS + 4, Y0 + (dr + .5) * CS); }
+  if (last) { const [x, y] = sqXY(last.to); g.fillStyle = 'rgba(255,80,60,.28)'; g.fillRect(x - CS / 2, y - CS / 2, CS, CS); if (last.f >= 0) { const [x2, y2] = sqXY(last.f); g.fillStyle = 'rgba(255,200,60,.28)'; g.fillRect(x2 - CS / 2, y2 - CS / 2, CS, CS); } }
+  const movers = new Set(); if (canAct() && st.help) LM.forEach(m => { if (!((m >> 15) & 15)) movers.add(m & 127); });
+  for (let i = 0; i < 81; i++) {
+    const p = S.b[i]; if (!p) continue; if (anim && !anim.d.drop && i === anim.d.f) continue; if (anim && i === anim.d.t && anim.t > .85) continue; const [x, y] = sqXY(i), s = Math.sign(p), t = Math.abs(p);
+    if (i === S.kp[sgHi(s)] && inChk && s === S.turn) { g.fillStyle = 'rgba(255,40,40,' + (.25 + .25 * pulse) + ')'; g.fillRect(x - CS / 2, y - CS / 2, CS, CS); }
+    if (movers.has(i) && !(sel && sel.k === 'sq' && sel.i === i)) { g.strokeStyle = 'rgba(40,160,70,' + (.5 + .4 * pulse) + ')'; g.lineWidth = 3; g.strokeRect(x - CS / 2 + 3, y - CS / 2 + 3, CS - 6, CS - 6); }
+    if (sel && sel.k === 'sq' && sel.i === i) { g.fillStyle = 'rgba(255,210,63,.4)'; g.fillRect(x - CS / 2, y - CS / 2, CS, CS); }
+    drawTile(g, x, y, t, s, s === bs, 1);
+  }
+  if (sel) for (const m of dests()) { const [x, y] = sqXY((m >> 7) & 127), cap = S.b[(m >> 7) & 127]; g.fillStyle = cap ? 'rgba(230,50,50,.85)' : 'rgba(40,170,80,.8)'; g.beginPath(); g.arc(x, y, cap ? 11 + pulse * 2 : 7 + pulse * 2, 0, 7); g.fill(); if (cap) { g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); } }
+  if (hintM != null && hintT > 0) { const d = sgDecode(hintM), [x2, y2] = sqXY(d.t), [x, y] = d.drop ? handXY(S.turn, d.drop) : sqXY(d.f); g.strokeStyle = 'rgba(70,200,255,' + (.6 + .4 * pulse) + ')'; g.lineWidth = 4; g.strokeRect(x - 28, y - 29, 56, 58); g.beginPath(); g.arc(x2, y2, 26, 0, 7); g.stroke(); }
+  if (anim) { const a = anim, u = Math.min(1, a.t), e = u * u * (3 - 2 * u), x = a.from[0] + (a.to[0] - a.from[0]) * e, y = a.from[1] + (a.to[1] - a.from[1]) * e; drawTile(g, x, y - Math.sin(u * Math.PI) * 6, Math.abs(a.piece), a.side, a.side === bs, 1); }
+}
+function update(dt) {
+  tClock += dt; if (hintT > 0) { hintT -= dt; if (hintT <= 0) hintM = null; }
+  if (anim) { anim.t += dt / (anim.d.drop ? .3 : .2); if (anim.t >= 1) finishAnim(); }
+}
+KIT.loop(update, draw).start();
+
+/* ---------- little move diagrams in the rules ---------- */
+function drawDiagrams() {
+  document.querySelectorAll('canvas.mv').forEach(cn => {
+    const t = +cn.dataset.pc, g = cn.getContext('2d'), n = 5, cs = cn.width / n; g.clearRect(0, 0, cn.width, cn.height);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) { g.fillStyle = '#e1b565'; g.fillRect(c * cs, r * cs, cs, cs); g.strokeStyle = '#8a5f26'; g.lineWidth = 1; g.strokeRect(c * cs + .5, r * cs + .5, cs - 1, cs - 1); }
+    const mark = (r, c, slide, dr, dc) => { if (r < 0 || r >= n || c < 0 || c >= n) return; g.fillStyle = slide ? 'rgba(40,160,70,.6)' : 'rgba(40,160,70,.85)'; g.fillRect(c * cs + 2, r * cs + 2, cs - 4, cs - 4); };
+    if (t === 3) { mark(0, 1); mark(0, 3); }
+    for (const v of SG_STEPS[t]) mark(2 + v[0], 2 + v[1], false);
+    for (const v of SG_SLIDES[t]) { let r = 2 + v[0], c = 2 + v[1]; while (r >= 0 && r < n && c >= 0 && c < n) { mark(r, c, true); r += v[0]; c += v[1]; } const er = 2 + v[0] * 2, ec = 2 + v[1] * 2, ex = (ec + .5) * cs, ey = (er + .5) * cs; g.strokeStyle = '#0b5a22'; g.lineWidth = 2; g.beginPath(); g.moveTo((2.5) * cs + v[1] * cs * .35, 2.5 * cs + v[0] * cs * .35); g.lineTo(ex, ey); g.stroke(); }
+    g.save(); g.translate(2.5 * cs, 2.5 * cs); const w = cs * .8, h = cs * .92; tilePath(g, w, h); g.fillStyle = '#f4d98f'; g.fill(); g.strokeStyle = '#7a5218'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = t > 8 ? '#c8201c' : '#1d1208'; g.font = 'bold ' + Math.round(h * .55) + 'px ' + FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t === 9 ? 'と' : SG_KJ[t], 0, h * .07); g.restore();
+  });
+}
+
+/* ---------- start ---------- */
+KIT.pwa && KIT.pwa.register && KIT.pwa.register(); KIT.pwa && KIT.pwa.hint && KIT.pwa.hint($('iosHint')); KIT.pwa && KIT.pwa.installButton && KIT.pwa.installButton($('installBtn'));
+drawDiagrams(); newGame();
+KIT.hook({
+  get S() { return S; }, get LM() { return LM; }, get over() { return over; }, get anim() { return anim; }, get thinking() { return thinking; }, get pend() { return pend; }, get inChk() { return inChk; }, st, newGame, undo, playMove, hint,
+  xy: i => { const p = sqXY(i), r = cv.getBoundingClientRect(); return [r.left + p[0] / W * r.width, r.top + p[1] / H * r.height]; },
+  handXYpage: (side, d) => { const p = handXY(side, d), r = cv.getBoundingClientRect(); return [r.left + p[0] / W * r.width, r.top + p[1] / H * r.height]; }, get me() { return me; },
+  setPos(S2) { S = S2; hist = []; keys = [sgKey(S)]; over = false; anim = null; thinking = false; token++; st.opp = 'two'; me = 0; nextTurn(); }
+});
+})();
+
+</script>
+<script src="../nav.js"></script>
+</body>
+</html>
